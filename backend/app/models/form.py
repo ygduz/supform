@@ -27,10 +27,10 @@ class Form(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     current_version: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
     project = relationship("Project", back_populates="forms")
-    versions: Mapped[list["FormVersion"]] = relationship(
+    versions: Mapped[list[FormVersion]] = relationship(
         back_populates="form", cascade="all, delete-orphan", order_by="FormVersion.version"
     )
-    submissions: Mapped[list["Submission"]] = relationship(  # noqa: F821
+    submissions: Mapped[list[Submission]] = relationship(  # noqa: F821
         back_populates="form", cascade="all, delete-orphan"
     )
 

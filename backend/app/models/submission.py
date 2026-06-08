@@ -23,9 +23,7 @@ class Submission(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     metadata_: Mapped[dict] = mapped_column("metadata", JSONType, default=dict)
 
     # Optional respondent (None for anonymous public submissions).
-    respondent_id: Mapped[uuid.UUID | None] = mapped_column(
-        ForeignKey("users.id"), nullable=True
-    )
+    respondent_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"), nullable=True)
     source: Mapped[str] = mapped_column(String(30), default="web")  # web|api|import|offline
 
     form = relationship("Form", back_populates="submissions")

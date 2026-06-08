@@ -7,7 +7,7 @@ form schema can evolve without migrations for every new question type.
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy import JSON, DateTime, func
 from sqlalchemy.dialects.postgresql import JSONB
@@ -19,7 +19,7 @@ JSONType = JSON().with_variant(JSONB(), "postgresql")
 
 
 def _utcnow() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 class Base(DeclarativeBase):

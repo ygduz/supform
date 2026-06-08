@@ -7,16 +7,16 @@ submissions against these models. Keep this file and the JSON Schema in lock-ste
 
 from __future__ import annotations
 
-from enum import Enum
-from typing import Any, Union
+from enum import StrEnum
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
 # An i18n string is either a plain string or a {locale: text} map.
-I18nString = Union[str, dict[str, str]]
+I18nString = str | dict[str, str]
 
 
-class ElementType(str, Enum):
+class ElementType(StrEnum):
     """Core element types. The set is intentionally open — the engine tolerates unknown
     types (treated as generic value fields) so the platform stays flexible."""
 
@@ -117,7 +117,7 @@ class Element(BaseModel):
     columns: list[Choice] | None = None
 
     # nesting
-    elements: list["Element"] | None = None
+    elements: list[Element] | None = None
     repeat: RepeatSettings | None = None
 
     meta: dict[str, Any] = Field(default_factory=dict)
@@ -171,7 +171,7 @@ class FormSchema(BaseModel):
     pages: list[Page] = Field(default_factory=list)
 
     # ---- convenience ----
-    def iter_elements(self) -> "list[Element]":
+    def iter_elements(self) -> list[Element]:
         """Flatten all elements (recursing into groups/repeats)."""
         out: list[Element] = []
 

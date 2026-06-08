@@ -57,12 +57,27 @@ def _form_payload(project_id: str) -> dict:
                 {
                     "name": "p1",
                     "elements": [
-                        {"type": "single_choice", "name": "region", "label": "Region",
-                         "required": True, "options": [{"value": "north"}, {"value": "south"}]},
-                        {"type": "integer", "name": "age", "label": "Age",
-                         "required": True, "validation": {"min": 0, "max": 120}},
-                        {"type": "single_choice", "name": "is_head", "label": "Head?",
-                         "options": [{"value": "yes"}, {"value": "no"}], "visibleIf": "age >= 18"},
+                        {
+                            "type": "single_choice",
+                            "name": "region",
+                            "label": "Region",
+                            "required": True,
+                            "options": [{"value": "north"}, {"value": "south"}],
+                        },
+                        {
+                            "type": "integer",
+                            "name": "age",
+                            "label": "Age",
+                            "required": True,
+                            "validation": {"min": 0, "max": 120},
+                        },
+                        {
+                            "type": "single_choice",
+                            "name": "is_head",
+                            "label": "Head?",
+                            "options": [{"value": "yes"}, {"value": "no"}],
+                            "visibleIf": "age >= 18",
+                        },
                     ],
                 }
             ],
@@ -74,6 +89,17 @@ async def _auth_headers(client: httpx.AsyncClient) -> dict:
     await client.post("/api/v1/auth/signup", json={"email": "a@b.c", "password": "supersecret"})
     r = await client.post("/api/v1/auth/login", json={"email": "a@b.c", "password": "supersecret"})
     return {"Authorization": f"Bearer {r.json()['access_token']}"}
+
+
+async def _published_form(client: httpx.AsyncClient, headers: dict) -> str:
+    """Create a project + form and publish it; return the form id."""
+    proj = await client.post("/api/v1/projects", json={"name": "R"}, headers=headers)
+    form = await client.post(
+        "/api/v1/forms", json=_form_payload(proj.json()["id"]), headers=headers
+    )
+    form_id = form.json()["id"]
+    await client.post(f"/api/v1/forms/{form_id}/publish", headers=headers)
+    return form_id
 
 
 @pytest.mark.asyncio
@@ -96,8 +122,9 @@ async def test_full_loop(client: httpx.AsyncClient):
     assert schema.status_code == 200 and schema.json()["version"] == 1
 
     # Valid submission: age < 18 hides is_head -> dropped from stored answers.
-    ok = await client.post(f"/api/v1/forms/{form_id}/submissions",
-                           json={"answers": {"region": "north", "age": 15}})
+    ok = await client.post(
+        f"/api/v1/forms/{form_id}/submissions", json={"answers": {"region": "north", "age": 15}}
+    )
     assert ok.status_code == 201
     assert "is_head" not in ok.json()["answers"]
 
@@ -108,9 +135,7 @@ async def test_full_loop(client: httpx.AsyncClient):
 @pytest.mark.asyncio
 async def test_invalid_submission_rejected(client: httpx.AsyncClient):
     headers = await _auth_headers(client)
-    project_id = (await client.post("/api/v1/projects", json={"name": "R"}, headers=headers)).json()["id"]
-    form_id = (await client.post("/api/v1/forms", json=_form_payload(project_id), headers=headers)).json()["id"]
-    await client.post(f"/api/v1/forms/{form_id}/publish", headers=headers)
+    form_id = await _published_form(client, headers)
 
     bad = await client.post(f"/api/v1/forms/{form_id}/submissions", json={"answers": {"age": 999}})
     assert bad.status_code == 422

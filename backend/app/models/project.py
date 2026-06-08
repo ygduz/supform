@@ -17,6 +17,6 @@ class Project(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     owner_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"), index=True)
 
-    forms: Mapped[list["Form"]] = relationship(  # noqa: F821
+    forms: Mapped[list[Form]] = relationship(  # noqa: F821
         back_populates="project", cascade="all, delete-orphan"
     )
