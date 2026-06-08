@@ -1,0 +1,73 @@
+:root {
+  --primary: #2563eb;
+  --primary-hover: #1d4ed8;
+  --text: #0f172a;
+  --muted: #64748b;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --radius: 10px;
+  --font: Inter, system-ui, -apple-system, sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: var(--font);
+  color: var(--text);
+  background: #fff;
+}
+
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--border);
+}
+.app-header .brand { font-weight: 700; font-size: 20px; text-decoration: none; color: var(--text); }
+.app-header nav a { margin-left: 16px; text-decoration: none; color: var(--muted); }
+
+.app-main { max-width: 1100px; margin: 0 auto; padding: 32px 24px; }
+
+.button {
+  display: inline-block;
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius);
+  padding: 10px 18px;
+  font-size: 15px;
+  cursor: pointer;
+  text-decoration: none;
+}
+.button:hover { background: var(--primary-hover); }
+
+.muted { color: var(--muted); }
+.hint { color: var(--muted); display: block; margin-top: 4px; }
+.error { color: #dc2626; }
+
+/* Forms */
+.form-renderer { max-width: 640px; }
+.field { margin-bottom: 20px; }
+.field label { display: block; font-weight: 600; margin-bottom: 6px; }
+.field input[type="text"],
+.field input[type="email"],
+.field input[type="number"],
+.field textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 15px;
+  font-family: inherit;
+}
+.choices label { display: block; margin: 6px 0; }
+.rating .star { background: none; border: none; font-size: 28px; color: var(--border); cursor: pointer; }
+.rating .star.active { color: #f59e0b; }
+
+/* Builder */
+.builder { display: grid; grid-template-columns: 220px 1fr 360px; gap: 24px; }
+.palette-item { display: block; width: 100%; text-align: left; margin: 4px 0; padding: 8px 10px;
+  border: 1px solid var(--border); border-radius: var(--radius); background: #fff; cursor: pointer; }
+.canvas { background: var(--surface); border-radius: var(--radius); padding: 24px; }

@@ -1,0 +1,111 @@
+/**
+ * TypeScript mirror of packages/form-schema/schema/form.schema.json.
+ *
+ * This is the frontend half of the form contract. The builder produces these objects;
+ * the renderer consumes them. Keep in lock-step with the JSON Schema and the backend
+ * Pydantic models (app/schemas/form_schema.py).
+ */
+
+/** Either a plain string or a { locale: text } map. */
+export type I18nString = string | Record<string, string>;
+
+/** A logic/value expression evaluated by the form engine (e.g. "age >= 18"). */
+export type Expression = string;
+
+export type ElementType =
+  | "text" | "longtext" | "email" | "url" | "phone"
+  | "number" | "integer" | "decimal"
+  | "single_choice" | "multi_choice" | "dropdown" | "ranking" | "rating" | "scale"
+  | "date" | "time" | "datetime" | "boolean"
+  | "matrix" | "group" | "repeat"
+  | "file" | "image" | "signature" | "geopoint" | "barcode"
+  | "calculated" | "note" | "section" | "html"
+  // open set: custom types are allowed
+  | (string & {});
+
+export interface Choice {
+  value: string | number | boolean;
+  label?: I18nString;
+  visibleIf?: Expression;
+  meta?: Record<string, unknown>;
+}
+
+export interface Validation {
+  min?: number;
+  max?: number;
+  minLength?: number;
+  maxLength?: number;
+  pattern?: string;
+  minSelected?: number;
+  maxSelected?: number;
+  expression?: Expression;
+  message?: I18nString;
+}
+
+export interface RepeatSettings {
+  min?: number;
+  max?: number;
+  addButtonText?: I18nString;
+}
+
+export interface Element {
+  type: ElementType;
+  name: string;
+  label?: I18nString;
+  hint?: I18nString;
+  placeholder?: I18nString;
+  defaultValue?: unknown;
+  required?: boolean;
+  readOnly?: boolean;
+  visibleIf?: Expression;
+  enableIf?: Expression;
+  requiredIf?: Expression;
+  calculate?: Expression;
+  validation?: Validation;
+  options?: Choice[];
+  optionsFrom?: string;
+  rows?: Choice[];
+  columns?: Choice[];
+  elements?: Element[];
+  repeat?: RepeatSettings;
+  meta?: Record<string, unknown>;
+}
+
+export interface Page {
+  name: string;
+  title?: I18nString;
+  description?: I18nString;
+  visibleIf?: Expression;
+  elements: Element[];
+}
+
+export interface Theme {
+  preset?: string;
+  primaryColor?: string;
+  backgroundColor?: string;
+  fontFamily?: string;
+  [key: string]: unknown;
+}
+
+export interface FormSettings {
+  displayMode?: "paged" | "single" | "oneQuestionPerScreen";
+  showProgressBar?: boolean;
+  allowMultipleSubmissions?: boolean;
+  requireLogin?: boolean;
+  submitButtonText?: I18nString;
+  confirmationMessage?: I18nString;
+}
+
+export interface FormSchema {
+  schemaVersion: string;
+  id?: string;
+  name: string;
+  title: I18nString;
+  description?: I18nString;
+  version?: number;
+  defaultLanguage?: string;
+  languages?: string[];
+  theme?: Theme;
+  settings?: FormSettings;
+  pages: Page[];
+}

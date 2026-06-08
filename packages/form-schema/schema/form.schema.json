@@ -1,0 +1,214 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://supform.dev/schemas/form.schema.json",
+  "title": "Supform Form",
+  "description": "The canonical definition of a Supform form. A form is a versioned tree of pages and elements, plus theme and settings.",
+  "type": "object",
+  "required": ["schemaVersion", "name", "title", "pages"],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "description": "Version of THIS schema format (semver), e.g. '1.0'.",
+      "default": "1.0"
+    },
+    "id": {
+      "type": "string",
+      "description": "Server-assigned form id (UUID). Absent for unsaved drafts."
+    },
+    "name": {
+      "type": "string",
+      "description": "Stable machine identifier for the form (slug-like).",
+      "pattern": "^[a-zA-Z_][a-zA-Z0-9_]*$"
+    },
+    "title": { "$ref": "#/$defs/i18nString" },
+    "description": { "$ref": "#/$defs/i18nString" },
+    "version": {
+      "type": "integer",
+      "description": "Published version number. Submissions reference this.",
+      "minimum": 1,
+      "default": 1
+    },
+    "defaultLanguage": { "type": "string", "default": "en" },
+    "languages": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Locale codes this form is translated into."
+    },
+    "theme": { "$ref": "#/$defs/theme" },
+    "settings": { "$ref": "#/$defs/settings" },
+    "pages": {
+      "type": "array",
+      "description": "Ordered logical screens/sections of the form.",
+      "items": { "$ref": "#/$defs/page" }
+    }
+  },
+  "$defs": {
+    "i18nString": {
+      "description": "Either a plain string, or a map of locale -> string.",
+      "oneOf": [
+        { "type": "string" },
+        { "type": "object", "additionalProperties": { "type": "string" } }
+      ]
+    },
+    "expression": {
+      "type": "string",
+      "description": "A boolean/value expression over other fields, e.g. \"age >= 18 and region == 'North'\". Evaluated by the form engine."
+    },
+    "theme": {
+      "type": "object",
+      "description": "Visual styling. Forms are themeable and beautiful by default.",
+      "additionalProperties": true,
+      "properties": {
+        "preset": { "type": "string", "default": "supform-light" },
+        "primaryColor": { "type": "string" },
+        "backgroundColor": { "type": "string" },
+        "fontFamily": { "type": "string" },
+        "cornerRadius": { "type": "string" },
+        "coverImage": { "type": "string" },
+        "logo": { "type": "string" }
+      }
+    },
+    "settings": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "displayMode": {
+          "type": "string",
+          "enum": ["paged", "single", "oneQuestionPerScreen"],
+          "default": "paged",
+          "description": "paged = sections; oneQuestionPerScreen = Typeform-style."
+        },
+        "showProgressBar": { "type": "boolean", "default": true },
+        "shuffleQuestions": { "type": "boolean", "default": false },
+        "allowMultipleSubmissions": { "type": "boolean", "default": true },
+        "requireLogin": { "type": "boolean", "default": false },
+        "closeDate": { "type": "string", "format": "date-time" },
+        "submitButtonText": { "$ref": "#/$defs/i18nString" },
+        "confirmationMessage": { "$ref": "#/$defs/i18nString" }
+      }
+    },
+    "page": {
+      "type": "object",
+      "required": ["name", "elements"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string" },
+        "title": { "$ref": "#/$defs/i18nString" },
+        "description": { "$ref": "#/$defs/i18nString" },
+        "visibleIf": { "$ref": "#/$defs/expression" },
+        "elements": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/element" }
+        }
+      }
+    },
+    "element": {
+      "type": "object",
+      "required": ["type", "name"],
+      "description": "A field, a layout block, or a group/repeat. `type` drives behavior.",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Element type. Core set below; the set is intentionally open/extensible.",
+          "examples": [
+            "text", "longtext", "number", "integer", "decimal", "email", "url", "phone",
+            "single_choice", "multi_choice", "dropdown", "rating", "ranking", "scale",
+            "date", "time", "datetime", "boolean", "matrix",
+            "file", "image", "signature", "geopoint", "barcode",
+            "calculated", "note", "section", "group", "repeat", "html", "image_block"
+          ]
+        },
+        "name": {
+          "type": "string",
+          "description": "Stable key used in submission data and logic.",
+          "pattern": "^[a-zA-Z_][a-zA-Z0-9_]*$"
+        },
+        "label": { "$ref": "#/$defs/i18nString" },
+        "hint": { "$ref": "#/$defs/i18nString" },
+        "placeholder": { "$ref": "#/$defs/i18nString" },
+        "defaultValue": {},
+        "required": { "type": "boolean", "default": false },
+        "readOnly": { "type": "boolean", "default": false },
+        "visibleIf": { "$ref": "#/$defs/expression" },
+        "enableIf": { "$ref": "#/$defs/expression" },
+        "requiredIf": { "$ref": "#/$defs/expression" },
+        "calculate": {
+          "$ref": "#/$defs/expression",
+          "description": "Derived value expression (for type 'calculated' or auto-fill)."
+        },
+        "validation": { "$ref": "#/$defs/validation" },
+        "options": {
+          "type": "array",
+          "description": "Choices for choice/dropdown/ranking/rating element types.",
+          "items": { "$ref": "#/$defs/choice" }
+        },
+        "optionsFrom": {
+          "type": "string",
+          "description": "Name of a shared/cascading choice list, instead of inline options."
+        },
+        "rows": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/choice" },
+          "description": "Matrix rows."
+        },
+        "columns": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/choice" },
+          "description": "Matrix columns."
+        },
+        "elements": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/element" },
+          "description": "Child elements for 'group' and 'repeat' types."
+        },
+        "repeat": {
+          "type": "object",
+          "description": "Settings for 'repeat' (repeating group) elements.",
+          "properties": {
+            "min": { "type": "integer", "minimum": 0 },
+            "max": { "type": "integer", "minimum": 1 },
+            "addButtonText": { "$ref": "#/$defs/i18nString" }
+          }
+        },
+        "meta": {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "Open bag for type-specific or UI-only metadata (preserved, never rejected)."
+        }
+      }
+    },
+    "choice": {
+      "type": "object",
+      "required": ["value"],
+      "additionalProperties": false,
+      "properties": {
+        "value": { "type": ["string", "number", "boolean"] },
+        "label": { "$ref": "#/$defs/i18nString" },
+        "visibleIf": { "$ref": "#/$defs/expression" },
+        "meta": { "type": "object", "additionalProperties": true }
+      }
+    },
+    "validation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "min": { "type": "number" },
+        "max": { "type": "number" },
+        "minLength": { "type": "integer", "minimum": 0 },
+        "maxLength": { "type": "integer", "minimum": 0 },
+        "pattern": { "type": "string", "description": "Regular expression." },
+        "minSelected": { "type": "integer", "minimum": 0 },
+        "maxSelected": { "type": "integer", "minimum": 0 },
+        "expression": {
+          "$ref": "#/$defs/expression",
+          "description": "Custom constraint; must evaluate truthy for the answer to be valid."
+        },
+        "message": {
+          "$ref": "#/$defs/i18nString",
+          "description": "Error message shown when validation fails."
+        }
+      }
+    }
+  }
+}
