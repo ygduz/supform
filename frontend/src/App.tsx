@@ -11,7 +11,9 @@ export function App() {
   return (
     <BrowserRouter>
       <header className="app-header">
-        <Link to="/" className="brand">Supform</Link>
+        <Link to="/" className="brand">
+          Supform
+        </Link>
         <nav>
           <Link to="/builder/new">Builder</Link>
           <Link to="/f/demo">Preview</Link>
@@ -34,7 +36,9 @@ function Home() {
     <section className="home">
       <h1>Build beautiful forms.</h1>
       <p>As easy as MS Forms, flexible enough to drive from code.</p>
-      <Link className="button" to="/builder/new">Create a form</Link>
+      <Link className="button" to="/builder/new">
+        Create a form
+      </Link>
     </section>
   );
 }

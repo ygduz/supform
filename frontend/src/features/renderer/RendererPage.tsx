@@ -1,6 +1,7 @@
+import { api } from "@/api/client";
+import type { FormSchema } from "@/types/form-schema";
 import { useQuery } from "@tanstack/react-query";
 import { useParams } from "react-router-dom";
-import { api } from "@/api/client";
 import { FormRenderer } from "./FormRenderer";
 
 /** Loads a published form schema by id and renders it for a respondent. */
@@ -19,7 +20,7 @@ export function RendererPage() {
 }
 
 // A tiny built-in demo so the renderer is viewable without a backend.
-const DEMO = {
+const DEMO: FormSchema = {
   schemaVersion: "1.0",
   name: "demo",
   title: "Quick feedback",
@@ -44,4 +45,4 @@ const DEMO = {
       ],
     },
   ],
-} as const;
+};

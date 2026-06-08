@@ -9,7 +9,9 @@ export function ResponsesPage() {
   return (
     <section className="responses">
       <h1>Responses</h1>
-      <p className="muted">Results for form <code>{formId}</code> will appear here.</p>
+      <p className="muted">
+        Results for form <code>{formId}</code> will appear here.
+      </p>
       <ul>
         <li>Submissions table (sortable, filterable)</li>
         <li>Per-question summaries &amp; charts</li>

@@ -37,8 +37,16 @@ export const api = {
     }),
 
   // forms
-  getPublishedSchema: (formId: string) =>
-    request<FormSchema>(`/api/v1/forms/${formId}/schema`),
+  getPublishedSchema: (formId: string) => request<FormSchema>(`/api/v1/forms/${formId}/schema`),
+
+  getForm: (formId: string) =>
+    request<{ id: string; draft_content: FormSchema; status: string }>(`/api/v1/forms/${formId}`),
+
+  createForm: (projectId: string, content: FormSchema) =>
+    request<{ id: string }>("/api/v1/forms", {
+      method: "POST",
+      body: JSON.stringify({ project_id: projectId, content }),
+    }),
 
   saveDraft: (formId: string, content: FormSchema) =>
     request(`/api/v1/forms/${formId}`, {
