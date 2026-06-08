@@ -23,11 +23,21 @@ class Client:
         self._http = httpx.Client(base_url=self.base_url, headers=headers, timeout=timeout)
 
     # ---- auth ----
+    def signup(self, email: str, password: str, full_name: str | None = None) -> dict[str, Any]:
+        return self._post(
+            "/api/v1/auth/signup",
+            {"email": email, "password": password, "full_name": full_name},
+        )
+
     def login(self, email: str, password: str) -> str:
         data = self._post("/api/v1/auth/login", {"email": email, "password": password})
         token = data["access_token"]
         self._http.headers["Authorization"] = f"Bearer {token}"
         return token
+
+    # ---- projects ----
+    def create_project(self, name: str, description: str | None = None) -> dict[str, Any]:
+        return self._post("/api/v1/projects", {"name": name, "description": description})
 
     # ---- forms ----
     def create_form(self, *, project_id: str, content: dict[str, Any]) -> dict[str, Any]:

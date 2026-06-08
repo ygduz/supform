@@ -68,6 +68,20 @@ docker compose up --build
 
 Or run pieces individually — see each package's `README.md`.
 
+### Verify the full loop
+
+With the backend running and migrations applied (`cd backend && alembic upgrade head`),
+drive the entire product loop through the Python SDK:
+
+```bash
+python scripts/smoke_e2e.py
+# signup → login → create project → build form in code → publish
+#        → submit valid response → reject invalid (422) → list responses
+```
+
+This is the working vertical slice: code-first form definition, JSONB persistence,
+logic-aware submission validation, and versioning — all end to end.
+
 ## Status
 
 🚧 **Early scaffold.** This repository currently contains the architecture, the form

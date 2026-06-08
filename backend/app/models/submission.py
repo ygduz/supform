@@ -3,10 +3,9 @@ from __future__ import annotations
 import uuid
 
 from sqlalchemy import ForeignKey, Integer, String
-from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.db.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
+from app.db.base import Base, JSONType, TimestampMixin, UUIDPrimaryKeyMixin
 
 
 class Submission(UUIDPrimaryKeyMixin, TimestampMixin, Base):
@@ -20,8 +19,8 @@ class Submission(UUIDPrimaryKeyMixin, TimestampMixin, Base):
 
     form_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("forms.id"), index=True)
     form_version: Mapped[int] = mapped_column(Integer)
-    answers: Mapped[dict] = mapped_column(JSONB, default=dict)
-    metadata_: Mapped[dict] = mapped_column("metadata", JSONB, default=dict)
+    answers: Mapped[dict] = mapped_column(JSONType, default=dict)
+    metadata_: Mapped[dict] = mapped_column("metadata", JSONType, default=dict)
 
     # Optional respondent (None for anonymous public submissions).
     respondent_id: Mapped[uuid.UUID | None] = mapped_column(

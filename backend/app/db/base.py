@@ -9,8 +9,13 @@ from __future__ import annotations
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import DateTime, func
+from sqlalchemy import JSON, DateTime, func
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+
+# Portable JSON column: JSONB on PostgreSQL (indexable, the production target), plain JSON
+# elsewhere (e.g. SQLite in tests). Use this everywhere a model stores schema/answers.
+JSONType = JSON().with_variant(JSONB(), "postgresql")
 
 
 def _utcnow() -> datetime:

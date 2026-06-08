@@ -11,12 +11,15 @@ A pragmatic build order. Each milestone is shippable on its own.
 - [x] Docker compose for local dev
 
 ## M1 — Core form engine (backend)
-- [ ] Pydantic models for the full Form Schema + validation
-- [ ] Submission validation against a schema version
-- [ ] Expression/logic evaluator (`visibleIf`, `calculate`, validation rules)
-- [ ] CRUD API for projects, forms, versions, submissions
-- [ ] Auth (JWT) + per-object permissions
-- [ ] Alembic migrations + Postgres JSONB storage
+- [x] Pydantic models for the full Form Schema + validation
+- [x] Submission validation against a schema version
+- [x] Expression/logic evaluator (`visibleIf`, `calculate`, validation rules)
+- [x] CRUD API for projects, forms, versions, submissions
+- [x] Auth (JWT, stdlib HS256) — per-object permissions still TODO
+- [x] Alembic migration + Postgres JSONB storage (portable to SQLite for tests)
+- [x] End-to-end vertical slice verified (`scripts/smoke_e2e.py`)
+- [ ] Per-object permissions (sharing, ownership checks beyond owner)
+- [ ] Media/file upload handling
 
 ## M2 — Builder & renderer (frontend)
 - [ ] Renderer: schema → interactive validated form (the MS-Forms-easy experience)
