@@ -438,3 +438,30 @@ body {
 .logic-input {
   font-family: ui-monospace, monospace;
 }
+
+/* Auth (sign in / sign up) */
+.auth {
+  max-width: 360px;
+  margin: 48px auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.auth h1 {
+  margin: 0 0 8px;
+  font-size: 24px;
+}
+.auth input {
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 15px;
+  font-family: inherit;
+}
+.auth .button {
+  text-align: center;
+}
+.auth .button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}

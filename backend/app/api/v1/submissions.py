@@ -13,6 +13,7 @@ from app.db.session import get_db
 from app.models.submission import Submission
 from app.models.user import User
 from app.schemas.api import SubmissionCreate, SubmissionOut
+from app.services import forms as forms_service
 from app.services import submissions as submissions_service
 
 router = APIRouter(tags=["submissions"])
@@ -36,8 +37,9 @@ async def list_submissions(
     limit: int = 50,
     offset: int = 0,
     db: AsyncSession = Depends(get_db),
-    _: User = Depends(get_current_user),
+    user: User = Depends(get_current_user),
 ):
+    await forms_service.get_owned_form(db, form_id, user.id)
     stmt = (
         select(Submission)
         .where(Submission.form_id == form_id)

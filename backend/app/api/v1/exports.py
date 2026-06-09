@@ -16,7 +16,7 @@ from app.db.session import get_db
 from app.exporters import export_csv, export_json, export_xlsx
 from app.models.submission import Submission
 from app.models.user import User
-from app.services.forms import get_published_schema
+from app.services.forms import get_owned_form, get_published_schema
 
 router = APIRouter(tags=["exports"])
 
@@ -35,12 +35,13 @@ async def export_submissions(
     form_id: uuid.UUID,
     format: str = "csv",
     db: AsyncSession = Depends(get_db),
-    _: User = Depends(get_current_user),
+    user: User = Depends(get_current_user),
 ) -> Response:
     """Stream the form's submissions in the requested format as a file download."""
     if format not in _FORMATS:
         raise ValidationError(f"Unsupported export format: {format!r}")
 
+    await get_owned_form(db, form_id, user.id)
     schema = await get_published_schema(db, form_id)
 
     stmt = (

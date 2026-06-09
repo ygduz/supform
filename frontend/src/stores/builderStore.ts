@@ -1,9 +1,19 @@
-import { api } from "@/api/client";
+import { api, isAuthenticated } from "@/api/client";
 import * as model from "@/features/builder/model";
 import type { Choice, Element, ElementType, FormSchema } from "@/types/form-schema";
 import { create } from "zustand";
 
 type Status = "idle" | "loading" | "saving" | "publishing" | "error";
+
+const NOT_SIGNED_IN = "Please sign in to save your form.";
+
+/** Find the user's first project, or create a default one to hold their forms. */
+async function resolveProjectId(): Promise<string> {
+  const projects = await api.listProjects();
+  if (projects.length > 0) return projects[0].id;
+  const created = await api.createProject("My forms");
+  return created.id;
+}
 
 interface BuilderState {
   formId: string | null;
@@ -102,28 +112,34 @@ export const useBuilderStore = create<BuilderState>((set, get) => ({
 
   save: async () => {
     const { formId, schema } = get();
-    if (!formId) {
-      set({ error: "Saving a new form requires a project — connect to a server first." });
+    if (!isAuthenticated()) {
+      set({ status: "error", error: NOT_SIGNED_IN });
       return;
     }
     set({ status: "saving", error: null });
     try {
-      await api.saveDraft(formId, schema);
-      set({ status: "idle", dirty: false });
+      if (formId) {
+        await api.saveDraft(formId, schema);
+        set({ status: "idle", dirty: false });
+      } else {
+        // First save of a brand-new form: place it in a project and persist its id.
+        const projectId = await resolveProjectId();
+        const created = await api.createForm(projectId, schema);
+        set({ formId: created.id, status: "idle", dirty: false });
+      }
     } catch (err) {
       set({ status: "error", error: (err as Error).message });
     }
   },
 
   publish: async () => {
-    const { formId } = get();
-    if (!formId) {
-      set({ error: "Publishing requires a saved form on a server." });
-      return;
-    }
     set({ status: "publishing", error: null });
+    await get().save(); // creates-or-updates and resolves formId
+    if (get().status === "error") return;
+    const { formId } = get();
+    if (!formId) return;
+    set({ status: "publishing" });
     try {
-      await get().save();
       await api.publish(formId);
       set({ status: "idle", dirty: false });
     } catch (err) {

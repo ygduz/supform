@@ -1,4 +1,5 @@
 import { BrowserRouter, Link, Route, Routes } from "react-router-dom";
+import { LoginPage } from "./features/auth/LoginPage";
 import { BuilderPage } from "./features/builder/BuilderPage";
 import { RendererPage } from "./features/renderer/RendererPage";
 import { ResponsesPage } from "./features/responses/ResponsesPage";
@@ -17,11 +18,13 @@ export function App() {
         <nav>
           <Link to="/builder/new">Builder</Link>
           <Link to="/f/demo">Preview</Link>
+          <Link to="/login">Sign in</Link>
         </nav>
       </header>
       <main className="app-main">
         <Routes>
           <Route path="/" element={<Home />} />
+          <Route path="/login" element={<LoginPage />} />
           <Route path="/builder/:formId" element={<BuilderPage />} />
           <Route path="/f/:formId" element={<RendererPage />} />
           <Route path="/forms/:formId/responses" element={<ResponsesPage />} />

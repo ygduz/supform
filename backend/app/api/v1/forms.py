@@ -21,18 +21,18 @@ router = APIRouter(prefix="/forms", tags=["forms"])
 async def create_form(
     payload: FormCreate,
     db: AsyncSession = Depends(get_db),
-    _: User = Depends(get_current_user),
+    user: User = Depends(get_current_user),
 ):
-    return await forms_service.create_form(db, payload.project_id, payload.content)
+    return await forms_service.create_form(db, payload.project_id, payload.content, user.id)
 
 
 @router.get("/{form_id}", response_model=FormDetail)
 async def get_form(
     form_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
-    _: User = Depends(get_current_user),
+    user: User = Depends(get_current_user),
 ):
-    return await forms_service.get_form(db, form_id)
+    return await forms_service.get_owned_form(db, form_id, user.id)
 
 
 @router.put("/{form_id}", response_model=FormOut)
@@ -40,18 +40,18 @@ async def update_form(
     form_id: uuid.UUID,
     payload: FormUpdate,
     db: AsyncSession = Depends(get_db),
-    _: User = Depends(get_current_user),
+    user: User = Depends(get_current_user),
 ):
-    return await forms_service.update_draft(db, form_id, payload.content)
+    return await forms_service.update_draft(db, form_id, payload.content, user.id)
 
 
 @router.post("/{form_id}/publish", response_model=PublishResult)
 async def publish_form(
     form_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
-    _: User = Depends(get_current_user),
+    user: User = Depends(get_current_user),
 ):
-    version = await forms_service.publish_form(db, form_id)
+    version = await forms_service.publish_form(db, form_id, user.id)
     return PublishResult(form_id=form_id, version=version.version)
 
 

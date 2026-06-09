@@ -44,8 +44,8 @@ async def import_xlsform_to_project(
     project_id: uuid.UUID = Form(...),
     file: UploadFile = File(...),
     db: AsyncSession = Depends(get_db),
-    _: User = Depends(get_current_user),
+    user: User = Depends(get_current_user),
 ):
     """Parse an uploaded XLSForm and create it as a draft form on the given project."""
     schema = _parse(await file.read())
-    return await forms_service.create_form(db, project_id, schema)
+    return await forms_service.create_form(db, project_id, schema, user.id)

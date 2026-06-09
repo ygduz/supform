@@ -85,10 +85,14 @@ def _form_payload(project_id: str) -> dict:
     }
 
 
-async def _auth_headers(client: httpx.AsyncClient) -> dict:
-    await client.post("/api/v1/auth/signup", json={"email": "a@b.c", "password": "supersecret"})
-    r = await client.post("/api/v1/auth/login", json={"email": "a@b.c", "password": "supersecret"})
+async def _headers_for(client: httpx.AsyncClient, email: str = "a@b.c") -> dict:
+    await client.post("/api/v1/auth/signup", json={"email": email, "password": "supersecret"})
+    r = await client.post("/api/v1/auth/login", json={"email": email, "password": "supersecret"})
     return {"Authorization": f"Bearer {r.json()['access_token']}"}
+
+
+async def _auth_headers(client: httpx.AsyncClient) -> dict:
+    return await _headers_for(client)
 
 
 async def _published_form(client: httpx.AsyncClient, headers: dict) -> str:
@@ -147,3 +151,51 @@ async def test_invalid_submission_rejected(client: httpx.AsyncClient):
 async def test_auth_required_for_listing(client: httpx.AsyncClient):
     r = await client.get("/api/v1/forms/00000000-0000-0000-0000-000000000000/submissions")
     assert r.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_other_user_cannot_touch_your_form(client: httpx.AsyncClient):
+    """A logged-in user must not read, modify, publish, list, or export someone else's form."""
+    owner = await _headers_for(client, "owner@b.c")
+    form_id = await _published_form(client, owner)
+
+    # A respondent submits so there is data to (try to) exfiltrate.
+    await client.post(
+        f"/api/v1/forms/{form_id}/submissions", json={"answers": {"region": "north", "age": 15}}
+    )
+
+    attacker = await _headers_for(client, "attacker@b.c")
+
+    # Each owner-only action returns 404 (existence is never disclosed) for the attacker.
+    assert (await client.get(f"/api/v1/forms/{form_id}", headers=attacker)).status_code == 404
+    assert (
+        await client.get(f"/api/v1/forms/{form_id}/submissions", headers=attacker)
+    ).status_code == 404
+    assert (
+        await client.get(f"/api/v1/forms/{form_id}/export?format=csv", headers=attacker)
+    ).status_code == 404
+    assert (
+        await client.post(f"/api/v1/forms/{form_id}/publish", headers=attacker)
+    ).status_code == 404
+    upd = await client.put(
+        f"/api/v1/forms/{form_id}",
+        json={"content": _form_payload("x")["content"]},
+        headers=attacker,
+    )
+    assert upd.status_code == 404
+
+    # The owner still has full access.
+    assert (await client.get(f"/api/v1/forms/{form_id}", headers=owner)).status_code == 200
+    listed = await client.get(f"/api/v1/forms/{form_id}/submissions", headers=owner)
+    assert listed.status_code == 200 and len(listed.json()) == 1
+
+
+@pytest.mark.asyncio
+async def test_cannot_create_form_in_another_users_project(client: httpx.AsyncClient):
+    owner = await _headers_for(client, "owner2@b.c")
+    proj = await client.post("/api/v1/projects", json={"name": "P"}, headers=owner)
+    project_id = proj.json()["id"]
+
+    attacker = await _headers_for(client, "attacker2@b.c")
+    r = await client.post("/api/v1/forms", json=_form_payload(project_id), headers=attacker)
+    assert r.status_code == 404

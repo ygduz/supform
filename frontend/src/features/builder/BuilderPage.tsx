@@ -1,7 +1,7 @@
 import { localize } from "@/lib/i18n";
 import { useBuilderStore } from "@/stores/builderStore";
 import { useEffect, useRef, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { FormRenderer } from "../renderer/FormRenderer";
 import { ElementCard } from "./ElementCard";
 import { PropertiesPanel } from "./PropertiesPanel";
@@ -16,6 +16,7 @@ type Tab = "properties" | "preview";
  */
 export function BuilderPage() {
   const { formId = "new" } = useParams();
+  const navigate = useNavigate();
   const store = useBuilderStore();
   const init = useBuilderStore((s) => s.init); // stable reference from zustand
   const { schema, selectedName, status, error, dirty } = store;
@@ -26,6 +27,14 @@ export function BuilderPage() {
     // Load (or reset) the draft whenever the route's form id changes.
     init(formId);
   }, [formId, init]);
+
+  useEffect(() => {
+    // Once a brand-new form is first saved it gets a real id — reflect that in the URL
+    // so a reload reopens the saved draft instead of a blank "new" form.
+    if (store.formId && store.formId !== formId) {
+      navigate(`/builder/${store.formId}`, { replace: true });
+    }
+  }, [store.formId, formId, navigate]);
 
   const elements = elementsOf(schema);
   const selected = elements.find((e) => e.name === selectedName) ?? null;

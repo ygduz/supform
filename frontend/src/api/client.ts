@@ -7,9 +7,31 @@ import type { FormSchema } from "@/types/form-schema";
 
 const BASE = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000";
 
-let accessToken: string | null = null;
+// The access token is persisted to localStorage so a builder session survives a reload.
+const TOKEN_KEY = "supform.token";
+
+function readStoredToken(): string | null {
+  try {
+    return localStorage.getItem(TOKEN_KEY);
+  } catch {
+    return null; // private mode / storage disabled — fall back to in-memory only
+  }
+}
+
+let accessToken: string | null = readStoredToken();
+
 export function setAccessToken(token: string | null) {
   accessToken = token;
+  try {
+    if (token) localStorage.setItem(TOKEN_KEY, token);
+    else localStorage.removeItem(TOKEN_KEY);
+  } catch {
+    /* ignore storage failures */
+  }
+}
+
+export function isAuthenticated(): boolean {
+  return accessToken !== null;
 }
 
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
@@ -30,10 +52,25 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
 
 export const api = {
   // auth
+  signup: (email: string, password: string, fullName?: string) =>
+    request<{ id: string; email: string }>("/api/v1/auth/signup", {
+      method: "POST",
+      body: JSON.stringify({ email, password, full_name: fullName ?? null }),
+    }),
+
   login: (email: string, password: string) =>
     request<{ access_token: string; refresh_token: string }>("/api/v1/auth/login", {
       method: "POST",
       body: JSON.stringify({ email, password }),
+    }),
+
+  // projects
+  listProjects: () => request<Array<{ id: string; name: string }>>("/api/v1/projects"),
+
+  createProject: (name: string) =>
+    request<{ id: string; name: string }>("/api/v1/projects", {
+      method: "POST",
+      body: JSON.stringify({ name }),
     }),
 
   // forms
