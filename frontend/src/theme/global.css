@@ -888,3 +888,60 @@ body {
 .i18n-row input {
   flex: 1;
 }
+
+/* Home actions + templates gallery */
+.home-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.button.secondary {
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+.link-button.inline {
+  display: inline;
+  align-self: auto;
+  font-size: inherit;
+}
+.templates {
+  max-width: 960px;
+  margin: 0 auto;
+}
+.template-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
+  margin-top: 20px;
+}
+.template-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: #fff;
+}
+.template-card h2 {
+  margin: 0;
+  font-size: 18px;
+}
+.template-icon {
+  font-size: 28px;
+}
+.template-fields {
+  list-style: none;
+  margin: 4px 0 12px;
+  padding: 0;
+  font-size: 14px;
+  color: var(--muted);
+  flex: 1;
+}
+.template-fields li {
+  padding: 2px 0;
+}
+.template-card .button {
+  margin-top: auto;
+}

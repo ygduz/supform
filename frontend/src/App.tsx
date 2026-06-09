@@ -4,6 +4,7 @@ import { BuilderPage } from "./features/builder/BuilderPage";
 import { ImportPage } from "./features/import/ImportPage";
 import { RendererPage } from "./features/renderer/RendererPage";
 import { ResponsesPage } from "./features/responses/ResponsesPage";
+import { TemplatesPage } from "./features/templates/TemplatesPage";
 
 /**
  * App shell + routing. Routes are intentionally minimal in the scaffold; each feature
@@ -17,6 +18,7 @@ export function App() {
           Supform
         </Link>
         <nav>
+          <Link to="/templates">Templates</Link>
           <Link to="/builder/new">Builder</Link>
           <Link to="/import">Import</Link>
           <Link to="/f/demo">Preview</Link>
@@ -27,6 +29,7 @@ export function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/templates" element={<TemplatesPage />} />
           <Route path="/import" element={<ImportPage />} />
           <Route path="/builder/:formId" element={<BuilderPage />} />
           <Route path="/f/:formId" element={<RendererPage />} />
@@ -42,9 +45,14 @@ function Home() {
     <section className="home">
       <h1>Build beautiful forms.</h1>
       <p>As easy as MS Forms, flexible enough to drive from code.</p>
-      <Link className="button" to="/builder/new">
-        Create a form
-      </Link>
+      <div className="home-actions">
+        <Link className="button" to="/templates">
+          Browse templates
+        </Link>
+        <Link className="button secondary" to="/builder/new">
+          Start from scratch
+        </Link>
+      </div>
     </section>
   );
 }

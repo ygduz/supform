@@ -49,6 +49,7 @@ A pragmatic build order. Each milestone is shippable on its own.
 ## M5 — Polish
 - [x] i18n / multi-language forms (per-language labels/hints in the builder, language
       config in settings, and a live language switcher in the renderer)
-- [ ] Templates gallery
+- [x] Templates gallery (ready-made forms — contact, RSVP, feedback/NPS, job
+      application — openable in the builder from /templates)
 - [ ] Collaboration & sharing
 - [ ] Analytics dashboards

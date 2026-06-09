@@ -31,8 +31,11 @@ interface BuilderState {
   status: Status;
   error: string | null;
   dirty: boolean;
+  // Set when a template was seeded for a new form, so `init("new")` won't wipe it.
+  templateLoaded: boolean;
 
   init: (formId: string) => Promise<void>;
+  loadTemplate: (schema: FormSchema) => void;
   select: (name: string | null) => void;
   setTitle: (title: string) => void;
   setTheme: (patch: Partial<Theme>) => void;
@@ -75,9 +78,15 @@ export const useBuilderStore = create<BuilderState>((set, get) => ({
   status: "idle",
   error: null,
   dirty: false,
+  templateLoaded: false,
 
   init: async (formId) => {
     if (formId === "new") {
+      // A template was just chosen — keep it instead of resetting to a blank form.
+      if (get().templateLoaded) {
+        set({ templateLoaded: false });
+        return;
+      }
       set({
         formId: null,
         projectId: null,
@@ -88,6 +97,8 @@ export const useBuilderStore = create<BuilderState>((set, get) => ({
       });
       return;
     }
+    // Loading an existing form supersedes any pending template seed.
+    set({ templateLoaded: false });
     set({ status: "loading", error: null });
     try {
       const form = await api.getForm(formId);
@@ -105,6 +116,20 @@ export const useBuilderStore = create<BuilderState>((set, get) => ({
       set({ status: "error", error: (err as Error).message, schema: model.createEmptyForm() });
     }
   },
+
+  loadTemplate: (schema) =>
+    set({
+      formId: null,
+      projectId: null,
+      // Deep-clone so editing the draft never mutates the shared template definition.
+      schema: structuredClone(schema),
+      selectedName: null,
+      activePage: 0,
+      status: "idle",
+      error: null,
+      dirty: true,
+      templateLoaded: true,
+    }),
 
   select: (name) => set({ selectedName: name }),
 
