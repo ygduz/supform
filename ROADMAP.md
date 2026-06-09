@@ -37,7 +37,8 @@ A pragmatic build order. Each milestone is shippable on its own.
 - [x] CSV / XLSX / JSON exporters (currently synchronous; Celery offload still TODO)
 
 ## M4 — Collection at scale
-- [ ] Public form links, access control, response limits
+- [x] Public form links, access control, response limits (requireLogin, closeDate,
+      maxResponses, single-response; share link + closed/sign-in gates in the renderer)
 - [ ] Offline / PWA collection
 - [ ] Webhooks & integrations
 - [ ] File/media attachments via S3

@@ -150,8 +150,11 @@ class FormSettings(BaseModel):
 
     display_mode: str = Field(default="paged", alias="displayMode")
     show_progress_bar: bool = Field(default=True, alias="showProgressBar")
+    shuffle_questions: bool = Field(default=False, alias="shuffleQuestions")
     allow_multiple_submissions: bool = Field(default=True, alias="allowMultipleSubmissions")
     require_login: bool = Field(default=False, alias="requireLogin")
+    close_date: str | None = Field(default=None, alias="closeDate")
+    max_responses: int | None = Field(default=None, alias="maxResponses")
     submit_button_text: I18nString | None = Field(default=None, alias="submitButtonText")
     confirmation_message: I18nString | None = Field(default=None, alias="confirmationMessage")
 

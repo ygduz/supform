@@ -1,6 +1,13 @@
 import { api, isAuthenticated } from "@/api/client";
 import * as model from "@/features/builder/model";
-import type { Choice, Element, ElementType, FormSchema, Theme } from "@/types/form-schema";
+import type {
+  Choice,
+  Element,
+  ElementType,
+  FormSchema,
+  FormSettings,
+  Theme,
+} from "@/types/form-schema";
 import { create } from "zustand";
 
 type Status = "idle" | "loading" | "saving" | "publishing" | "error";
@@ -28,6 +35,7 @@ interface BuilderState {
   select: (name: string | null) => void;
   setTitle: (title: string) => void;
   setTheme: (patch: Partial<Theme>) => void;
+  setSettings: (patch: Partial<FormSettings>) => void;
 
   add: (type: ElementType) => void;
   update: (name: string, patch: Partial<Element>) => void;
@@ -105,6 +113,16 @@ export const useBuilderStore = create<BuilderState>((set, get) => ({
         if (merged[k] === undefined || merged[k] === "") delete merged[k];
       }
       return { schema: { ...s.schema, theme: merged }, dirty: true };
+    }),
+
+  setSettings: (patch) =>
+    set((s) => {
+      const merged = { ...s.schema.settings, ...patch };
+      for (const k of Object.keys(merged)) {
+        if (merged[k as keyof FormSettings] === undefined || merged[k as keyof FormSettings] === "")
+          delete merged[k as keyof FormSettings];
+      }
+      return { schema: { ...s.schema, settings: merged }, dirty: true };
     }),
 
   add: (type) =>

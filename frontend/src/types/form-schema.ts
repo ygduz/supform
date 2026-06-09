@@ -116,8 +116,11 @@ export interface Theme {
 export interface FormSettings {
   displayMode?: "paged" | "single" | "oneQuestionPerScreen";
   showProgressBar?: boolean;
+  shuffleQuestions?: boolean;
   allowMultipleSubmissions?: boolean;
   requireLogin?: boolean;
+  closeDate?: string;
+  maxResponses?: number;
   submitButtonText?: I18nString;
   confirmationMessage?: I18nString;
 }

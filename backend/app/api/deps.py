@@ -29,3 +29,23 @@ async def get_current_user(
     if user is None or not user.is_active:
         raise AuthError("User not found or inactive")
     return user
+
+
+async def get_optional_user(
+    token: str | None = Depends(oauth2_scheme),
+    db: AsyncSession = Depends(get_db),
+) -> User | None:
+    """Like :func:`get_current_user` but returns ``None`` instead of raising.
+
+    Used by public endpoints (e.g. form submission) that behave differently for a
+    signed-in respondent but must still accept anonymous traffic.
+    """
+    if not token:
+        return None
+    payload = decode_token(token)
+    if not payload or payload.get("type") != "access":
+        return None
+    user = await db.get(User, uuid.UUID(payload["sub"]))
+    if user is None or not user.is_active:
+        return None
+    return user

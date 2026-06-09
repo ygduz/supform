@@ -1,8 +1,12 @@
-import { api } from "@/api/client";
+import { api, isAuthenticated } from "@/api/client";
+import { localize } from "@/lib/i18n";
 import type { FormSchema } from "@/types/form-schema";
 import { useQuery } from "@tanstack/react-query";
-import { useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { FormRenderer } from "./FormRenderer";
+
+const isClosed = (closeDate?: string): boolean =>
+  closeDate ? new Date(closeDate).getTime() < Date.now() : false;
 
 /** Loads a published form schema by id and renders it for a respondent. */
 export function RendererPage() {
@@ -16,6 +20,27 @@ export function RendererPage() {
   if (formId === "demo") return <FormRenderer schema={DEMO} formId="demo" />;
   if (isLoading) return <p>Loading…</p>;
   if (error || !data) return <p>Could not load this form.</p>;
+
+  const settings = data.settings;
+  if (isClosed(settings?.closeDate)) {
+    return (
+      <section className="form-gate">
+        <h1>{localize(data.title) || "Form"}</h1>
+        <p className="muted">This form is closed and no longer accepting responses.</p>
+      </section>
+    );
+  }
+  if (settings?.requireLogin && !isAuthenticated()) {
+    return (
+      <section className="form-gate">
+        <h1>Sign in required</h1>
+        <p className="muted">
+          This form requires you to <Link to="/login">sign in</Link> before responding.
+        </p>
+      </section>
+    );
+  }
+
   return <FormRenderer schema={data} formId={formId} />;
 }
 

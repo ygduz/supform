@@ -153,6 +153,64 @@ async def test_auth_required_for_listing(client: httpx.AsyncClient):
     assert r.status_code == 401
 
 
+async def _publish_form_with_settings(
+    client: httpx.AsyncClient, headers: dict, settings: dict
+) -> str:
+    """Create + publish a single-field form carrying the given collection settings."""
+    proj = await client.post("/api/v1/projects", json={"name": "S"}, headers=headers)
+    content = {
+        "name": "poll",
+        "title": "Poll",
+        "settings": settings,
+        "pages": [{"name": "p1", "elements": [{"type": "text", "name": "q1", "label": "Q"}]}],
+    }
+    form = await client.post(
+        "/api/v1/forms",
+        json={"project_id": proj.json()["id"], "content": content},
+        headers=headers,
+    )
+    form_id = form.json()["id"]
+    await client.post(f"/api/v1/forms/{form_id}/publish", headers=headers)
+    return form_id
+
+
+@pytest.mark.asyncio
+async def test_require_login_blocks_anonymous_submission(client: httpx.AsyncClient):
+    owner = await _headers_for(client, "poll-owner@b.c")
+    form_id = await _publish_form_with_settings(client, owner, {"requireLogin": True})
+
+    anon = await client.post(f"/api/v1/forms/{form_id}/submissions", json={"answers": {"q1": "x"}})
+    assert anon.status_code == 401
+
+    signed_in = await client.post(
+        f"/api/v1/forms/{form_id}/submissions", json={"answers": {"q1": "x"}}, headers=owner
+    )
+    assert signed_in.status_code == 201
+
+
+@pytest.mark.asyncio
+async def test_closed_form_rejects_submission(client: httpx.AsyncClient):
+    owner = await _headers_for(client, "closed-owner@b.c")
+    form_id = await _publish_form_with_settings(
+        client, owner, {"closeDate": "2000-01-01T00:00:00Z"}
+    )
+    r = await client.post(f"/api/v1/forms/{form_id}/submissions", json={"answers": {"q1": "x"}})
+    assert r.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_response_limit_enforced(client: httpx.AsyncClient):
+    owner = await _headers_for(client, "limit-owner@b.c")
+    form_id = await _publish_form_with_settings(client, owner, {"maxResponses": 1})
+
+    first = await client.post(f"/api/v1/forms/{form_id}/submissions", json={"answers": {"q1": "a"}})
+    assert first.status_code == 201
+    second = await client.post(
+        f"/api/v1/forms/{form_id}/submissions", json={"answers": {"q1": "b"}}
+    )
+    assert second.status_code == 403
+
+
 @pytest.mark.asyncio
 async def test_refresh_token_exchanges_for_new_access(client: httpx.AsyncClient):
     await client.post("/api/v1/auth/signup", json={"email": "r@b.c", "password": "supersecret"})

@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_current_user
+from app.api.deps import get_current_user, get_optional_user
 from app.db.session import get_db
 from app.models.submission import Submission
 from app.models.user import User
@@ -24,10 +24,19 @@ async def submit(
     form_id: uuid.UUID,
     payload: SubmissionCreate,
     db: AsyncSession = Depends(get_db),
+    user: User | None = Depends(get_optional_user),
 ):
-    """Public endpoint: submit a response to a published form."""
+    """Public endpoint: submit a response to a published form.
+
+    Anonymous by default; if a valid token is sent the respondent is recorded, which
+    enables ``requireLogin`` and single-submission enforcement.
+    """
     return await submissions_service.create_submission(
-        db, form_id, payload.answers, metadata=payload.metadata
+        db,
+        form_id,
+        payload.answers,
+        metadata=payload.metadata,
+        respondent_id=user.id if user else None,
     )
 
 

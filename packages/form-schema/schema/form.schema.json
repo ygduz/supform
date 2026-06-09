@@ -84,6 +84,7 @@
         "allowMultipleSubmissions": { "type": "boolean", "default": true },
         "requireLogin": { "type": "boolean", "default": false },
         "closeDate": { "type": "string", "format": "date-time" },
+        "maxResponses": { "type": "integer", "minimum": 0, "description": "Stop accepting submissions after this many responses." },
         "submitButtonText": { "$ref": "#/$defs/i18nString" },
         "confirmationMessage": { "$ref": "#/$defs/i18nString" }
       }

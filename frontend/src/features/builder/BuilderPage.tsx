@@ -5,11 +5,12 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { FormRenderer } from "../renderer/FormRenderer";
 import { CanvasList } from "./CanvasList";
 import { PropertiesPanel } from "./PropertiesPanel";
+import { SettingsPanel } from "./SettingsPanel";
 import { ThemePanel } from "./ThemePanel";
 import { findElement, pageElements } from "./model";
 import { ELEMENT_PALETTE } from "./palette";
 
-type Tab = "properties" | "theme" | "preview";
+type Tab = "properties" | "theme" | "settings" | "preview";
 
 /**
  * The form builder: palette (add), canvas (arrange/edit), inspector (properties) and a
@@ -52,6 +53,17 @@ export function BuilderPage() {
         <div className="toolbar-actions">
           {error ? <span className="error">{error}</span> : null}
           <span className="muted">{dirty ? "Unsaved changes" : "Saved"}</span>
+          {store.formId ? (
+            <button
+              type="button"
+              title="Copy public form link"
+              onClick={() => {
+                navigator.clipboard?.writeText(`${window.location.origin}/f/${store.formId}`);
+              }}
+            >
+              Share link
+            </button>
+          ) : null}
           {store.formId ? <Link to={`/forms/${store.formId}/responses`}>Responses</Link> : null}
           <button type="button" onClick={() => store.save()} disabled={status === "saving"}>
             {status === "saving" ? "Saving…" : "Save draft"}
@@ -142,6 +154,13 @@ export function BuilderPage() {
             </button>
             <button
               type="button"
+              className={tab === "settings" ? "tab active" : "tab"}
+              onClick={() => setTab("settings")}
+            >
+              Settings
+            </button>
+            <button
+              type="button"
               className={tab === "preview" ? "tab active" : "tab"}
               onClick={() => setTab("preview")}
             >
@@ -156,6 +175,7 @@ export function BuilderPage() {
               <p className="muted">Select a question to edit its settings.</p>
             ))}
           {tab === "theme" && <ThemePanel />}
+          {tab === "settings" && <SettingsPanel />}
           {tab === "preview" && (
             <div className="preview-pane">
               <FormRenderer schema={schema} formId="preview" />
