@@ -46,7 +46,8 @@ A pragmatic build order. Each milestone is shippable on its own.
 - [ ] File/media attachments via S3
 
 ## M5 — Polish
-- [ ] i18n / multi-language forms
+- [x] i18n / multi-language forms (per-language labels/hints in the builder, language
+      config in settings, and a live language switcher in the renderer)
 - [ ] Templates gallery
 - [ ] Collaboration & sharing
 - [ ] Analytics dashboards

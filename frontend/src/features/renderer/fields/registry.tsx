@@ -5,9 +5,9 @@
  * question type is just registering a renderer here (and a Pydantic counterpart server-side).
  */
 import { type MediaRef, api } from "@/api/client";
-import { localize } from "@/lib/i18n";
+import { LanguageContext, localize } from "@/lib/i18n";
 import type { Choice, Element } from "@/types/form-schema";
-import { useState } from "react";
+import { useContext, useState } from "react";
 
 type FieldProps = {
   element: Element;
@@ -19,45 +19,56 @@ type FieldProps = {
 
 type Renderer = (p: FieldProps) => JSX.Element;
 
-/** Resolve a choice's display label, falling back to its raw value. */
-const choiceLabel = (opt: Choice): string => localize(opt.label) || String(opt.value);
+/** Resolve a choice's display label in a language, falling back to its raw value. */
+const choiceLabel = (opt: Choice, lang: string): string =>
+  localize(opt.label, lang) || String(opt.value);
 
-const TextField: Renderer = ({ element, value, onChange }) => (
-  <input
-    id={element.name}
-    type={element.type === "email" ? "email" : "text"}
-    placeholder={localize(element.placeholder)}
-    value={(value as string) ?? ""}
-    onChange={(e) => onChange(e.target.value)}
-  />
-);
+const TextField: Renderer = ({ element, value, onChange }) => {
+  const lang = useContext(LanguageContext);
+  return (
+    <input
+      id={element.name}
+      type={element.type === "email" ? "email" : "text"}
+      placeholder={localize(element.placeholder, lang)}
+      value={(value as string) ?? ""}
+      onChange={(e) => onChange(e.target.value)}
+    />
+  );
+};
 
-const LongText: Renderer = ({ element, value, onChange }) => (
-  <textarea
-    id={element.name}
-    placeholder={localize(element.placeholder)}
-    value={(value as string) ?? ""}
-    onChange={(e) => onChange(e.target.value)}
-  />
-);
+const LongText: Renderer = ({ element, value, onChange }) => {
+  const lang = useContext(LanguageContext);
+  return (
+    <textarea
+      id={element.name}
+      placeholder={localize(element.placeholder, lang)}
+      value={(value as string) ?? ""}
+      onChange={(e) => onChange(e.target.value)}
+    />
+  );
+};
 
-const NumberField: Renderer = ({ element, value, onChange }) => (
-  <input
-    id={element.name}
-    type="number"
-    step={element.type === "integer" ? "1" : "any"}
-    min={element.validation?.min}
-    max={element.validation?.max}
-    placeholder={localize(element.placeholder)}
-    value={typeof value === "number" ? value : ""}
-    onChange={(e) => {
-      const raw = e.target.value;
-      if (raw === "") return onChange(undefined);
-      const parsed = element.type === "integer" ? Number.parseInt(raw, 10) : Number.parseFloat(raw);
-      onChange(Number.isNaN(parsed) ? undefined : parsed);
-    }}
-  />
-);
+const NumberField: Renderer = ({ element, value, onChange }) => {
+  const lang = useContext(LanguageContext);
+  return (
+    <input
+      id={element.name}
+      type="number"
+      step={element.type === "integer" ? "1" : "any"}
+      min={element.validation?.min}
+      max={element.validation?.max}
+      placeholder={localize(element.placeholder, lang)}
+      value={typeof value === "number" ? value : ""}
+      onChange={(e) => {
+        const raw = e.target.value;
+        if (raw === "") return onChange(undefined);
+        const parsed =
+          element.type === "integer" ? Number.parseInt(raw, 10) : Number.parseFloat(raw);
+        onChange(Number.isNaN(parsed) ? undefined : parsed);
+      }}
+    />
+  );
+};
 
 const DateTimeField =
   (inputType: "date" | "time" | "datetime-local"): Renderer =>
@@ -70,23 +81,27 @@ const DateTimeField =
     />
   );
 
-const SingleChoice: Renderer = ({ element, value, onChange }) => (
-  <div className="choices">
-    {(element.options ?? []).map((opt) => (
-      <label key={String(opt.value)}>
-        <input
-          type="radio"
-          name={element.name}
-          checked={value === opt.value}
-          onChange={() => onChange(opt.value)}
-        />
-        {choiceLabel(opt)}
-      </label>
-    ))}
-  </div>
-);
+const SingleChoice: Renderer = ({ element, value, onChange }) => {
+  const lang = useContext(LanguageContext);
+  return (
+    <div className="choices">
+      {(element.options ?? []).map((opt) => (
+        <label key={String(opt.value)}>
+          <input
+            type="radio"
+            name={element.name}
+            checked={value === opt.value}
+            onChange={() => onChange(opt.value)}
+          />
+          {choiceLabel(opt, lang)}
+        </label>
+      ))}
+    </div>
+  );
+};
 
 const MultiChoice: Renderer = ({ element, value, onChange }) => {
+  const lang = useContext(LanguageContext);
   const selected = Array.isArray(value) ? (value as Array<string | number | boolean>) : [];
   const toggle = (optValue: string | number | boolean) =>
     onChange(
@@ -104,7 +119,7 @@ const MultiChoice: Renderer = ({ element, value, onChange }) => {
             checked={selected.includes(opt.value)}
             onChange={() => toggle(opt.value)}
           />
-          {choiceLabel(opt)}
+          {choiceLabel(opt, lang)}
         </label>
       ))}
     </div>
@@ -112,6 +127,7 @@ const MultiChoice: Renderer = ({ element, value, onChange }) => {
 };
 
 const Dropdown: Renderer = ({ element, value, onChange }) => {
+  const lang = useContext(LanguageContext);
   const options = element.options ?? [];
   return (
     <select
@@ -123,52 +139,58 @@ const Dropdown: Renderer = ({ element, value, onChange }) => {
         onChange(picked ? picked.value : undefined);
       }}
     >
-      <option value="">{localize(element.placeholder) || "Select…"}</option>
+      <option value="">{localize(element.placeholder, lang) || "Select…"}</option>
       {options.map((opt) => (
         <option key={String(opt.value)} value={String(opt.value)}>
-          {choiceLabel(opt)}
+          {choiceLabel(opt, lang)}
         </option>
       ))}
     </select>
   );
 };
 
-const BooleanField: Renderer = ({ element, value, onChange }) => (
-  <fieldset className="toggle" aria-label={localize(element.label) || element.name}>
-    <button
-      type="button"
-      className={value === true ? "toggle-btn active" : "toggle-btn"}
-      aria-pressed={value === true}
-      onClick={() => onChange(true)}
-    >
-      Yes
-    </button>
-    <button
-      type="button"
-      className={value === false ? "toggle-btn active" : "toggle-btn"}
-      aria-pressed={value === false}
-      onClick={() => onChange(false)}
-    >
-      No
-    </button>
-  </fieldset>
-);
-
-const Scale: Renderer = ({ element, value, onChange }) => (
-  <div className="scale">
-    {(element.options ?? []).map((opt) => (
+const BooleanField: Renderer = ({ element, value, onChange }) => {
+  const lang = useContext(LanguageContext);
+  return (
+    <fieldset className="toggle" aria-label={localize(element.label, lang) || element.name}>
       <button
         type="button"
-        key={String(opt.value)}
-        className={value === opt.value ? "scale-btn active" : "scale-btn"}
-        aria-pressed={value === opt.value}
-        onClick={() => onChange(opt.value)}
+        className={value === true ? "toggle-btn active" : "toggle-btn"}
+        aria-pressed={value === true}
+        onClick={() => onChange(true)}
       >
-        {choiceLabel(opt)}
+        Yes
       </button>
-    ))}
-  </div>
-);
+      <button
+        type="button"
+        className={value === false ? "toggle-btn active" : "toggle-btn"}
+        aria-pressed={value === false}
+        onClick={() => onChange(false)}
+      >
+        No
+      </button>
+    </fieldset>
+  );
+};
+
+const Scale: Renderer = ({ element, value, onChange }) => {
+  const lang = useContext(LanguageContext);
+  return (
+    <div className="scale">
+      {(element.options ?? []).map((opt) => (
+        <button
+          type="button"
+          key={String(opt.value)}
+          className={value === opt.value ? "scale-btn active" : "scale-btn"}
+          aria-pressed={value === opt.value}
+          onClick={() => onChange(opt.value)}
+        >
+          {choiceLabel(opt, lang)}
+        </button>
+      ))}
+    </div>
+  );
+};
 
 const Rating: Renderer = ({ element, value, onChange }) => (
   <div className="rating">
@@ -186,6 +208,7 @@ const Rating: Renderer = ({ element, value, onChange }) => (
 );
 
 const Matrix: Renderer = ({ element, value, onChange }) => {
+  const lang = useContext(LanguageContext);
   const rows = element.rows ?? [];
   const columns = element.columns ?? [];
   const answers = (value ?? {}) as Record<string, string | number | boolean>;
@@ -198,7 +221,7 @@ const Matrix: Renderer = ({ element, value, onChange }) => {
           <td />
           {columns.map((col) => (
             <th key={String(col.value)} scope="col">
-              {choiceLabel(col)}
+              {choiceLabel(col, lang)}
             </th>
           ))}
         </tr>
@@ -208,13 +231,13 @@ const Matrix: Renderer = ({ element, value, onChange }) => {
           const rowKey = String(row.value);
           return (
             <tr key={rowKey}>
-              <th scope="row">{choiceLabel(row)}</th>
+              <th scope="row">{choiceLabel(row, lang)}</th>
               {columns.map((col) => (
                 <td key={String(col.value)}>
                   <input
                     type="radio"
                     name={`${element.name}.${rowKey}`}
-                    aria-label={`${choiceLabel(row)} – ${choiceLabel(col)}`}
+                    aria-label={`${choiceLabel(row, lang)} – ${choiceLabel(col, lang)}`}
                     checked={answers[rowKey] === col.value}
                     onChange={() => setCell(rowKey, col.value)}
                   />

@@ -841,3 +841,50 @@ body {
   font-size: 14px;
   white-space: nowrap;
 }
+.lang-switcher {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-bottom: 12px;
+  font-size: 14px;
+}
+.lang-switcher label {
+  color: var(--muted);
+}
+.lang-switcher .select {
+  width: auto;
+}
+.lang-list {
+  list-style: none;
+  margin: 6px 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.lang-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.lang-add {
+  display: flex;
+  gap: 6px;
+}
+.i18n-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+}
+.i18n-code {
+  flex: 0 0 32px;
+  font-size: 12px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.i18n-row input {
+  flex: 1;
+}

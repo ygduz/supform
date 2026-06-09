@@ -1,5 +1,5 @@
 import { ApiError, api } from "@/api/client";
-import { localize } from "@/lib/i18n";
+import { LanguageContext, formLanguages, languageLabel, localize } from "@/lib/i18n";
 import type { Element, FormSchema } from "@/types/form-schema";
 import type { JSX } from "react";
 import { useState } from "react";
@@ -22,6 +22,11 @@ export function FormRenderer({ schema, formId }: { schema: FormSchema; formId: s
   const [formError, setFormError] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
 
+  // Multi-language support: offer a switcher when the form declares >1 language.
+  const languages = formLanguages(schema.languages, schema.defaultLanguage);
+  const [lang, setLang] = useState(languages[0] ?? schema.defaultLanguage ?? "en");
+  const L = (value: Parameters<typeof localize>[0]) => localize(value, lang);
+
   const setValue = (name: string, value: unknown) => {
     setAnswers((prev) => ({ ...prev, [name]: value }));
     // Clear a field's error as soon as the user edits it.
@@ -43,7 +48,7 @@ export function FormRenderer({ schema, formId }: { schema: FormSchema; formId: s
     if (el.type === "group") {
       return (
         <fieldset className="group" key={el.name}>
-          {el.label && <legend>{localize(el.label)}</legend>}
+          {el.label && <legend>{L(el.label)}</legend>}
           {(el.elements ?? []).map(renderElement)}
         </fieldset>
       );
@@ -70,7 +75,7 @@ export function FormRenderer({ schema, formId }: { schema: FormSchema; formId: s
 
       return (
         <fieldset className="repeat" key={el.name}>
-          {el.label && <legend>{localize(el.label)}</legend>}
+          {el.label && <legend>{L(el.label)}</legend>}
           {instances.length === 0 && <p className="muted">No entries yet.</p>}
           {instances.map((inst, i) => {
             const scope = { ...answers, ...inst };
@@ -95,7 +100,7 @@ export function FormRenderer({ schema, formId }: { schema: FormSchema; formId: s
                     <div className="field" key={child.name}>
                       {child.label && (
                         <span className="field-label">
-                          {localize(child.label)}
+                          {L(child.label)}
                           {child.required && " *"}
                         </span>
                       )}
@@ -129,7 +134,7 @@ export function FormRenderer({ schema, formId }: { schema: FormSchema; formId: s
     if (PRESENTATIONAL.has(el.type)) {
       return (
         <div className="field" key={el.name}>
-          {el.label && <p className="presentational">{localize(el.label)}</p>}
+          {el.label && <p className="presentational">{L(el.label)}</p>}
         </div>
       );
     }
@@ -138,12 +143,12 @@ export function FormRenderer({ schema, formId }: { schema: FormSchema; formId: s
       <div className="field" key={el.name}>
         {el.label && (
           <label htmlFor={el.name}>
-            {localize(el.label)}
+            {L(el.label)}
             {el.required && " *"}
           </label>
         )}
         {renderField(el, answers[el.name], (v) => setValue(el.name, v), formId)}
-        {el.hint && <small className="hint">{localize(el.hint)}</small>}
+        {el.hint && <small className="hint">{L(el.hint)}</small>}
         {errors[el.name] && <small className="error field-error">{errors[el.name]}</small>}
       </div>
     );
@@ -178,24 +183,41 @@ export function FormRenderer({ schema, formId }: { schema: FormSchema; formId: s
   }
 
   if (submitted) {
-    return (
-      <p className="confirmation">{localize(schema.settings?.confirmationMessage) || "Thanks!"}</p>
-    );
+    return <p className="confirmation">{L(schema.settings?.confirmationMessage) || "Thanks!"}</p>;
   }
 
   const theme = schema.theme;
 
   return (
-    <form className="form-renderer" style={themeToStyle(theme)} onSubmit={handleSubmit}>
-      {theme?.coverImage && <img className="form-cover" src={theme.coverImage} alt="" />}
-      {theme?.logo && <img className="form-logo" src={theme.logo} alt="" />}
-      <h1>{localize(schema.title)}</h1>
-      {schema.description && <p className="muted">{localize(schema.description)}</p>}
-      {schema.pages.flatMap((p) => p.elements).map(renderElement)}
-      {formError && <p className="error">{formError}</p>}
-      <button type="submit" className="button">
-        {localize(schema.settings?.submitButtonText) || "Submit"}
-      </button>
-    </form>
+    <LanguageContext.Provider value={lang}>
+      <form className="form-renderer" style={themeToStyle(theme)} onSubmit={handleSubmit}>
+        {theme?.coverImage && <img className="form-cover" src={theme.coverImage} alt="" />}
+        {theme?.logo && <img className="form-logo" src={theme.logo} alt="" />}
+        {languages.length > 1 && (
+          <div className="lang-switcher">
+            <label htmlFor="form-language">Language</label>
+            <select
+              id="form-language"
+              className="select"
+              value={lang}
+              onChange={(e) => setLang(e.target.value)}
+            >
+              {languages.map((code) => (
+                <option key={code} value={code}>
+                  {languageLabel(code)}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+        <h1>{L(schema.title)}</h1>
+        {schema.description && <p className="muted">{L(schema.description)}</p>}
+        {schema.pages.flatMap((p) => p.elements).map(renderElement)}
+        {formError && <p className="error">{formError}</p>}
+        <button type="submit" className="button">
+          {L(schema.settings?.submitButtonText) || "Submit"}
+        </button>
+      </form>
+    </LanguageContext.Provider>
   );
 }

@@ -37,6 +37,7 @@ interface BuilderState {
   setTitle: (title: string) => void;
   setTheme: (patch: Partial<Theme>) => void;
   setSettings: (patch: Partial<FormSettings>) => void;
+  setLanguages: (languages: string[], defaultLanguage?: string) => void;
 
   add: (type: ElementType) => void;
   update: (name: string, patch: Partial<Element>) => void;
@@ -108,6 +109,16 @@ export const useBuilderStore = create<BuilderState>((set, get) => ({
   select: (name) => set({ selectedName: name }),
 
   setTitle: (title) => set((s) => ({ schema: { ...s.schema, title }, dirty: true })),
+
+  setLanguages: (languages, defaultLanguage) =>
+    set((s) => ({
+      schema: {
+        ...s.schema,
+        languages,
+        defaultLanguage: defaultLanguage ?? s.schema.defaultLanguage ?? languages[0] ?? "en",
+      },
+      dirty: true,
+    })),
 
   setTheme: (patch) =>
     set((s) => {

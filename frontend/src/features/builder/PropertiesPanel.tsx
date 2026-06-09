@@ -1,6 +1,6 @@
 import { localize } from "@/lib/i18n";
 import { useBuilderStore } from "@/stores/builderStore";
-import type { Choice, Element, Validation } from "@/types/form-schema";
+import type { Choice, Element, I18nString, Validation } from "@/types/form-schema";
 import { hasOptionList } from "./model";
 
 const PRESENTATIONAL = new Set(["note", "section", "html"]);
@@ -13,6 +13,8 @@ export function PropertiesPanel({ element }: { element: Element }) {
   const { update } = store;
   const name = element.name;
   const type = element.type;
+  const languages = store.schema.languages ?? [];
+  const defaultLang = store.schema.defaultLanguage ?? "en";
 
   const canRequire =
     !PRESENTATIONAL.has(type) && type !== "group" && type !== "repeat" && type !== "calculated";
@@ -24,23 +26,29 @@ export function PropertiesPanel({ element }: { element: Element }) {
     <div className="props">
       <h3>Question settings</h3>
 
-      <TextProp
+      <I18nProp
         label="Label"
-        value={localize(element.label)}
+        value={element.label}
+        languages={languages}
+        defaultLang={defaultLang}
         onChange={(v) => update(name, { label: v })}
       />
-      <TextProp
+      <I18nProp
         label="Help text"
-        value={localize(element.hint)}
+        value={element.hint}
+        languages={languages}
+        defaultLang={defaultLang}
         placeholder="Optional guidance shown under the question"
-        onChange={(v) => update(name, { hint: v || undefined })}
+        onChange={(v) => update(name, { hint: v })}
       />
 
       {TEXTUAL.has(type) && (
-        <TextProp
+        <I18nProp
           label="Placeholder"
-          value={localize(element.placeholder)}
-          onChange={(v) => update(name, { placeholder: v || undefined })}
+          value={element.placeholder}
+          languages={languages}
+          defaultLang={defaultLang}
+          onChange={(v) => update(name, { placeholder: v })}
         />
       )}
 
@@ -214,6 +222,77 @@ function TextProp(props: {
         onChange={(e) => props.onChange(e.target.value)}
       />
     </label>
+  );
+}
+
+/** Read one language's text out of an i18n value (empty if not yet translated). */
+function translationFor(value: I18nString | undefined, lang: string, defaultLang: string): string {
+  if (value == null) return "";
+  if (typeof value === "string") return lang === defaultLang ? value : "";
+  return value[lang] ?? "";
+}
+
+/** Set one language's text, normalizing to a plain string when only the default is used. */
+function withTranslation(
+  value: I18nString | undefined,
+  lang: string,
+  text: string,
+  defaultLang: string,
+): I18nString | undefined {
+  const obj: Record<string, string> =
+    typeof value === "object" && value !== null
+      ? { ...value }
+      : typeof value === "string" && value
+        ? { [defaultLang]: value }
+        : {};
+  if (text) obj[lang] = text;
+  else delete obj[lang];
+  const keys = Object.keys(obj);
+  if (keys.length === 0) return undefined;
+  // Collapse a single default-only translation back to a plain string.
+  if (keys.length === 1 && keys[0] === defaultLang) return obj[defaultLang];
+  return obj;
+}
+
+/**
+ * Editor for a translatable string. With one (or no) language it's a plain text input;
+ * with several it shows one input per language so authors can translate in place.
+ */
+function I18nProp(props: {
+  label: string;
+  value: I18nString | undefined;
+  languages: string[];
+  defaultLang: string;
+  placeholder?: string;
+  onChange: (v: I18nString | undefined) => void;
+}) {
+  if (props.languages.length <= 1) {
+    return (
+      <TextProp
+        label={props.label}
+        value={localize(props.value, props.defaultLang)}
+        placeholder={props.placeholder}
+        onChange={(v) => props.onChange(v || undefined)}
+      />
+    );
+  }
+  return (
+    <div className="prop">
+      <span>{props.label}</span>
+      {props.languages.map((code) => (
+        <div className="i18n-row" key={code}>
+          <span className="i18n-code">{code}</span>
+          <input
+            type="text"
+            value={translationFor(props.value, code, props.defaultLang)}
+            placeholder={props.placeholder}
+            onChange={(e) =>
+              props.onChange(withTranslation(props.value, code, e.target.value, props.defaultLang))
+            }
+          />
+        </div>
+      ))}
+    </div>
   );
 }
 
