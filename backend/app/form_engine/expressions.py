@@ -28,13 +28,24 @@ class ExpressionError(Exception):
     """Raised when an expression is malformed or uses disallowed syntax."""
 
 
+# Cap exponents so a form expression like ``2 ** 9999999`` (which runs on every public
+# submission) can't burn CPU/memory. Legitimate form math never needs a huge exponent.
+_MAX_POW_EXPONENT = 64
+
+
+def _safe_pow(base: Any, exponent: Any) -> Any:
+    if isinstance(exponent, (int, float)) and abs(exponent) > _MAX_POW_EXPONENT:
+        raise ExpressionError("Exponent too large")
+    return operator.pow(base, exponent)
+
+
 _BIN_OPS: dict[type[ast.operator], Callable[[Any, Any], Any]] = {
     ast.Add: operator.add,
     ast.Sub: operator.sub,
     ast.Mult: operator.mul,
     ast.Div: operator.truediv,
     ast.Mod: operator.mod,
-    ast.Pow: operator.pow,
+    ast.Pow: _safe_pow,
 }
 
 _CMP_OPS: dict[type[ast.cmpop], Callable[[Any, Any], Any]] = {

@@ -154,6 +154,25 @@ async def test_auth_required_for_listing(client: httpx.AsyncClient):
 
 
 @pytest.mark.asyncio
+async def test_refresh_token_exchanges_for_new_access(client: httpx.AsyncClient):
+    await client.post("/api/v1/auth/signup", json={"email": "r@b.c", "password": "supersecret"})
+    login = await client.post(
+        "/api/v1/auth/login", json={"email": "r@b.c", "password": "supersecret"}
+    )
+    refresh_token = login.json()["refresh_token"]
+
+    ok = await client.post("/api/v1/auth/refresh", json={"refresh_token": refresh_token})
+    assert ok.status_code == 200
+    assert ok.json()["access_token"]
+
+    # An access token may not be used where a refresh token is expected.
+    bad = await client.post(
+        "/api/v1/auth/refresh", json={"refresh_token": login.json()["access_token"]}
+    )
+    assert bad.status_code == 401
+
+
+@pytest.mark.asyncio
 async def test_other_user_cannot_touch_your_form(client: httpx.AsyncClient):
     """A logged-in user must not read, modify, publish, list, or export someone else's form."""
     owner = await _headers_for(client, "owner@b.c")

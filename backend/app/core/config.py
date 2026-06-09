@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from functools import lru_cache
 
-from pydantic import Field
+from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -47,6 +47,15 @@ class Settings(BaseSettings):
     @property
     def is_production(self) -> bool:
         return self.env == "production"
+
+    @model_validator(mode="after")
+    def _require_secret_in_production(self) -> "Settings":
+        """Refuse to boot in production with the default signing key — forged-JWT guard."""
+        if self.is_production and self.secret_key == "change-me":
+            raise ValueError(
+                "SUPFORM_SECRET_KEY must be set to a strong, unique value in production."
+            )
+        return self
 
 
 @lru_cache

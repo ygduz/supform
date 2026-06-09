@@ -33,3 +33,13 @@ def test_empty_expression_defaults_true():
 def test_disallowed_syntax_raises():
     with pytest.raises(ExpressionError):
         evaluate("__import__('os')", {})
+
+
+def test_small_exponent_is_allowed():
+    assert evaluate("2 ** 8", {}) == 256
+
+
+def test_huge_exponent_is_rejected():
+    # Guard against a CPU/memory DoS on the public submit path.
+    with pytest.raises(ExpressionError):
+        evaluate("2 ** 999999999", {})

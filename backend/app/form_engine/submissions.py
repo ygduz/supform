@@ -28,6 +28,10 @@ from app.schemas.form_schema import Element, FormSchema
 
 _PRESENTATIONAL = ("note", "section", "html")
 
+# Cap the input a custom regex runs against. Author-supplied patterns execute on every
+# public submission, so bounding the input length limits worst-case (ReDoS) cost.
+_MAX_PATTERN_INPUT = 4096
+
 
 @dataclass
 class SubmissionValidationResult:
@@ -160,8 +164,11 @@ def _validate_field(el: Element, value: Any, ctx: dict[str, Any]) -> str | None:
                 return _msg(v.message, f"Must be at least {v.min_length} characters.")
             if v.max_length is not None and len(value) > v.max_length:
                 return _msg(v.message, f"Must be at most {v.max_length} characters.")
-            if v.pattern and not re.fullmatch(v.pattern, value):
-                return _msg(v.message, "Invalid format.")
+            if v.pattern:
+                if len(value) > _MAX_PATTERN_INPUT:
+                    return _msg(v.message, "Value is too long.")
+                if not re.fullmatch(v.pattern, value):
+                    return _msg(v.message, "Invalid format.")
         if v.expression:
             try:
                 if not evaluate(v.expression, {**ctx, "value": value}):

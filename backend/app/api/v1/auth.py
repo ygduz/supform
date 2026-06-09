@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import uuid
+
 from fastapi import APIRouter, Depends
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -10,12 +12,13 @@ from app.core.exceptions import AuthError
 from app.core.security import (
     create_access_token,
     create_refresh_token,
+    decode_token,
     hash_password,
     verify_password,
 )
 from app.db.session import get_db
 from app.models.user import User
-from app.schemas.api import LoginRequest, SignupRequest, TokenPair, UserOut
+from app.schemas.api import LoginRequest, RefreshRequest, SignupRequest, TokenPair, UserOut
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -40,6 +43,22 @@ async def login(payload: LoginRequest, db: AsyncSession = Depends(get_db)) -> To
     user = await db.scalar(select(User).where(User.email == payload.email))
     if not user or not verify_password(payload.password, user.hashed_password):
         raise AuthError("Incorrect email or password")
+    sub = str(user.id)
+    return TokenPair(
+        access_token=create_access_token(sub),
+        refresh_token=create_refresh_token(sub),
+    )
+
+
+@router.post("/refresh", response_model=TokenPair)
+async def refresh(payload: RefreshRequest, db: AsyncSession = Depends(get_db)) -> TokenPair:
+    """Exchange a valid refresh token for a fresh access + refresh pair (rotation)."""
+    data = decode_token(payload.refresh_token)
+    if not data or data.get("type") != "refresh":
+        raise AuthError("Invalid or expired refresh token")
+    user = await db.get(User, uuid.UUID(data["sub"]))
+    if user is None or not user.is_active:
+        raise AuthError("User not found or inactive")
     sub = str(user.id)
     return TokenPair(
         access_token=create_access_token(sub),
