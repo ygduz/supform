@@ -41,9 +41,16 @@ class Settings(BaseSettings):
     refresh_token_expire_days: int = 14
 
     # Storage
-    storage_backend: str = "local"
+    storage_backend: str = "local"  # local | s3
     storage_local_path: str = "./media"
     max_upload_mb: int = 10
+    # S3 / S3-compatible (used when storage_backend == "s3"; endpoint_url targets MinIO etc.)
+    s3_bucket: str = ""
+    s3_region: str | None = None
+    s3_endpoint_url: str | None = None
+    s3_access_key_id: str | None = None
+    s3_secret_access_key: str | None = None
+    s3_prefix: str = ""
 
     @property
     def is_production(self) -> bool:

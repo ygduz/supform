@@ -43,7 +43,8 @@ A pragmatic build order. Each milestone is shippable on its own.
 - [ ] Offline / PWA collection
 - [x] Webhooks & integrations (per-form outbound webhooks, HMAC-SHA256 signed,
       delivered off-request via Celery with retries; managed from the builder)
-- [ ] File/media attachments via S3
+- [x] File/media attachments via S3 (pluggable S3Storage backend, S3-compatible/MinIO
+      support via endpoint_url; selected with SUPFORM_STORAGE_BACKEND=s3)
 
 ## M5 — Polish
 - [x] i18n / multi-language forms (per-language labels/hints in the builder, language
