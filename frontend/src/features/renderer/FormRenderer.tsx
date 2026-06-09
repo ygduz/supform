@@ -1,5 +1,6 @@
 import { ApiError, api } from "@/api/client";
 import { LanguageContext, formLanguages, languageLabel, localize } from "@/lib/i18n";
+import { isNetworkError, queueSubmission } from "@/lib/offline";
 import type { Element, FormSchema } from "@/types/form-schema";
 import type { JSX } from "react";
 import { useState } from "react";
@@ -21,6 +22,7 @@ export function FormRenderer({ schema, formId }: { schema: FormSchema; formId: s
   const [errors, setErrors] = useState<FieldErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
+  const [queuedOffline, setQueuedOffline] = useState(false);
 
   // Multi-language support: offer a switcher when the form declares >1 language.
   const languages = formLanguages(schema.languages, schema.defaultLanguage);
@@ -176,6 +178,11 @@ export function FormRenderer({ schema, formId }: { schema: FormSchema; formId: s
       // The server re-validates: map any field-level 422 details back onto the fields.
       if (err instanceof ApiError && err.details && typeof err.details === "object") {
         setErrors(err.details as FieldErrors);
+      } else if (isNetworkError(err)) {
+        // Offline: keep the response locally; it syncs automatically when back online.
+        queueSubmission(formId, answers);
+        setQueuedOffline(true);
+        setSubmitted(true);
       } else {
         setFormError((err as Error).message);
       }
@@ -183,6 +190,14 @@ export function FormRenderer({ schema, formId }: { schema: FormSchema; formId: s
   }
 
   if (submitted) {
+    if (queuedOffline) {
+      return (
+        <p className="confirmation">
+          You appear to be offline. Your response was saved on this device and will be submitted
+          automatically when you're back online.
+        </p>
+      );
+    }
     return <p className="confirmation">{L(schema.settings?.confirmationMessage) || "Thanks!"}</p>;
   }
 

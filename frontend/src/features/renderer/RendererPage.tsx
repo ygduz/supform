@@ -1,5 +1,6 @@
 import { api, isAuthenticated } from "@/api/client";
 import { localize } from "@/lib/i18n";
+import { cacheSchema, isNetworkError, readCachedSchema } from "@/lib/offline";
 import type { FormSchema } from "@/types/form-schema";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useParams } from "react-router-dom";
@@ -8,12 +9,28 @@ import { FormRenderer } from "./FormRenderer";
 const isClosed = (closeDate?: string): boolean =>
   closeDate ? new Date(closeDate).getTime() < Date.now() : false;
 
-/** Loads a published form schema by id and renders it for a respondent. */
+/**
+ * Loads a published form schema by id and renders it for a respondent.
+ *
+ * Every successful load caches the schema locally, so a previously opened form keeps
+ * working offline; offline submissions queue for sync (see lib/offline).
+ */
 export function RendererPage() {
   const { formId = "" } = useParams();
   const { data, isLoading, error } = useQuery({
     queryKey: ["form-schema", formId],
-    queryFn: () => api.getPublishedSchema(formId),
+    queryFn: async () => {
+      try {
+        const schema = await api.getPublishedSchema(formId);
+        cacheSchema(formId, schema);
+        return schema;
+      } catch (err) {
+        // Offline? Fall back to the last schema this device saw for the form.
+        const cached = isNetworkError(err) ? readCachedSchema(formId) : null;
+        if (cached) return cached;
+        throw err;
+      }
+    },
     enabled: formId !== "demo",
   });
 

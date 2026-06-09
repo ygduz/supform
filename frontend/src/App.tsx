@@ -2,6 +2,7 @@ import { BrowserRouter, Link, Route, Routes } from "react-router-dom";
 import { LoginPage } from "./features/auth/LoginPage";
 import { BuilderPage } from "./features/builder/BuilderPage";
 import { ImportPage } from "./features/import/ImportPage";
+import { OfflineIndicator } from "./features/offline/OfflineIndicator";
 import { RendererPage } from "./features/renderer/RendererPage";
 import { ResponsesPage } from "./features/responses/ResponsesPage";
 import { TemplatesPage } from "./features/templates/TemplatesPage";
@@ -25,6 +26,7 @@ export function App() {
           <Link to="/login">Sign in</Link>
         </nav>
       </header>
+      <OfflineIndicator />
       <main className="app-main">
         <Routes>
           <Route path="/" element={<Home />} />

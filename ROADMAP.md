@@ -40,7 +40,8 @@ A pragmatic build order. Each milestone is shippable on its own.
 ## M4 — Collection at scale
 - [x] Public form links, access control, response limits (requireLogin, closeDate,
       maxResponses, single-response; share link + closed/sign-in gates in the renderer)
-- [ ] Offline / PWA collection
+- [x] Offline / PWA collection (installable PWA shell via service worker; schemas
+      cached per device; offline submissions queue locally and auto-sync on reconnect)
 - [x] Webhooks & integrations (per-form outbound webhooks, HMAC-SHA256 signed,
       delivered off-request via Celery with retries; managed from the builder)
 - [x] File/media attachments via S3 (pluggable S3Storage backend, S3-compatible/MinIO
