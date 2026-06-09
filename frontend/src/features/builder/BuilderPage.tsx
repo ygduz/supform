@@ -5,10 +5,11 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { FormRenderer } from "../renderer/FormRenderer";
 import { CanvasList } from "./CanvasList";
 import { PropertiesPanel } from "./PropertiesPanel";
+import { ThemePanel } from "./ThemePanel";
 import { findElement, pageElements } from "./model";
 import { ELEMENT_PALETTE } from "./palette";
 
-type Tab = "properties" | "preview";
+type Tab = "properties" | "theme" | "preview";
 
 /**
  * The form builder: palette (add), canvas (arrange/edit), inspector (properties) and a
@@ -134,6 +135,13 @@ export function BuilderPage() {
             </button>
             <button
               type="button"
+              className={tab === "theme" ? "tab active" : "tab"}
+              onClick={() => setTab("theme")}
+            >
+              Theme
+            </button>
+            <button
+              type="button"
               className={tab === "preview" ? "tab active" : "tab"}
               onClick={() => setTab("preview")}
             >
@@ -141,13 +149,14 @@ export function BuilderPage() {
             </button>
           </div>
 
-          {tab === "properties" ? (
-            selected ? (
+          {tab === "properties" &&
+            (selected ? (
               <PropertiesPanel element={selected} />
             ) : (
               <p className="muted">Select a question to edit its settings.</p>
-            )
-          ) : (
+            ))}
+          {tab === "theme" && <ThemePanel />}
+          {tab === "preview" && (
             <div className="preview-pane">
               <FormRenderer schema={schema} formId="preview" />
             </div>

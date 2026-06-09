@@ -107,6 +107,9 @@ export interface Theme {
   primaryColor?: string;
   backgroundColor?: string;
   fontFamily?: string;
+  cornerRadius?: number;
+  coverImage?: string;
+  logo?: string;
   [key: string]: unknown;
 }
 

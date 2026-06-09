@@ -28,7 +28,7 @@ A pragmatic build order. Each milestone is shippable on its own.
 - [x] Builder: drag-and-drop, live preview, multi-page, groups/repeats/matrix authoring,
       and a logic + validation editor (visibleIf/requiredIf/calculate, min/max/length/
       pattern/selected). Cross-container drag still TODO
-- [ ] Theming system
+- [x] Theming system (primary/background color, font, corner radius, logo/cover; live preview)
 - [x] Results table + per-field summary + CSV/XLSX/JSON export buttons
 
 ## M3 — Interoperability

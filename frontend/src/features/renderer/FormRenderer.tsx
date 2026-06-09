@@ -5,6 +5,7 @@ import type { JSX } from "react";
 import { useState } from "react";
 import { evaluateBool } from "./expressions";
 import { renderField } from "./fields/registry";
+import { themeToStyle } from "./theme";
 import { type FieldErrors, validateAnswers } from "./validation";
 
 type Answers = Record<string, unknown>;
@@ -114,8 +115,12 @@ export function FormRenderer({ schema, formId }: { schema: FormSchema; formId: s
     );
   }
 
+  const theme = schema.theme;
+
   return (
-    <form className="form-renderer" onSubmit={handleSubmit}>
+    <form className="form-renderer" style={themeToStyle(theme)} onSubmit={handleSubmit}>
+      {theme?.coverImage && <img className="form-cover" src={theme.coverImage} alt="" />}
+      {theme?.logo && <img className="form-logo" src={theme.logo} alt="" />}
       <h1>{localize(schema.title)}</h1>
       {schema.description && <p className="muted">{localize(schema.description)}</p>}
       {schema.pages.flatMap((p) => p.elements).map(renderElement)}

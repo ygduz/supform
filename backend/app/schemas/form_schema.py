@@ -134,12 +134,15 @@ class Page(BaseModel):
 
 
 class Theme(BaseModel):
-    model_config = ConfigDict(extra="allow")
+    model_config = ConfigDict(populate_by_name=True, extra="allow")
 
     preset: str = "supform-light"
     primary_color: str | None = Field(default=None, alias="primaryColor")
     background_color: str | None = Field(default=None, alias="backgroundColor")
     font_family: str | None = Field(default=None, alias="fontFamily")
+    corner_radius: int | None = Field(default=None, alias="cornerRadius")
+    cover_image: str | None = Field(default=None, alias="coverImage")
+    logo: str | None = None
 
 
 class FormSettings(BaseModel):

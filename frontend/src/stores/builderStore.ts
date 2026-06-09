@@ -1,6 +1,6 @@
 import { api, isAuthenticated } from "@/api/client";
 import * as model from "@/features/builder/model";
-import type { Choice, Element, ElementType, FormSchema } from "@/types/form-schema";
+import type { Choice, Element, ElementType, FormSchema, Theme } from "@/types/form-schema";
 import { create } from "zustand";
 
 type Status = "idle" | "loading" | "saving" | "publishing" | "error";
@@ -27,6 +27,7 @@ interface BuilderState {
   init: (formId: string) => Promise<void>;
   select: (name: string | null) => void;
   setTitle: (title: string) => void;
+  setTheme: (patch: Partial<Theme>) => void;
 
   add: (type: ElementType) => void;
   update: (name: string, patch: Partial<Element>) => void;
@@ -95,6 +96,16 @@ export const useBuilderStore = create<BuilderState>((set, get) => ({
   select: (name) => set({ selectedName: name }),
 
   setTitle: (title) => set((s) => ({ schema: { ...s.schema, title }, dirty: true })),
+
+  setTheme: (patch) =>
+    set((s) => {
+      // Drop keys set back to empty so the theme object stays clean.
+      const merged = { ...s.schema.theme, ...patch };
+      for (const k of Object.keys(merged)) {
+        if (merged[k] === undefined || merged[k] === "") delete merged[k];
+      }
+      return { schema: { ...s.schema, theme: merged }, dirty: true };
+    }),
 
   add: (type) =>
     set((s) => {
