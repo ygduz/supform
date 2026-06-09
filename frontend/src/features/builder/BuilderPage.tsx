@@ -8,6 +8,7 @@ import { PropertiesPanel } from "./PropertiesPanel";
 import { SettingsPanel } from "./SettingsPanel";
 import { ShareDialog } from "./ShareDialog";
 import { ThemePanel } from "./ThemePanel";
+import { WebhooksDialog } from "./WebhooksDialog";
 import { findElement, pageElements } from "./model";
 import { ELEMENT_PALETTE } from "./palette";
 
@@ -25,6 +26,7 @@ export function BuilderPage() {
   const { schema, selectedName, activePage, status, error, dirty } = store;
   const [tab, setTab] = useState<Tab>("properties");
   const [sharing, setSharing] = useState(false);
+  const [integrations, setIntegrations] = useState(false);
 
   useEffect(() => {
     // Load (or reset) the draft whenever the route's form id changes.
@@ -73,6 +75,15 @@ export function BuilderPage() {
               onClick={() => setSharing(true)}
             >
               Share access
+            </button>
+          ) : null}
+          {store.formId ? (
+            <button
+              type="button"
+              title="Send submissions to external URLs"
+              onClick={() => setIntegrations(true)}
+            >
+              Integrations
             </button>
           ) : null}
           {store.formId ? <Link to={`/forms/${store.formId}/responses`}>Responses</Link> : null}
@@ -197,6 +208,9 @@ export function BuilderPage() {
 
       {sharing && store.projectId && (
         <ShareDialog projectId={store.projectId} onClose={() => setSharing(false)} />
+      )}
+      {integrations && store.formId && (
+        <WebhooksDialog formId={store.formId} onClose={() => setIntegrations(false)} />
       )}
     </div>
   );

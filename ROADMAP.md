@@ -41,7 +41,8 @@ A pragmatic build order. Each milestone is shippable on its own.
 - [x] Public form links, access control, response limits (requireLogin, closeDate,
       maxResponses, single-response; share link + closed/sign-in gates in the renderer)
 - [ ] Offline / PWA collection
-- [ ] Webhooks & integrations
+- [x] Webhooks & integrations (per-form outbound webhooks, HMAC-SHA256 signed,
+      delivered off-request via Celery with retries; managed from the builder)
 - [ ] File/media attachments via S3
 
 ## M5 — Polish

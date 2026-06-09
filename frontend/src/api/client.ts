@@ -90,6 +90,17 @@ export interface Member {
   role: string;
 }
 
+/** An outbound webhook registered on a form. */
+export interface Webhook {
+  id: string;
+  form_id: string;
+  url: string;
+  event: string;
+  active: boolean;
+  secret: string;
+  created_at: string;
+}
+
 export const api = {
   // auth
   signup: (email: string, password: string, fullName?: string) =>
@@ -156,6 +167,26 @@ export const api = {
   publish: (formId: string) =>
     request<{ form_id: string; version: number }>(`/api/v1/forms/${formId}/publish`, {
       method: "POST",
+    }),
+
+  // webhooks / integrations
+  listWebhooks: (formId: string) => request<Webhook[]>(`/api/v1/forms/${formId}/webhooks`),
+
+  createWebhook: (formId: string, url: string) =>
+    request<Webhook>(`/api/v1/forms/${formId}/webhooks`, {
+      method: "POST",
+      body: JSON.stringify({ url }),
+    }),
+
+  updateWebhook: (formId: string, webhookId: string, patch: { active?: boolean; url?: string }) =>
+    request<Webhook>(`/api/v1/forms/${formId}/webhooks/${webhookId}`, {
+      method: "PATCH",
+      body: JSON.stringify(patch),
+    }),
+
+  deleteWebhook: (formId: string, webhookId: string) =>
+    request<void>(`/api/v1/forms/${formId}/webhooks/${webhookId}`, {
+      method: "DELETE",
     }),
 
   // submissions

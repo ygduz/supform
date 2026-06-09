@@ -15,6 +15,7 @@ from app.models.user import User
 from app.schemas.api import SubmissionCreate, SubmissionOut
 from app.services import forms as forms_service
 from app.services import submissions as submissions_service
+from app.services import webhooks as webhooks_service
 
 router = APIRouter(tags=["submissions"])
 
@@ -31,13 +32,18 @@ async def submit(
     Anonymous by default; if a valid token is sent the respondent is recorded, which
     enables ``requireLogin`` and single-submission enforcement.
     """
-    return await submissions_service.create_submission(
+    submission = await submissions_service.create_submission(
         db,
         form_id,
         payload.answers,
         metadata=payload.metadata,
         respondent_id=user.id if user else None,
     )
+    # Persist before notifying, so webhooks only fire for responses that were stored.
+    await db.commit()
+    form = await forms_service.get_form(db, form_id)
+    await webhooks_service.dispatch_submission_event(db, form, submission)
+    return submission
 
 
 @router.get("/forms/{form_id}/submissions", response_model=list[SubmissionOut])

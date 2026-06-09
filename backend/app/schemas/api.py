@@ -116,6 +116,28 @@ class SubmissionOut(BaseModel):
     created_at: datetime
 
 
+# ---- webhooks ----
+class WebhookCreate(BaseModel):
+    url: str
+    event: str = "submission.created"
+
+
+class WebhookUpdate(BaseModel):
+    url: str | None = None
+    active: bool | None = None
+
+
+class WebhookOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: uuid.UUID
+    form_id: uuid.UUID
+    url: str
+    event: str
+    active: bool
+    secret: str
+    created_at: datetime
+
+
 # ---- exports ----
 class ExportJobOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
