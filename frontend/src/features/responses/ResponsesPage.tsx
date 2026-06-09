@@ -2,18 +2,21 @@ import { type SubmissionRow, api, isAuthenticated } from "@/api/client";
 import type { FormSchema } from "@/types/form-schema";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { buildColumns, buildSummaries } from "./columns";
+import { AnalyticsPanel } from "./AnalyticsPanel";
+import { buildColumns } from "./columns";
 
 type Status = "loading" | "ready" | "unauth" | "error";
 type Format = "csv" | "xlsx" | "json";
+type View = "analytics" | "table";
 
-/** Responses dashboard: a submissions table, per-field summary, and export downloads. */
+/** Responses dashboard: analytics charts, a submissions table, and export downloads. */
 export function ResponsesPage() {
   const { formId } = useParams();
   const [schema, setSchema] = useState<FormSchema | null>(null);
   const [rows, setRows] = useState<SubmissionRow[]>([]);
   const [status, setStatus] = useState<Status>("loading");
   const [error, setError] = useState<string | null>(null);
+  const [view, setView] = useState<View>("analytics");
 
   useEffect(() => {
     if (!formId) return;
@@ -44,7 +47,6 @@ export function ResponsesPage() {
   }, [formId]);
 
   const columns = useMemo(() => (schema ? buildColumns(schema) : []), [schema]);
-  const summaries = useMemo(() => (schema ? buildSummaries(schema, rows) : []), [schema, rows]);
 
   const download = useCallback(
     async (format: Format) => {
@@ -116,46 +118,49 @@ export function ResponsesPage() {
         <p className="muted empty">No responses yet. Share the form to start collecting.</p>
       ) : (
         <>
-          {summaries.length > 0 && (
-            <div className="summary-grid">
-              {summaries.map((summary) => (
-                <div className="summary-card" key={summary.name}>
-                  <h3>{summary.label}</h3>
-                  <ul>
-                    {summary.counts.map((entry) => (
-                      <li key={entry.label}>
-                        <span>{entry.label}</span>
-                        <strong>{entry.count}</strong>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ))}
-            </div>
-          )}
+          <div className="view-tabs">
+            <button
+              type="button"
+              className={view === "analytics" ? "tab active" : "tab"}
+              onClick={() => setView("analytics")}
+            >
+              Analytics
+            </button>
+            <button
+              type="button"
+              className={view === "table" ? "tab active" : "tab"}
+              onClick={() => setView("table")}
+            >
+              Table
+            </button>
+          </div>
 
-          <div className="table-scroll">
-            <table className="responses-table">
-              <thead>
-                <tr>
-                  <th>Submitted</th>
-                  {columns.map((col) => (
-                    <th key={col.key}>{col.label}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((row) => (
-                  <tr key={row.id}>
-                    <td className="muted">{new Date(row.created_at).toLocaleString()}</td>
+          {view === "analytics" && schema && <AnalyticsPanel schema={schema} rows={rows} />}
+
+          {view === "table" && (
+            <div className="table-scroll">
+              <table className="responses-table">
+                <thead>
+                  <tr>
+                    <th>Submitted</th>
                     {columns.map((col) => (
-                      <td key={col.key}>{col.value(row.answers)}</td>
+                      <th key={col.key}>{col.label}</th>
                     ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {rows.map((row) => (
+                    <tr key={row.id}>
+                      <td className="muted">{new Date(row.created_at).toLocaleString()}</td>
+                      {columns.map((col) => (
+                        <td key={col.key}>{col.value(row.answers)}</td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </>
       )}
     </section>

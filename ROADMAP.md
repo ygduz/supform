@@ -52,4 +52,5 @@ A pragmatic build order. Each milestone is shippable on its own.
 - [x] Templates gallery (ready-made forms — contact, RSVP, feedback/NPS, job
       application — openable in the builder from /templates)
 - [ ] Collaboration & sharing
-- [ ] Analytics dashboards
+- [x] Analytics dashboards (responses view toggles between an analytics panel —
+      responses-over-time, choice-distribution bars, numeric stats — and the table)
