@@ -116,9 +116,7 @@ async def test_export_job_owner_only(ctx):
     enq = await client.post(f"/api/v1/forms/{form_id}/exports?format=csv", headers=headers)
     job_id = enq.json()["id"]
 
-    await client.post(
-        "/api/v1/auth/signup", json={"email": "other@b.c", "password": "supersecret"}
-    )
+    await client.post("/api/v1/auth/signup", json={"email": "other@b.c", "password": "supersecret"})
     other = await client.post(
         "/api/v1/auth/login", json={"email": "other@b.c", "password": "supersecret"}
     )

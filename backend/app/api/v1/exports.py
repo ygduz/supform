@@ -29,6 +29,7 @@ def _job_out(job: object) -> ExportJobOut:
         out.download_url = f"/api/v1/exports/{out.id}/download"
     return out
 
+
 # Map each format to its exporter, MIME type, and file extension in one place so adding a
 # format is a single-line change and Content-Type never drifts from the body.
 _XLSX_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
