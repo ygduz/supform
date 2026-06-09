@@ -19,7 +19,8 @@ A pragmatic build order. Each milestone is shippable on its own.
 - [x] Alembic migration + Postgres JSONB storage (portable to SQLite for tests)
 - [x] End-to-end vertical slice verified (`scripts/smoke_e2e.py`)
 - [x] Per-object permissions — ownership checks (forms/submissions/export/import)
-- [ ] Sharing / roles beyond the owner
+- [x] Sharing / roles beyond the owner (project memberships: viewer/editor/owner,
+      role-gated API + Share dialog in the builder)
 - [x] Media/file upload handling (local storage; S3 backend pending, M4)
 
 ## M2 — Builder & renderer (frontend)

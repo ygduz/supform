@@ -24,6 +24,7 @@ async function resolveProjectId(): Promise<string> {
 
 interface BuilderState {
   formId: string | null;
+  projectId: string | null;
   schema: FormSchema;
   selectedName: string | null;
   activePage: number;
@@ -66,6 +67,7 @@ interface BuilderState {
 
 export const useBuilderStore = create<BuilderState>((set, get) => ({
   formId: null,
+  projectId: null,
   schema: model.createEmptyForm(),
   selectedName: null,
   activePage: 0,
@@ -77,6 +79,7 @@ export const useBuilderStore = create<BuilderState>((set, get) => ({
     if (formId === "new") {
       set({
         formId: null,
+        projectId: null,
         schema: model.createEmptyForm(),
         selectedName: null,
         activePage: 0,
@@ -89,6 +92,7 @@ export const useBuilderStore = create<BuilderState>((set, get) => ({
       const form = await api.getForm(formId);
       set({
         formId,
+        projectId: form.project_id,
         schema: form.draft_content as FormSchema,
         selectedName: null,
         activePage: 0,
@@ -217,7 +221,7 @@ export const useBuilderStore = create<BuilderState>((set, get) => ({
         // First save of a brand-new form: place it in a project and persist its id.
         const projectId = await resolveProjectId();
         const created = await api.createForm(projectId, schema);
-        set({ formId: created.id, status: "idle", dirty: false });
+        set({ formId: created.id, projectId, status: "idle", dirty: false });
       }
     } catch (err) {
       set({ status: "error", error: (err as Error).message });

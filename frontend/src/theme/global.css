@@ -747,3 +747,71 @@ body {
 .responses-table tbody tr:hover {
   background: var(--surface);
 }
+
+/* Modal + share dialog */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+}
+.modal-backdrop-close {
+  position: absolute;
+  inset: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+}
+.modal {
+  position: relative;
+  background: #fff;
+  border-radius: var(--radius);
+  padding: 24px;
+  width: min(520px, 92vw);
+  max-height: 85vh;
+  overflow-y: auto;
+  box-shadow: 0 12px 40px rgba(15, 23, 42, 0.25);
+}
+.modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.modal-head h2 {
+  margin: 0;
+  font-size: 20px;
+}
+.share-add {
+  display: flex;
+  gap: 8px;
+  margin: 16px 0;
+}
+.share-add input[type="email"] {
+  flex: 1;
+}
+.member-list {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.member-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+  border-top: 1px solid var(--border);
+}
+.member-email {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.member-role {
+  font-size: 14px;
+}

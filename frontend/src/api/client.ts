@@ -82,6 +82,14 @@ export interface MediaRef {
   url: string;
 }
 
+/** A collaborator on a project and their role. */
+export interface Member {
+  user_id: string;
+  email: string;
+  full_name: string | null;
+  role: string;
+}
+
 export const api = {
   // auth
   signup: (email: string, password: string, fullName?: string) =>
@@ -105,11 +113,33 @@ export const api = {
       body: JSON.stringify({ name }),
     }),
 
+  // project members / sharing
+  listMembers: (projectId: string) => request<Member[]>(`/api/v1/projects/${projectId}/members`),
+
+  addMember: (projectId: string, email: string, role: string) =>
+    request<Member>(`/api/v1/projects/${projectId}/members`, {
+      method: "POST",
+      body: JSON.stringify({ email, role }),
+    }),
+
+  updateMember: (projectId: string, userId: string, role: string) =>
+    request<Member>(`/api/v1/projects/${projectId}/members/${userId}`, {
+      method: "PATCH",
+      body: JSON.stringify({ role }),
+    }),
+
+  removeMember: (projectId: string, userId: string) =>
+    request<void>(`/api/v1/projects/${projectId}/members/${userId}`, {
+      method: "DELETE",
+    }),
+
   // forms
   getPublishedSchema: (formId: string) => request<FormSchema>(`/api/v1/forms/${formId}/schema`),
 
   getForm: (formId: string) =>
-    request<{ id: string; draft_content: FormSchema; status: string }>(`/api/v1/forms/${formId}`),
+    request<{ id: string; project_id: string; draft_content: FormSchema; status: string }>(
+      `/api/v1/forms/${formId}`,
+    ),
 
   createForm: (projectId: string, content: FormSchema) =>
     request<{ id: string }>("/api/v1/forms", {
