@@ -69,7 +69,7 @@ class Choice(BaseModel):
 
 
 class Validation(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
 
     min: float | None = None
     max: float | None = None

@@ -110,6 +110,104 @@ body {
   color: #f59e0b;
 }
 
+/* Select / dropdown */
+.field .select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 15px;
+  font-family: inherit;
+  background: #fff;
+  color: var(--text);
+}
+
+/* Date / time inputs */
+.field input[type="date"],
+.field input[type="time"],
+.field input[type="datetime-local"] {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 15px;
+  font-family: inherit;
+}
+
+/* Boolean Yes/No toggle */
+.toggle {
+  display: inline-flex;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.toggle-btn {
+  background: #fff;
+  border: none;
+  padding: 9px 22px;
+  font-size: 15px;
+  font-family: inherit;
+  cursor: pointer;
+  color: var(--text);
+}
+.toggle-btn + .toggle-btn {
+  border-left: 1px solid var(--border);
+}
+.toggle-btn.active {
+  background: var(--primary);
+  color: #fff;
+}
+
+/* Scale (NPS / 1–5) */
+.scale {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.scale-btn {
+  min-width: 44px;
+  padding: 9px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: #fff;
+  color: var(--text);
+  font-size: 15px;
+  font-family: inherit;
+  cursor: pointer;
+}
+.scale-btn:hover {
+  border-color: var(--primary);
+}
+.scale-btn.active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+
+/* Matrix */
+.matrix {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+.matrix th,
+.matrix td {
+  padding: 8px 10px;
+  text-align: center;
+  border-bottom: 1px solid var(--border);
+}
+.matrix thead th {
+  font-weight: 600;
+  color: var(--muted);
+}
+.matrix tbody th[scope="row"] {
+  text-align: left;
+  font-weight: 500;
+}
+
 /* Builder */
 .builder {
   display: flex;
