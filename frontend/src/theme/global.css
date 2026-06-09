@@ -101,6 +101,15 @@ body {
 .presentational {
   margin: 0;
 }
+.file-field {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.file-name {
+  font-size: 14px;
+}
 .field {
   margin-bottom: 20px;
 }

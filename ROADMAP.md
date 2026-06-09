@@ -20,7 +20,7 @@ A pragmatic build order. Each milestone is shippable on its own.
 - [x] End-to-end vertical slice verified (`scripts/smoke_e2e.py`)
 - [x] Per-object permissions — ownership checks (forms/submissions/export/import)
 - [ ] Sharing / roles beyond the owner
-- [ ] Media/file upload handling
+- [x] Media/file upload handling (local storage; S3 backend pending, M4)
 
 ## M2 — Builder & renderer (frontend)
 - [x] Renderer: schema → interactive validated form (client-side validation + 422 mapping;

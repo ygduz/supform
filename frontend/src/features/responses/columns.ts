@@ -23,7 +23,12 @@ function format(value: unknown): string {
   if (value === undefined || value === null || value === "") return "";
   if (typeof value === "boolean") return value ? "Yes" : "No";
   if (Array.isArray(value)) return value.map(format).join("; ");
-  if (typeof value === "object") return JSON.stringify(value);
+  if (typeof value === "object") {
+    // File-reference answers render as their filename.
+    const ref = value as { filename?: string };
+    if (typeof ref.filename === "string") return ref.filename;
+    return JSON.stringify(value);
+  }
   return String(value);
 }
 

@@ -74,7 +74,7 @@ export function FormRenderer({ schema, formId }: { schema: FormSchema; formId: s
             {el.required && " *"}
           </label>
         )}
-        {renderField(el, answers[el.name], (v) => setValue(el.name, v))}
+        {renderField(el, answers[el.name], (v) => setValue(el.name, v), formId)}
         {el.hint && <small className="hint">{localize(el.hint)}</small>}
         {errors[el.name] && <small className="error field-error">{errors[el.name]}</small>}
       </div>

@@ -4,13 +4,17 @@
  * This is the extension point that makes Supform "more flexible than KOBO": adding a new
  * question type is just registering a renderer here (and a Pydantic counterpart server-side).
  */
+import { type MediaRef, api } from "@/api/client";
 import { localize } from "@/lib/i18n";
 import type { Choice, Element } from "@/types/form-schema";
+import { useState } from "react";
 
 type FieldProps = {
   element: Element;
   value: unknown;
   onChange: (value: unknown) => void;
+  /** The published form id, needed by fields that call the API (e.g. file upload). */
+  formId?: string;
 };
 
 type Renderer = (p: FieldProps) => JSX.Element;
@@ -224,6 +228,54 @@ const Matrix: Renderer = ({ element, value, onChange }) => {
   );
 };
 
+const FileField: Renderer = ({ element, value, onChange, formId }) => {
+  const ref = value as MediaRef | undefined;
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  // Uploads need a real published form; the builder preview/demo can't persist files.
+  const canUpload = Boolean(formId) && formId !== "preview" && formId !== "demo";
+
+  async function onSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file || !formId) return;
+    setBusy(true);
+    setError(null);
+    try {
+      onChange(await api.uploadFile(formId, file));
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (ref) {
+    return (
+      <div className="file-field">
+        <span className="file-name">📎 {ref.filename}</span>
+        <button type="button" className="link-button" onClick={() => onChange(undefined)}>
+          Remove
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="file-field">
+      <input
+        id={element.name}
+        type="file"
+        accept={element.type === "image" ? "image/*" : undefined}
+        disabled={!canUpload || busy}
+        onChange={onSelect}
+      />
+      {busy && <small className="hint">Uploading…</small>}
+      {!canUpload && <small className="hint">File upload is available on the live form.</small>}
+      {error && <small className="error">{error}</small>}
+    </div>
+  );
+};
+
 /** type -> renderer. Unknown types fall back to a text input. */
 const REGISTRY: Record<string, Renderer> = {
   text: TextField,
@@ -242,10 +294,17 @@ const REGISTRY: Record<string, Renderer> = {
   scale: Scale,
   rating: Rating,
   matrix: Matrix,
-  // TODO(M2): ranking, repeat, file, geopoint, signature, …
+  file: FileField,
+  image: FileField,
+  // TODO(M2): ranking, repeat, geopoint, signature, …
 };
 
-export function renderField(element: Element, value: unknown, onChange: (v: unknown) => void) {
+export function renderField(
+  element: Element,
+  value: unknown,
+  onChange: (v: unknown) => void,
+  formId?: string,
+) {
   const Field = REGISTRY[element.type] ?? TextField;
-  return <Field element={element} value={value} onChange={onChange} />;
+  return <Field element={element} value={value} onChange={onChange} formId={formId} />;
 }

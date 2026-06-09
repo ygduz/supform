@@ -73,6 +73,15 @@ export interface SubmissionRow {
   created_at: string;
 }
 
+/** Reference a file field stores as its answer after upload. */
+export interface MediaRef {
+  id: string;
+  filename: string;
+  content_type: string;
+  size: number;
+  url: string;
+}
+
 export const api = {
   // auth
   signup: (email: string, password: string, fullName?: string) =>
@@ -128,6 +137,26 @@ export const api = {
 
   listSubmissions: (formId: string) =>
     request<SubmissionRow[]>(`/api/v1/forms/${formId}/submissions?limit=500`),
+
+  /** Upload a file for a file/image field; returns the reference to store as the answer. */
+  uploadFile: async (formId: string, file: File): Promise<MediaRef> => {
+    const body = new FormData();
+    body.append("file", file);
+    const res = await fetch(`${BASE}/api/v1/forms/${formId}/uploads`, {
+      method: "POST",
+      headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
+      body,
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new ApiError(
+        err?.error?.message ?? `Upload failed: ${res.status}`,
+        res.status,
+        err?.error?.details,
+      );
+    }
+    return res.json();
+  },
 
   /** Fetch an export with auth and return the blob + server-suggested filename. */
   exportSubmissions: async (

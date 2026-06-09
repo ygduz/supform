@@ -49,6 +49,9 @@ def _format_value(el: Element, value: Any) -> Any:
     if el.type == "multi_choice" and isinstance(value, list):
         # Multiple selections collapse into one cell, human-readable and CSV-safe.
         return "; ".join(str(v) for v in value)
+    if el.type in ("file", "image") and isinstance(value, dict):
+        # A file answer is a reference object; show its filename in the cell.
+        return value.get("filename") or value.get("url") or ""
     if el.type == "repeat":
         # MVP: store the nested list as compact JSON in a single cell.
         # TODO: offer a "long format" export that emits one row per repeat instance.

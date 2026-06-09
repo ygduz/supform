@@ -96,3 +96,14 @@ class SubmissionOut(BaseModel):
     form_version: int
     answers: dict[str, Any]
     created_at: datetime
+
+
+# ---- media ----
+class MediaOut(BaseModel):
+    """The reference a file field stores in its answer, returned after upload."""
+
+    id: uuid.UUID
+    filename: str
+    content_type: str
+    size: int
+    url: str

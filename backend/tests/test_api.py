@@ -212,6 +212,38 @@ async def test_response_limit_enforced(client: httpx.AsyncClient):
 
 
 @pytest.mark.asyncio
+async def test_file_upload_and_owner_only_download(
+    client: httpx.AsyncClient, tmp_path, monkeypatch
+):
+    from app.core import config
+
+    monkeypatch.setattr(config.settings, "storage_local_path", str(tmp_path))
+
+    owner = await _headers_for(client, "media-owner@b.c")
+    form_id = await _published_form(client, owner)
+
+    # Anyone can upload to a published form (respondents are often anonymous).
+    up = await client.post(
+        f"/api/v1/forms/{form_id}/uploads",
+        files={"file": ("note.txt", b"hello bytes", "text/plain")},
+    )
+    assert up.status_code == 201
+    media = up.json()
+    assert media["filename"] == "note.txt" and media["size"] == 11
+    media_url = media["url"]
+
+    # Owner downloads the bytes back.
+    got = await client.get(media_url, headers=owner)
+    assert got.status_code == 200 and got.content == b"hello bytes"
+
+    # A different user cannot (existence hidden as 404).
+    attacker = await _headers_for(client, "media-attacker@b.c")
+    assert (await client.get(media_url, headers=attacker)).status_code == 404
+    # Anonymous download is rejected.
+    assert (await client.get(media_url)).status_code == 401
+
+
+@pytest.mark.asyncio
 async def test_refresh_token_exchanges_for_new_access(client: httpx.AsyncClient):
     await client.post("/api/v1/auth/signup", json={"email": "r@b.c", "password": "supersecret"})
     login = await client.post(

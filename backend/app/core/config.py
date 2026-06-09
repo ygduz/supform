@@ -43,13 +43,14 @@ class Settings(BaseSettings):
     # Storage
     storage_backend: str = "local"
     storage_local_path: str = "./media"
+    max_upload_mb: int = 10
 
     @property
     def is_production(self) -> bool:
         return self.env == "production"
 
     @model_validator(mode="after")
-    def _require_secret_in_production(self) -> "Settings":
+    def _require_secret_in_production(self) -> Settings:
         """Refuse to boot in production with the default signing key — forged-JWT guard."""
         if self.is_production and self.secret_key == "change-me":
             raise ValueError(
