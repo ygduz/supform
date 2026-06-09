@@ -1,22 +1,26 @@
-"""Async tasks. Heavy/slow work runs here, off the request path.
-
-These are scaffolded stubs; the real implementations land alongside their features (M3).
-"""
+"""Async tasks. Heavy/slow work runs here, off the request path."""
 
 from __future__ import annotations
+
+import asyncio
+import uuid
 
 from app.workers.celery_app import celery_app
 
 
 @celery_app.task(name="exports.build")
-def build_export(form_id: str, fmt: str = "csv") -> dict[str, str]:
-    """Generate an export file for a form's submissions and return its storage location."""
-    # TODO(M3): load submissions, call app.exporters, write to storage, return URL.
-    return {"form_id": form_id, "format": fmt, "status": "not_implemented"}
+def build_export(job_id: str) -> dict[str, str]:
+    """Run a queued export job to completion (generate + store the file)."""
+    return asyncio.run(_build_export(job_id))
 
 
-@celery_app.task(name="imports.xlsform")
-def import_xlsform_task(project_id: str, file_path: str) -> dict[str, str]:
-    """Parse an uploaded XLSForm into a draft form."""
-    # TODO(M3): call app.importers.import_xlsform and persist a draft Form.
-    return {"project_id": project_id, "status": "not_implemented"}
+async def _build_export(job_id: str) -> dict[str, str]:
+    # A worker is its own process with no running event loop, so a fresh async session
+    # over the app engine is safe here (unlike calling this inline from a request).
+    from app.db.session import SessionLocal
+    from app.services.exports import run_export_job
+
+    async with SessionLocal() as session:
+        job = await run_export_job(session, uuid.UUID(job_id))
+        await session.commit()
+        return {"job_id": job_id, "status": job.status}

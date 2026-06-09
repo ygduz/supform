@@ -98,6 +98,18 @@ class SubmissionOut(BaseModel):
     created_at: datetime
 
 
+# ---- exports ----
+class ExportJobOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: uuid.UUID
+    form_id: uuid.UUID
+    format: str
+    status: str
+    filename: str | None = None
+    error: str | None = None
+    download_url: str | None = None
+
+
 # ---- media ----
 class MediaOut(BaseModel):
     """The reference a file field stores in its answer, returned after upload."""

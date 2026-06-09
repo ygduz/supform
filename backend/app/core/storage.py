@@ -31,7 +31,9 @@ class LocalStorage:
         return self._root / key
 
     def save(self, key: str, data: bytes) -> None:
-        self._path(key).write_bytes(data)
+        path = self._path(key)
+        path.parent.mkdir(parents=True, exist_ok=True)  # keys may contain a prefix dir
+        path.write_bytes(data)
 
     def read(self, key: str) -> bytes:
         return self._path(key).read_bytes()
