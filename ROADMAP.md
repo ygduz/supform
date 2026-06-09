@@ -33,7 +33,7 @@ A pragmatic build order. Each milestone is shippable on its own.
 
 ## M3 — Interoperability
 - [x] XLSForm importer → Supform schema
-- [ ] ODK XForm importer
+- [x] ODK XForm importer (XML: binds, itext, select/group/repeat/upload, XPath logic)
 - [x] CSV / XLSX / JSON exporters (currently synchronous; Celery offload still TODO)
 
 ## M4 — Collection at scale

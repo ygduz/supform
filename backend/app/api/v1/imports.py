@@ -14,7 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import get_current_user
 from app.core.exceptions import ValidationError
 from app.db.session import get_db
-from app.importers import import_xlsform
+from app.importers import import_xform, import_xlsform
 from app.models.user import User
 from app.schemas.api import FormOut
 from app.schemas.form_schema import FormSchema
@@ -28,6 +28,13 @@ def _parse(data: bytes) -> FormSchema:
         return import_xlsform(data)
     except Exception as exc:  # noqa: BLE001 - surface any parse error as a clean 422
         raise ValidationError("Could not parse the XLSForm", details=str(exc)) from exc
+
+
+def _parse_xform(data: bytes) -> FormSchema:
+    try:
+        return import_xform(data)
+    except Exception as exc:  # noqa: BLE001 - surface any parse error as a clean 422
+        raise ValidationError("Could not parse the XForm", details=str(exc)) from exc
 
 
 @router.post("/xlsform/preview", response_model=FormSchema)
@@ -48,4 +55,25 @@ async def import_xlsform_to_project(
 ):
     """Parse an uploaded XLSForm and create it as a draft form on the given project."""
     schema = _parse(await file.read())
+    return await forms_service.create_form(db, project_id, schema, user.id)
+
+
+@router.post("/xform/preview", response_model=FormSchema)
+async def preview_xform(
+    file: UploadFile = File(...),
+    _: User = Depends(get_current_user),
+) -> FormSchema:
+    """Parse an uploaded ODK XForm (XML) and return the resulting Supform schema."""
+    return _parse_xform(await file.read())
+
+
+@router.post("/xform", response_model=FormOut, status_code=201)
+async def import_xform_to_project(
+    project_id: uuid.UUID = Form(...),
+    file: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Parse an uploaded ODK XForm and create it as a draft form on the given project."""
+    schema = _parse_xform(await file.read())
     return await forms_service.create_form(db, project_id, schema, user.id)

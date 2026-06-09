@@ -31,7 +31,7 @@ If you change the shape of a form, change all four (and update `docs/form-schema
 
 - Form behavior (validation, expressions, submission checks): `backend/app/form_engine/`
 - Publish/versioning: `backend/app/services/forms.py`
-- ODK/XLSForm import: `backend/app/importers/` (XLSForm done; ODK XForm stubbed, M3)
+- ODK/XLSForm import: `backend/app/importers/` (XLSForm + ODK XForm done)
 - Exports: `backend/app/exporters/`
 
 ## Testing
