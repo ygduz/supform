@@ -76,6 +76,19 @@ body {
 .form-renderer {
   max-width: 640px;
 }
+.form-renderer .group {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  margin: 0 0 20px;
+}
+.form-renderer .group legend {
+  font-weight: 600;
+  padding: 0 6px;
+}
+.presentational {
+  margin: 0;
+}
 .field {
   margin-bottom: 20px;
 }
@@ -289,6 +302,57 @@ body {
   padding: 16px;
   min-height: 360px;
 }
+
+/* Page tabs */
+.page-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+.page-tab {
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: #fff;
+  cursor: pointer;
+  font-size: 14px;
+}
+.page-tab.active {
+  border-color: var(--primary);
+  color: var(--primary);
+  font-weight: 600;
+}
+.page-add {
+  padding: 6px 12px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  background: none;
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 14px;
+}
+.page-settings {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.page-settings input {
+  flex: 1;
+  padding: 7px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 14px;
+}
+.page-settings button {
+  padding: 7px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: #fff;
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 13px;
+}
 .canvas .empty {
   padding: 48px 16px;
   text-align: center;
@@ -303,16 +367,29 @@ body {
 }
 .el-card {
   display: flex;
-  align-items: center;
-  gap: 8px;
+  flex-direction: column;
   background: #fff;
   border: 1px solid var(--border);
   border-radius: var(--radius);
+}
+.el-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   padding: 8px 10px;
 }
 .el-card.selected {
   border-color: var(--primary);
   box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
+}
+.el-children {
+  margin: 0 10px 10px 28px;
+  padding-left: 10px;
+  border-left: 2px solid var(--border);
+}
+.nested-empty {
+  font-size: 13px;
+  padding: 8px 0;
 }
 .drag-handle {
   cursor: grab;
@@ -411,6 +488,36 @@ body {
   flex-direction: row;
   align-items: center;
   gap: 8px;
+}
+.prop input[type="number"] {
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 14px;
+  color: var(--text);
+  width: 100%;
+}
+.prop-group {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.prop-fieldset {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.prop-fieldset legend {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  padding: 0 6px;
 }
 .option-row {
   display: flex;

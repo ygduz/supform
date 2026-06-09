@@ -1,11 +1,11 @@
 import { localize } from "@/lib/i18n";
 import { useBuilderStore } from "@/stores/builderStore";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { FormRenderer } from "../renderer/FormRenderer";
-import { ElementCard } from "./ElementCard";
+import { CanvasList } from "./CanvasList";
 import { PropertiesPanel } from "./PropertiesPanel";
-import { elementsOf } from "./model";
+import { findElement, pageElements } from "./model";
 import { ELEMENT_PALETTE } from "./palette";
 
 type Tab = "properties" | "preview";
@@ -19,9 +19,8 @@ export function BuilderPage() {
   const navigate = useNavigate();
   const store = useBuilderStore();
   const init = useBuilderStore((s) => s.init); // stable reference from zustand
-  const { schema, selectedName, status, error, dirty } = store;
+  const { schema, selectedName, activePage, status, error, dirty } = store;
   const [tab, setTab] = useState<Tab>("properties");
-  const dragName = useRef<string | null>(null);
 
   useEffect(() => {
     // Load (or reset) the draft whenever the route's form id changes.
@@ -36,16 +35,8 @@ export function BuilderPage() {
     }
   }, [store.formId, formId, navigate]);
 
-  const elements = elementsOf(schema);
-  const selected = elements.find((e) => e.name === selectedName) ?? null;
-
-  function handleDrop(targetName: string) {
-    const source = dragName.current;
-    if (!source || source === targetName) return;
-    const targetIndex = elements.findIndex((e) => e.name === targetName);
-    store.moveTo(source, targetIndex);
-    dragName.current = null;
-  }
+  const elements = pageElements(schema, activePage);
+  const selected = selectedName ? findElement(schema, selectedName) : null;
 
   return (
     <div className="builder">
@@ -93,25 +84,41 @@ export function BuilderPage() {
 
         {/* Canvas */}
         <section className="canvas">
+          <div className="page-bar">
+            {schema.pages.map((p, i) => (
+              <button
+                key={p.name}
+                type="button"
+                className={i === activePage ? "page-tab active" : "page-tab"}
+                onClick={() => store.setActivePage(i)}
+              >
+                {localize(p.title) || `Page ${i + 1}`}
+              </button>
+            ))}
+            <button type="button" className="page-add" onClick={() => store.addPage()}>
+              + Page
+            </button>
+          </div>
+
+          {schema.pages.length > 1 && (
+            <div className="page-settings">
+              <input
+                type="text"
+                aria-label="Page title"
+                value={localize(schema.pages[activePage]?.title) || ""}
+                placeholder={`Page ${activePage + 1}`}
+                onChange={(e) => store.renamePage(activePage, e.target.value)}
+              />
+              <button type="button" onClick={() => store.removePage(activePage)}>
+                Delete page
+              </button>
+            </div>
+          )}
+
           {elements.length === 0 ? (
             <p className="muted empty">Pick a question type on the left to start building.</p>
           ) : (
-            <ol className="el-list">
-              {elements.map((el, i) => (
-                <ElementCard
-                  key={el.name}
-                  element={el}
-                  index={i}
-                  count={elements.length}
-                  selected={el.name === selectedName}
-                  onDragStart={() => {
-                    dragName.current = el.name;
-                  }}
-                  onDragOver={(e) => e.preventDefault()}
-                  onDrop={() => handleDrop(el.name)}
-                />
-              ))}
-            </ol>
+            <CanvasList elements={elements} selectedName={selectedName} />
           )}
         </section>
 

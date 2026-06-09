@@ -12,7 +12,7 @@ import { evaluateBool } from "./expressions";
 
 export type FieldErrors = Record<string, string>;
 
-const PRESENTATIONAL = new Set(["note", "section", "html", "group", "calculated"]);
+const PRESENTATIONAL = new Set(["note", "section", "html", "calculated"]);
 
 function isEmpty(value: unknown): boolean {
   if (value === undefined || value === null || value === "") return true;
@@ -25,15 +25,25 @@ function message(custom: I18nString | undefined, fallback: string): string {
   return localize(custom) || fallback;
 }
 
-/** Validate the answers against the (top-level) elements the renderer displays. */
+/** Validate the answers against the elements the renderer displays, descending groups. */
 export function validateAnswers(schema: FormSchema, answers: Record<string, unknown>): FieldErrors {
   const errors: FieldErrors = {};
-  for (const el of schema.pages.flatMap((p) => p.elements)) {
-    if (PRESENTATIONAL.has(el.type)) continue;
-    if (!evaluateBool(el.visibleIf, answers)) continue;
-    const error = validateField(el, answers[el.name], answers);
-    if (error) errors[el.name] = error;
-  }
+
+  const walk = (elements: Element[]) => {
+    for (const el of elements) {
+      if (!evaluateBool(el.visibleIf, answers)) continue;
+      if (el.type === "group") {
+        walk(el.elements ?? []); // groups are a transparent scope
+        continue;
+      }
+      // Repeats aren't editable in the renderer yet, so they're not validated client-side.
+      if (PRESENTATIONAL.has(el.type) || el.type === "repeat") continue;
+      const error = validateField(el, answers[el.name], answers);
+      if (error) errors[el.name] = error;
+    }
+  };
+
+  walk(schema.pages.flatMap((p) => p.elements));
   return errors;
 }
 

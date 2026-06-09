@@ -23,9 +23,11 @@ A pragmatic build order. Each milestone is shippable on its own.
 - [ ] Media/file upload handling
 
 ## M2 — Builder & renderer (frontend)
-- [x] Renderer: schema → interactive validated form (client-side validation + 422 mapping)
-- [~] Builder: drag-and-drop + live preview done; logic editor only `visibleIf`,
-      no groups/repeats/matrix or multi-page authoring yet
+- [x] Renderer: schema → interactive validated form (client-side validation + 422 mapping;
+      groups render recursively, repeat preview still TODO)
+- [x] Builder: drag-and-drop, live preview, multi-page, groups/repeats/matrix authoring,
+      and a logic + validation editor (visibleIf/requiredIf/calculate, min/max/length/
+      pattern/selected). Cross-container drag still TODO
 - [ ] Theming system
 - [x] Results table + per-field summary + CSV/XLSX/JSON export buttons
 

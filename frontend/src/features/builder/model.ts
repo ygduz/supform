@@ -4,21 +4,29 @@
  * Kept free of React/Zustand so the editing logic is trivially unit-testable and the
  * store/components stay thin. All functions are immutable: they return a new schema.
  *
- * Element identity is the stable `name` (the key used in submission data and logic).
- * Names are auto-managed; users edit `label`, never `name`.
+ * The form is a tree: pages -> elements, and container elements (group, repeat) nest
+ * further elements. Operations address an element by its stable, form-unique `name` and
+ * recurse through the whole tree, so they work the same at the top level or inside a
+ * group/repeat. Users edit `label`; `name` is auto-managed.
  */
-import type { Choice, Element, ElementType, FormSchema } from "@/types/form-schema";
+import type { Choice, Element, ElementType, FormSchema, Page } from "@/types/form-schema";
 
 export const DEFAULT_LABELS: Partial<Record<ElementType, string>> = {
   text: "Short text question",
   longtext: "Long answer question",
+  email: "Email question",
   single_choice: "Single choice question",
   multi_choice: "Multiple choice question",
   dropdown: "Dropdown question",
   rating: "Rating question",
+  scale: "Scale question",
   number: "Number question",
   date: "Date question",
+  boolean: "Yes / no question",
+  matrix: "Matrix question",
   file: "File upload",
+  group: "Section",
+  repeat: "Repeating group",
 };
 
 const CHOICE_TYPES: ReadonlySet<string> = new Set([
@@ -28,8 +36,19 @@ const CHOICE_TYPES: ReadonlySet<string> = new Set([
   "ranking",
 ]);
 
+const CONTAINER_TYPES: ReadonlySet<string> = new Set(["group", "repeat"]);
+
 export function isChoiceType(type: ElementType): boolean {
   return CHOICE_TYPES.has(type);
+}
+
+export function isContainerType(type: ElementType): boolean {
+  return CONTAINER_TYPES.has(type);
+}
+
+/** Types that carry an editable list of choice `options`. */
+export function hasOptionList(type: ElementType): boolean {
+  return isChoiceType(type) || type === "rating" || type === "scale";
 }
 
 export function createEmptyForm(): FormSchema {
@@ -41,44 +60,151 @@ export function createEmptyForm(): FormSchema {
   };
 }
 
-/** All elements on the (single) builder page. */
-export function elementsOf(schema: FormSchema): Element[] {
-  return schema.pages[0]?.elements ?? [];
+/** Elements on a given page (top level only). */
+export function pageElements(schema: FormSchema, pageIndex: number): Element[] {
+  return schema.pages[pageIndex]?.elements ?? [];
 }
 
-/** Generate a name unique within the form, e.g. q1, q2, ... */
-function nextName(schema: FormSchema): string {
-  const taken = new Set(elementsOf(schema).map((e) => e.name));
-  let i = elementsOf(schema).length + 1;
+/** Every element in the form, flattened across pages and containers. */
+export function allElements(schema: FormSchema): Element[] {
+  const out: Element[] = [];
+  const walk = (els: Element[]) => {
+    for (const el of els) {
+      out.push(el);
+      if (el.elements) walk(el.elements);
+    }
+  };
+  for (const page of schema.pages) walk(page.elements);
+  return out;
+}
+
+export function findElement(schema: FormSchema, name: string): Element | null {
+  return allElements(schema).find((el) => el.name === name) ?? null;
+}
+
+// ---------------------------------------------------------------- tree internals
+function freshName(taken: Set<string>): string {
+  let i = 1;
   while (taken.has(`q${i}`)) i += 1;
   return `q${i}`;
 }
 
-function withElements(schema: FormSchema, elements: Element[]): FormSchema {
-  const pages = schema.pages.map((p, i) => (i === 0 ? { ...p, elements } : p));
-  return { ...schema, pages };
+function nextName(schema: FormSchema): string {
+  return freshName(new Set(allElements(schema).map((e) => e.name)));
+}
+
+/** Recursively replace the element named `name` via `fn`, anywhere in the tree. */
+function mapTree(elements: Element[], name: string, fn: (el: Element) => Element): Element[] {
+  return elements.map((el) => {
+    if (el.name === name) return fn(el);
+    if (el.elements) return { ...el, elements: mapTree(el.elements, name, fn) };
+    return el;
+  });
 }
 
 function mapElement(schema: FormSchema, name: string, fn: (el: Element) => Element): FormSchema {
-  return withElements(
-    schema,
-    elementsOf(schema).map((el) => (el.name === name ? fn(el) : el)),
-  );
+  return {
+    ...schema,
+    pages: schema.pages.map((p) => ({ ...p, elements: mapTree(p.elements, name, fn) })),
+  };
 }
 
+function removeFromTree(elements: Element[], name: string): Element[] {
+  return elements
+    .filter((el) => el.name !== name)
+    .map((el) => (el.elements ? { ...el, elements: removeFromTree(el.elements, name) } : el));
+}
+
+/**
+ * Find the sibling list that contains `name` and replace it with `fn(siblings, index)`.
+ * Used for reordering and duplication, which act within one parent's child list.
+ */
+function transformSiblings(
+  schema: FormSchema,
+  name: string,
+  fn: (siblings: Element[], index: number) => Element[],
+): FormSchema {
+  const visit = (els: Element[]): { els: Element[]; hit: boolean } => {
+    const idx = els.findIndex((e) => e.name === name);
+    if (idx !== -1) return { els: fn(els, idx), hit: true };
+    let hit = false;
+    const mapped = els.map((el) => {
+      if (hit || !el.elements) return el;
+      const r = visit(el.elements);
+      if (r.hit) {
+        hit = true;
+        return { ...el, elements: r.els };
+      }
+      return el;
+    });
+    return { els: mapped, hit };
+  };
+  return {
+    ...schema,
+    pages: schema.pages.map((p) => {
+      const r = visit(p.elements);
+      return r.hit ? { ...p, elements: r.els } : p;
+    }),
+  };
+}
+
+function makeElement(type: ElementType, name: string): Element {
+  const el: Element = { type, name, label: DEFAULT_LABELS[type] ?? "Question" };
+  if (hasOptionList(type)) {
+    el.options =
+      type === "scale"
+        ? [1, 2, 3, 4, 5].map((n) => ({ value: n, label: String(n) }))
+        : [
+            { value: "option_1", label: "Option 1" },
+            { value: "option_2", label: "Option 2" },
+          ];
+  }
+  if (type === "matrix") {
+    el.rows = [
+      { value: "row_1", label: "Row 1" },
+      { value: "row_2", label: "Row 2" },
+    ];
+    el.columns = [
+      { value: "col_1", label: "Column 1" },
+      { value: "col_2", label: "Column 2" },
+    ];
+  }
+  if (isContainerType(type)) el.elements = [];
+  if (type === "repeat") el.repeat = { min: 0 };
+  return el;
+}
+
+function cloneSubtree(el: Element, taken: Set<string>): Element {
+  const name = freshName(taken);
+  taken.add(name);
+  const copy: Element = { ...structuredClone(el), name };
+  if (copy.elements) copy.elements = copy.elements.map((child) => cloneSubtree(child, taken));
+  return copy;
+}
+
+// ---------------------------------------------------------------- element ops
 export function addElement(
   schema: FormSchema,
   type: ElementType,
+  opts: { pageIndex?: number; parentName?: string } = {},
 ): { schema: FormSchema; name: string } {
   const name = nextName(schema);
-  const el: Element = { type, name, label: DEFAULT_LABELS[type] ?? "Question" };
-  if (isChoiceType(type) || type === "rating") {
-    el.options = [
-      { value: "option_1", label: "Option 1" },
-      { value: "option_2", label: "Option 2" },
-    ];
+  const el = makeElement(type, name);
+
+  // Add inside a container when one is targeted, else append to the active page.
+  if (opts.parentName) {
+    const next = mapElement(schema, opts.parentName, (parent) => ({
+      ...parent,
+      elements: [...(parent.elements ?? []), el],
+    }));
+    return { schema: next, name };
   }
-  return { schema: withElements(schema, [...elementsOf(schema), el]), name };
+
+  const pageIndex = opts.pageIndex ?? 0;
+  const pages = schema.pages.map((p, i) =>
+    i === pageIndex ? { ...p, elements: [...p.elements, el] } : p,
+  );
+  return { schema: { ...schema, pages }, name };
 }
 
 export function updateElement(
@@ -90,66 +216,125 @@ export function updateElement(
 }
 
 export function removeElement(schema: FormSchema, name: string): FormSchema {
-  return withElements(
-    schema,
-    elementsOf(schema).filter((el) => el.name !== name),
-  );
+  return {
+    ...schema,
+    pages: schema.pages.map((p) => ({ ...p, elements: removeFromTree(p.elements, name) })),
+  };
 }
 
 export function duplicateElement(
   schema: FormSchema,
   name: string,
 ): { schema: FormSchema; name: string } {
-  const els = elementsOf(schema);
-  const idx = els.findIndex((e) => e.name === name);
-  if (idx === -1) return { schema, name };
-  const copyName = nextName(schema);
-  const copy: Element = { ...structuredClone(els[idx]), name: copyName };
-  const next = [...els.slice(0, idx + 1), copy, ...els.slice(idx + 1)];
-  return { schema: withElements(schema, next), name: copyName };
+  const taken = new Set(allElements(schema).map((e) => e.name));
+  let newName = name;
+  const next = transformSiblings(schema, name, (siblings, idx) => {
+    const copy = cloneSubtree(siblings[idx], taken);
+    newName = copy.name;
+    return [...siblings.slice(0, idx + 1), copy, ...siblings.slice(idx + 1)];
+  });
+  return { schema: next, name: newName };
 }
 
-/** Move an element to a new index (clamped). Used by reordering (drag or buttons). */
+/** Move an element to a new index within its own sibling list (clamped). */
 export function moveElement(schema: FormSchema, name: string, toIndex: number): FormSchema {
-  const els = [...elementsOf(schema)];
-  const from = els.findIndex((e) => e.name === name);
-  if (from === -1) return schema;
-  const clamped = Math.max(0, Math.min(toIndex, els.length - 1));
-  const [moved] = els.splice(from, 1);
-  els.splice(clamped, 0, moved);
-  return withElements(schema, els);
-}
-
-export function moveBy(schema: FormSchema, name: string, delta: number): FormSchema {
-  const from = elementsOf(schema).findIndex((e) => e.name === name);
-  if (from === -1) return schema;
-  return moveElement(schema, name, from + delta);
-}
-
-// ---- choice option editing ----
-export function addOption(schema: FormSchema, name: string): FormSchema {
-  return mapElement(schema, name, (el) => {
-    const options = el.options ?? [];
-    const n = options.length + 1;
-    return { ...el, options: [...options, { value: `option_${n}`, label: `Option ${n}` }] };
+  return transformSiblings(schema, name, (siblings, from) => {
+    const clamped = Math.max(0, Math.min(toIndex, siblings.length - 1));
+    const copy = [...siblings];
+    const [moved] = copy.splice(from, 1);
+    copy.splice(clamped, 0, moved);
+    return copy;
   });
 }
 
-export function updateOption(
+export function moveBy(schema: FormSchema, name: string, delta: number): FormSchema {
+  return transformSiblings(schema, name, (siblings, from) => {
+    const to = Math.max(0, Math.min(from + delta, siblings.length - 1));
+    const copy = [...siblings];
+    const [moved] = copy.splice(from, 1);
+    copy.splice(to, 0, moved);
+    return copy;
+  });
+}
+
+// ---------------------------------------------------------------- list-field editing
+type ListField = "options" | "rows" | "columns";
+
+function addListItem(
   schema: FormSchema,
   name: string,
+  field: ListField,
+  prefix: string,
+): FormSchema {
+  return mapElement(schema, name, (el) => {
+    const list = (el[field] as Choice[] | undefined) ?? [];
+    const n = list.length + 1;
+    return { ...el, [field]: [...list, { value: `${prefix}_${n}`, label: `${cap(prefix)} ${n}` }] };
+  });
+}
+
+function updateListItem(
+  schema: FormSchema,
+  name: string,
+  field: ListField,
   index: number,
   patch: Partial<Choice>,
 ): FormSchema {
   return mapElement(schema, name, (el) => {
-    const options = (el.options ?? []).map((opt, i) => (i === index ? { ...opt, ...patch } : opt));
-    return { ...el, options };
+    const list = ((el[field] as Choice[] | undefined) ?? []).map((it, i) =>
+      i === index ? { ...it, ...patch } : it,
+    );
+    return { ...el, [field]: list };
   });
 }
 
-export function removeOption(schema: FormSchema, name: string, index: number): FormSchema {
+function removeListItem(
+  schema: FormSchema,
+  name: string,
+  field: ListField,
+  index: number,
+): FormSchema {
   return mapElement(schema, name, (el) => ({
     ...el,
-    options: (el.options ?? []).filter((_, i) => i !== index),
+    [field]: ((el[field] as Choice[] | undefined) ?? []).filter((_, i) => i !== index),
   }));
+}
+
+const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
+export const addOption = (s: FormSchema, name: string) => addListItem(s, name, "options", "option");
+export const updateOption = (s: FormSchema, name: string, i: number, patch: Partial<Choice>) =>
+  updateListItem(s, name, "options", i, patch);
+export const removeOption = (s: FormSchema, name: string, i: number) =>
+  removeListItem(s, name, "options", i);
+
+export const addRow = (s: FormSchema, name: string) => addListItem(s, name, "rows", "row");
+export const updateRow = (s: FormSchema, name: string, i: number, patch: Partial<Choice>) =>
+  updateListItem(s, name, "rows", i, patch);
+export const removeRow = (s: FormSchema, name: string, i: number) =>
+  removeListItem(s, name, "rows", i);
+
+export const addColumn = (s: FormSchema, name: string) => addListItem(s, name, "columns", "col");
+export const updateColumn = (s: FormSchema, name: string, i: number, patch: Partial<Choice>) =>
+  updateListItem(s, name, "columns", i, patch);
+export const removeColumn = (s: FormSchema, name: string, i: number) =>
+  removeListItem(s, name, "columns", i);
+
+// ---------------------------------------------------------------- page ops
+export function addPage(schema: FormSchema): { schema: FormSchema; index: number } {
+  const taken = new Set(schema.pages.map((p) => p.name));
+  let i = schema.pages.length + 1;
+  while (taken.has(`page${i}`)) i += 1;
+  const page: Page = { name: `page${i}`, title: `Page ${schema.pages.length + 1}`, elements: [] };
+  return { schema: { ...schema, pages: [...schema.pages, page] }, index: schema.pages.length };
+}
+
+/** Remove a page (no-op if it's the last remaining page). */
+export function removePage(schema: FormSchema, index: number): FormSchema {
+  if (schema.pages.length <= 1) return schema;
+  return { ...schema, pages: schema.pages.filter((_, i) => i !== index) };
+}
+
+export function renamePage(schema: FormSchema, index: number, title: string): FormSchema {
+  return { ...schema, pages: schema.pages.map((p, i) => (i === index ? { ...p, title } : p)) };
 }

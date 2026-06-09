@@ -19,6 +19,7 @@ interface BuilderState {
   formId: string | null;
   schema: FormSchema;
   selectedName: string | null;
+  activePage: number;
   status: Status;
   error: string | null;
   dirty: boolean;
@@ -38,6 +39,18 @@ interface BuilderState {
   updateOption: (name: string, index: number, patch: Partial<Choice>) => void;
   removeOption: (name: string, index: number) => void;
 
+  addRow: (name: string) => void;
+  updateRow: (name: string, index: number, patch: Partial<Choice>) => void;
+  removeRow: (name: string, index: number) => void;
+  addColumn: (name: string) => void;
+  updateColumn: (name: string, index: number, patch: Partial<Choice>) => void;
+  removeColumn: (name: string, index: number) => void;
+
+  setActivePage: (index: number) => void;
+  addPage: () => void;
+  removePage: (index: number) => void;
+  renamePage: (index: number, title: string) => void;
+
   save: () => Promise<void>;
   publish: () => Promise<void>;
 }
@@ -46,13 +59,20 @@ export const useBuilderStore = create<BuilderState>((set, get) => ({
   formId: null,
   schema: model.createEmptyForm(),
   selectedName: null,
+  activePage: 0,
   status: "idle",
   error: null,
   dirty: false,
 
   init: async (formId) => {
     if (formId === "new") {
-      set({ formId: null, schema: model.createEmptyForm(), selectedName: null, dirty: false });
+      set({
+        formId: null,
+        schema: model.createEmptyForm(),
+        selectedName: null,
+        activePage: 0,
+        dirty: false,
+      });
       return;
     }
     set({ status: "loading", error: null });
@@ -61,6 +81,8 @@ export const useBuilderStore = create<BuilderState>((set, get) => ({
       set({
         formId,
         schema: form.draft_content as FormSchema,
+        selectedName: null,
+        activePage: 0,
         status: "idle",
         dirty: false,
       });
@@ -76,7 +98,14 @@ export const useBuilderStore = create<BuilderState>((set, get) => ({
 
   add: (type) =>
     set((s) => {
-      const { schema, name } = model.addElement(s.schema, type);
+      // Add inside the selected element when it's a container, else onto the active page.
+      const selected = s.selectedName ? model.findElement(s.schema, s.selectedName) : null;
+      const parentName =
+        selected && model.isContainerType(selected.type) ? selected.name : undefined;
+      const { schema, name } = model.addElement(s.schema, type, {
+        pageIndex: s.activePage,
+        parentName,
+      });
       return { schema, selectedName: name, dirty: true };
     }),
 
@@ -109,6 +138,40 @@ export const useBuilderStore = create<BuilderState>((set, get) => ({
 
   removeOption: (name, index) =>
     set((s) => ({ schema: model.removeOption(s.schema, name, index), dirty: true })),
+
+  addRow: (name) => set((s) => ({ schema: model.addRow(s.schema, name), dirty: true })),
+  updateRow: (name, index, patch) =>
+    set((s) => ({ schema: model.updateRow(s.schema, name, index, patch), dirty: true })),
+  removeRow: (name, index) =>
+    set((s) => ({ schema: model.removeRow(s.schema, name, index), dirty: true })),
+
+  addColumn: (name) => set((s) => ({ schema: model.addColumn(s.schema, name), dirty: true })),
+  updateColumn: (name, index, patch) =>
+    set((s) => ({ schema: model.updateColumn(s.schema, name, index, patch), dirty: true })),
+  removeColumn: (name, index) =>
+    set((s) => ({ schema: model.removeColumn(s.schema, name, index), dirty: true })),
+
+  setActivePage: (index) => set({ activePage: index, selectedName: null }),
+
+  addPage: () =>
+    set((s) => {
+      const { schema, index } = model.addPage(s.schema);
+      return { schema, activePage: index, selectedName: null, dirty: true };
+    }),
+
+  removePage: (index) =>
+    set((s) => {
+      const schema = model.removePage(s.schema, index);
+      return {
+        schema,
+        activePage: Math.min(s.activePage, schema.pages.length - 1),
+        selectedName: null,
+        dirty: true,
+      };
+    }),
+
+  renamePage: (index, title) =>
+    set((s) => ({ schema: model.renamePage(s.schema, index, title), dirty: true })),
 
   save: async () => {
     const { formId, schema } = get();

@@ -1,12 +1,15 @@
 import { ApiError, api } from "@/api/client";
 import { localize } from "@/lib/i18n";
 import type { Element, FormSchema } from "@/types/form-schema";
-import { useMemo, useState } from "react";
+import type { JSX } from "react";
+import { useState } from "react";
 import { evaluateBool } from "./expressions";
 import { renderField } from "./fields/registry";
 import { type FieldErrors, validateAnswers } from "./validation";
 
 type Answers = Record<string, unknown>;
+
+const PRESENTATIONAL = new Set(["note", "section", "html"]);
 
 /**
  * The renderer turns a FormSchema into an interactive form. It is fully schema-driven:
@@ -29,14 +32,53 @@ export function FormRenderer({ schema, formId }: { schema: FormSchema; formId: s
     });
   };
 
-  const visibleElements = useMemo(
-    () =>
-      schema.pages.flatMap((p) => p.elements).filter((el) => evaluateBool(el.visibleIf, answers)),
-    [schema, answers],
-  );
-
   // Local-only render targets (builder preview / built-in demo) never hit the API.
   const isLocal = formId === "demo" || formId === "preview";
+
+  /** Render one element, descending into groups (a transparent answer scope). */
+  function renderElement(el: Element): JSX.Element | null {
+    if (!evaluateBool(el.visibleIf, answers)) return null;
+
+    if (el.type === "group") {
+      return (
+        <fieldset className="group" key={el.name}>
+          {el.label && <legend>{localize(el.label)}</legend>}
+          {(el.elements ?? []).map(renderElement)}
+        </fieldset>
+      );
+    }
+
+    if (el.type === "repeat") {
+      return (
+        <div className="field" key={el.name}>
+          {el.label && <span className="field-label">{localize(el.label)}</span>}
+          <p className="muted">Repeating groups aren't editable in this preview yet.</p>
+        </div>
+      );
+    }
+
+    if (PRESENTATIONAL.has(el.type)) {
+      return (
+        <div className="field" key={el.name}>
+          {el.label && <p className="presentational">{localize(el.label)}</p>}
+        </div>
+      );
+    }
+
+    return (
+      <div className="field" key={el.name}>
+        {el.label && (
+          <label htmlFor={el.name}>
+            {localize(el.label)}
+            {el.required && " *"}
+          </label>
+        )}
+        {renderField(el, answers[el.name], (v) => setValue(el.name, v))}
+        {el.hint && <small className="hint">{localize(el.hint)}</small>}
+        {errors[el.name] && <small className="error field-error">{errors[el.name]}</small>}
+      </div>
+    );
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -76,19 +118,7 @@ export function FormRenderer({ schema, formId }: { schema: FormSchema; formId: s
     <form className="form-renderer" onSubmit={handleSubmit}>
       <h1>{localize(schema.title)}</h1>
       {schema.description && <p className="muted">{localize(schema.description)}</p>}
-      {visibleElements.map((el: Element) => (
-        <div className="field" key={el.name}>
-          {el.label && (
-            <label htmlFor={el.name}>
-              {localize(el.label)}
-              {el.required && " *"}
-            </label>
-          )}
-          {renderField(el, answers[el.name], (v) => setValue(el.name, v))}
-          {el.hint && <small className="hint">{localize(el.hint)}</small>}
-          {errors[el.name] && <small className="error field-error">{errors[el.name]}</small>}
-        </div>
-      ))}
+      {schema.pages.flatMap((p) => p.elements).map(renderElement)}
       {formError && <p className="error">{formError}</p>}
       <button type="submit" className="button">
         {localize(schema.settings?.submitButtonText) || "Submit"}
