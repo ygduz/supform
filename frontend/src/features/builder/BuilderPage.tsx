@@ -1,7 +1,7 @@
 import { localize } from "@/lib/i18n";
 import { useBuilderStore } from "@/stores/builderStore";
 import { useEffect, useRef, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { FormRenderer } from "../renderer/FormRenderer";
 import { ElementCard } from "./ElementCard";
 import { PropertiesPanel } from "./PropertiesPanel";
@@ -60,6 +60,7 @@ export function BuilderPage() {
         <div className="toolbar-actions">
           {error ? <span className="error">{error}</span> : null}
           <span className="muted">{dirty ? "Unsaved changes" : "Saved"}</span>
+          {store.formId ? <Link to={`/forms/${store.formId}/responses`}>Responses</Link> : null}
           <button type="button" onClick={() => store.save()} disabled={status === "saving"}>
             {status === "saving" ? "Saving…" : "Save draft"}
           </button>

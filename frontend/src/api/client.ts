@@ -34,6 +34,18 @@ export function isAuthenticated(): boolean {
   return accessToken !== null;
 }
 
+/** Error carrying the HTTP status and any structured `error.details` from the API. */
+export class ApiError extends Error {
+  status: number;
+  details: unknown;
+  constructor(message: string, status: number, details: unknown) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+    this.details = details;
+  }
+}
+
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {
     ...init,
@@ -45,9 +57,20 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   });
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
-    throw new Error(body?.error?.message ?? `Request failed: ${res.status}`);
+    throw new ApiError(
+      body?.error?.message ?? `Request failed: ${res.status}`,
+      res.status,
+      body?.error?.details,
+    );
   }
   return res.status === 204 ? (undefined as T) : ((await res.json()) as T);
+}
+
+export interface SubmissionRow {
+  id: string;
+  form_version: number;
+  answers: Record<string, unknown>;
+  created_at: string;
 }
 
 export const api = {
@@ -102,4 +125,28 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ answers }),
     }),
+
+  listSubmissions: (formId: string) =>
+    request<SubmissionRow[]>(`/api/v1/forms/${formId}/submissions?limit=500`),
+
+  /** Fetch an export with auth and return the blob + server-suggested filename. */
+  exportSubmissions: async (
+    formId: string,
+    format: "csv" | "xlsx" | "json",
+  ): Promise<{ blob: Blob; filename: string }> => {
+    const res = await fetch(`${BASE}/api/v1/forms/${formId}/export?format=${format}`, {
+      headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new ApiError(
+        body?.error?.message ?? `Export failed: ${res.status}`,
+        res.status,
+        body?.error?.details,
+      );
+    }
+    const blob = await res.blob();
+    const match = (res.headers.get("Content-Disposition") ?? "").match(/filename="?([^"]+)"?/);
+    return { blob, filename: match?.[1] ?? `submissions.${format}` };
+  },
 };

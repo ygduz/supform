@@ -28,6 +28,7 @@ def create_app() -> FastAPI:
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
+        expose_headers=["Content-Disposition"],  # let the SPA read export download filenames
     )
 
     install_exception_handlers(app)
