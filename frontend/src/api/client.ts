@@ -138,6 +138,31 @@ export const api = {
   listSubmissions: (formId: string) =>
     request<SubmissionRow[]>(`/api/v1/forms/${formId}/submissions?limit=500`),
 
+  /** Import an XLSForm or ODK XForm file into a new draft form on a project. */
+  importForm: async (
+    kind: "xlsform" | "xform",
+    projectId: string,
+    file: File,
+  ): Promise<{ id: string }> => {
+    const body = new FormData();
+    body.append("project_id", projectId);
+    body.append("file", file);
+    const res = await fetch(`${BASE}/api/v1/imports/${kind}`, {
+      method: "POST",
+      headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
+      body,
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new ApiError(
+        err?.error?.message ?? `Import failed: ${res.status}`,
+        res.status,
+        err?.error?.details,
+      );
+    }
+    return res.json();
+  },
+
   /** Upload a file for a file/image field; returns the reference to store as the answer. */
   uploadFile: async (formId: string, file: File): Promise<MediaRef> => {
     const body = new FormData();

@@ -50,11 +50,79 @@ export function FormRenderer({ schema, formId }: { schema: FormSchema; formId: s
     }
 
     if (el.type === "repeat") {
+      const instances: Record<string, unknown>[] = Array.isArray(answers[el.name])
+        ? (answers[el.name] as Record<string, unknown>[])
+        : [];
+      const min = el.repeat?.min ?? 0;
+      const max = el.repeat?.max;
+
+      const writeInstance = (i: number, childName: string, value: unknown) =>
+        setValue(
+          el.name,
+          instances.map((inst, idx) => (idx === i ? { ...inst, [childName]: value } : inst)),
+        );
+      const addInstance = () => setValue(el.name, [...instances, {}]);
+      const removeInstance = (i: number) =>
+        setValue(
+          el.name,
+          instances.filter((_, idx) => idx !== i),
+        );
+
       return (
-        <div className="field" key={el.name}>
-          {el.label && <span className="field-label">{localize(el.label)}</span>}
-          <p className="muted">Repeating groups aren't editable in this preview yet.</p>
-        </div>
+        <fieldset className="repeat" key={el.name}>
+          {el.label && <legend>{localize(el.label)}</legend>}
+          {instances.length === 0 && <p className="muted">No entries yet.</p>}
+          {instances.map((inst, i) => {
+            const scope = { ...answers, ...inst };
+            return (
+              <div className="repeat-instance" key={`${el.name}-${i}`}>
+                <div className="repeat-instance-head">
+                  <span className="muted">Entry {i + 1}</span>
+                  <button
+                    type="button"
+                    className="link-button"
+                    onClick={() => removeInstance(i)}
+                    disabled={instances.length <= min}
+                  >
+                    Remove
+                  </button>
+                </div>
+                {(el.elements ?? []).map((child) => {
+                  if (PRESENTATIONAL.has(child.type)) return null;
+                  if (!evaluateBool(child.visibleIf, scope)) return null;
+                  const errorKey = `${el.name}[${i}].${child.name}`;
+                  return (
+                    <div className="field" key={child.name}>
+                      {child.label && (
+                        <span className="field-label">
+                          {localize(child.label)}
+                          {child.required && " *"}
+                        </span>
+                      )}
+                      {renderField(
+                        child,
+                        inst[child.name],
+                        (v) => writeInstance(i, child.name, v),
+                        formId,
+                      )}
+                      {errors[errorKey] && (
+                        <small className="error field-error">{errors[errorKey]}</small>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })}
+          <button
+            type="button"
+            className="link-button"
+            onClick={addInstance}
+            disabled={max != null && instances.length >= max}
+          >
+            + Add entry
+          </button>
+        </fieldset>
       );
     }
 

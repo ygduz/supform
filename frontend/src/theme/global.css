@@ -110,6 +110,48 @@ body {
 .file-name {
   font-size: 14px;
 }
+.field-label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+/* Repeating group */
+.form-renderer .repeat {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  margin: 0 0 20px;
+}
+.form-renderer .repeat legend {
+  font-weight: 600;
+  padding: 0 6px;
+}
+.repeat-instance {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px;
+  margin-bottom: 12px;
+  background: var(--surface);
+}
+.repeat-instance-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+/* Import page */
+.import-page {
+  max-width: 560px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  align-items: flex-start;
+}
+.import-page input[type="file"] {
+  font-size: 14px;
+}
 .field {
   margin-bottom: 20px;
 }

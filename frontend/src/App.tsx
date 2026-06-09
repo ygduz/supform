@@ -1,6 +1,7 @@
 import { BrowserRouter, Link, Route, Routes } from "react-router-dom";
 import { LoginPage } from "./features/auth/LoginPage";
 import { BuilderPage } from "./features/builder/BuilderPage";
+import { ImportPage } from "./features/import/ImportPage";
 import { RendererPage } from "./features/renderer/RendererPage";
 import { ResponsesPage } from "./features/responses/ResponsesPage";
 
@@ -17,6 +18,7 @@ export function App() {
         </Link>
         <nav>
           <Link to="/builder/new">Builder</Link>
+          <Link to="/import">Import</Link>
           <Link to="/f/demo">Preview</Link>
           <Link to="/login">Sign in</Link>
         </nav>
@@ -25,6 +27,7 @@ export function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/import" element={<ImportPage />} />
           <Route path="/builder/:formId" element={<BuilderPage />} />
           <Route path="/f/:formId" element={<RendererPage />} />
           <Route path="/forms/:formId/responses" element={<ResponsesPage />} />
