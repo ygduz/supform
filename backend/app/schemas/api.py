@@ -54,6 +54,23 @@ class ProjectOut(BaseModel):
     created_at: datetime
 
 
+# ---- project members / sharing ----
+class MemberOut(BaseModel):
+    user_id: uuid.UUID
+    email: EmailStr
+    full_name: str | None = None
+    role: str
+
+
+class MemberAdd(BaseModel):
+    email: EmailStr
+    role: str = "viewer"
+
+
+class MemberUpdate(BaseModel):
+    role: str
+
+
 # ---- forms ----
 class FormCreate(BaseModel):
     project_id: uuid.UUID

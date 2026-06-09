@@ -10,8 +10,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.exceptions import NotFoundError, ValidationError
 from app.form_engine import validate_form
 from app.models.form import Form, FormVersion
-from app.models.project import Project
 from app.schemas.form_schema import FormSchema
+from app.services import memberships
 
 
 async def get_form(db: AsyncSession, form_id: uuid.UUID) -> Form:
@@ -21,31 +21,22 @@ async def get_form(db: AsyncSession, form_id: uuid.UUID) -> Form:
     return form
 
 
-async def assert_project_owned(
-    db: AsyncSession, project_id: uuid.UUID, user_id: uuid.UUID
-) -> Project:
-    """Return the project iff ``user_id`` owns it, else 404.
+async def get_owned_form(
+    db: AsyncSession, form_id: uuid.UUID, user_id: uuid.UUID, min_role: str = "viewer"
+) -> Form:
+    """Fetch a form only if the caller has at least ``min_role`` on its project.
 
-    We answer "not found" (never 403) for projects the caller doesn't own so the API
-    doesn't disclose the existence of other users' projects.
-    """
-    project = await db.get(Project, project_id)
-    if project is None or project.owner_id != user_id:
-        raise NotFoundError("Project not found")
-    return project
-
-
-async def get_owned_form(db: AsyncSession, form_id: uuid.UUID, user_id: uuid.UUID) -> Form:
-    """Fetch a form only if it lives in a project owned by ``user_id``, else 404.
-
-    This is the per-object authorization gate for every owner-only form action
-    (read draft, update, publish, list/export submissions). Forms the caller doesn't
-    own are reported as not found so their existence is never revealed.
+    This is the per-object authorization gate for every form action. Read actions
+    pass ``viewer``; mutating actions (edit/publish) pass ``editor``. A caller with no
+    role on the project gets a 404 (existence is never revealed); a caller whose role
+    is too low for the action gets a 403.
     """
     form = await get_form(db, form_id)
-    project = await db.get(Project, form.project_id)
-    if project is None or project.owner_id != user_id:
-        raise NotFoundError("Form not found")
+    try:
+        await memberships.require_project_role(db, form.project_id, user_id, min_role)
+    except NotFoundError:
+        # Don't leak the form's existence to a non-member.
+        raise NotFoundError("Form not found") from None
     return form
 
 
@@ -53,7 +44,7 @@ async def create_form(
     db: AsyncSession, project_id: uuid.UUID, content: FormSchema, owner_id: uuid.UUID
 ) -> Form:
     _assert_valid(content)
-    await assert_project_owned(db, project_id, owner_id)
+    await memberships.require_project_role(db, project_id, owner_id, "editor")
     form = Form(
         project_id=project_id,
         name=content.name,
@@ -69,7 +60,7 @@ async def update_draft(
     db: AsyncSession, form_id: uuid.UUID, content: FormSchema, user_id: uuid.UUID
 ) -> Form:
     _assert_valid(content)
-    form = await get_owned_form(db, form_id, user_id)
+    form = await get_owned_form(db, form_id, user_id, min_role="editor")
     form.title = _plain(content.title)
     form.draft_content = content.model_dump(by_alias=True, mode="json")
     await db.flush()
@@ -78,7 +69,7 @@ async def update_draft(
 
 async def publish_form(db: AsyncSession, form_id: uuid.UUID, user_id: uuid.UUID) -> FormVersion:
     """Freeze the current draft as the next immutable version."""
-    form = await get_owned_form(db, form_id, user_id)
+    form = await get_owned_form(db, form_id, user_id, min_role="editor")
     content = FormSchema.model_validate(form.draft_content)
     _assert_valid(content)
 

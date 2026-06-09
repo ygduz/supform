@@ -1,50 +1,12 @@
 """DB-backed API tests — exercise the full loop against an in-memory SQLite database.
 
-Uses httpx ASGITransport (no network/server needed) and overrides the DB dependency with
-a shared in-memory SQLite engine. The portable JSONType maps to JSON on SQLite, so the
-same models/migrations-shape run here as on Postgres.
+The ``client`` fixture (shared in-memory SQLite ASGI client) lives in ``conftest.py``.
 """
 
 from __future__ import annotations
 
 import httpx
 import pytest
-import pytest_asyncio
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
-from sqlalchemy.pool import StaticPool
-
-from app.db.base import Base
-from app.db.session import get_db
-from app.main import app
-
-
-@pytest_asyncio.fixture
-async def client():
-    engine = create_async_engine(
-        "sqlite+aiosqlite://",
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
-    )
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-
-    session_factory = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
-
-    async def override_get_db():
-        async with session_factory() as session:
-            try:
-                yield session
-                await session.commit()
-            except Exception:
-                await session.rollback()
-                raise
-
-    app.dependency_overrides[get_db] = override_get_db
-    transport = httpx.ASGITransport(app=app)
-    async with httpx.AsyncClient(transport=transport, base_url="http://test") as ac:
-        yield ac
-    app.dependency_overrides.clear()
-    await engine.dispose()
 
 
 def _form_payload(project_id: str) -> dict:
