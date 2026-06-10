@@ -92,6 +92,29 @@ export function SettingsPanel() {
         <span>Allow multiple responses per person</span>
       </label>
 
+      <label className="prop">
+        <span>Display mode</span>
+        <select
+          className="select"
+          value={settings.displayMode ?? ""}
+          onChange={(e) =>
+            setSettings({
+              displayMode: (e.target.value || undefined) as
+                | "single"
+                | "paged"
+                | "oneQuestionPerScreen"
+                | undefined,
+            })
+          }
+        >
+          <option value="">Automatic (paged when multi-page)</option>
+          <option value="single">Single page</option>
+          <option value="paged">Paged</option>
+          <option value="oneQuestionPerScreen">One question per screen</option>
+        </select>
+        <small className="hint">How respondents step through the form.</small>
+      </label>
+
       <label className="prop prop-check">
         <input
           type="checkbox"

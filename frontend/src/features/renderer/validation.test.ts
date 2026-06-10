@@ -1,6 +1,6 @@
 import type { Element, FormSchema } from "@/types/form-schema";
 import { describe, expect, it } from "vitest";
-import { validateAnswers } from "./validation";
+import { validateAnswers, validateElements } from "./validation";
 
 function form(elements: Element[]): FormSchema {
   return { name: "f", title: "F", pages: [{ name: "p1", elements }] } as FormSchema;
@@ -76,5 +76,31 @@ describe("validateAnswers", () => {
       { type: "calculated", name: "total", calculate: "1 + 1" },
     ]);
     expect(Object.keys(validateAnswers(schema, {}))).toHaveLength(0);
+  });
+});
+
+describe("validateElements (page-scoped, used by paged navigation)", () => {
+  it("only validates the elements it is given, not the whole form", () => {
+    const page1: Element[] = [{ type: "text", name: "first", required: true }];
+    const page2: Element[] = [{ type: "text", name: "second", required: true }];
+
+    // Advancing past page 1 with an answer must not complain about page 2's field.
+    expect(validateElements(page1, { first: "ok" })).toEqual({});
+    expect(validateElements(page2, { first: "ok" }).second).toBeTruthy();
+  });
+
+  it("descends groups and honors visibleIf within the page", () => {
+    const elements: Element[] = [
+      {
+        type: "group",
+        name: "g",
+        elements: [
+          { type: "integer", name: "age" },
+          { type: "text", name: "detail", required: true, visibleIf: "age >= 18" },
+        ],
+      },
+    ];
+    expect(validateElements(elements, { age: 10 })).toEqual({});
+    expect(validateElements(elements, { age: 30 }).detail).toBeTruthy();
   });
 });

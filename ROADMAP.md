@@ -61,7 +61,8 @@ A pragmatic build order. Each milestone is shippable on its own.
 - [x] Forms dashboard — GET /forms with role-aware scope + response counts, owner-only
       delete; /forms card grid with search, actions, and an empty state. Home/login now
       land here.
-- [ ] Paged renderer: page navigation, progress bar, one-question-per-screen mode
+- [x] Paged renderer: Back/Next page navigation with per-page validation, progress bar,
+      one-question-per-screen mode, page visibleIf, display-mode setting in the builder
 - [ ] Builder autosave + undo/redo
 - [ ] Theme presets + visual design pass + welcome/thank-you screens
 - [ ] Templates expansion: ~10 built-ins, form JSON import/export, local "My templates"

@@ -1,17 +1,33 @@
 import { ApiError, api } from "@/api/client";
 import { LanguageContext, formLanguages, languageLabel, localize } from "@/lib/i18n";
 import { isNetworkError, queueSubmission } from "@/lib/offline";
-import type { Element, FormSchema } from "@/types/form-schema";
+import type { Element, FormSchema, I18nString } from "@/types/form-schema";
 import type { JSX } from "react";
 import { useState } from "react";
 import { evaluateBool } from "./expressions";
 import { renderField } from "./fields/registry";
 import { themeToStyle } from "./theme";
-import { type FieldErrors, validateAnswers } from "./validation";
+import { type FieldErrors, validateAnswers, validateElements } from "./validation";
 
 type Answers = Record<string, unknown>;
+type DisplayMode = "single" | "paged" | "oneQuestionPerScreen";
+
+/** One screen of the stepped renderer: a page (paged mode) or a single question (OQPS). */
+interface Step {
+  key: string;
+  title?: I18nString;
+  description?: I18nString;
+  elements: Element[];
+}
 
 const PRESENTATIONAL = new Set(["note", "section", "html"]);
+
+/** Every answer-bearing name inside an element (descending groups/repeats). */
+function collectNames(el: Element): string[] {
+  const names = [el.name];
+  for (const child of el.elements ?? []) names.push(...collectNames(child));
+  return names;
+}
 
 /**
  * The renderer turns a FormSchema into an interactive form. It is fully schema-driven:
@@ -23,6 +39,7 @@ export function FormRenderer({ schema, formId }: { schema: FormSchema; formId: s
   const [formError, setFormError] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
   const [queuedOffline, setQueuedOffline] = useState(false);
+  const [step, setStep] = useState(0);
 
   // Multi-language support: offer a switcher when the form declares >1 language.
   const languages = formLanguages(schema.languages, schema.defaultLanguage);
@@ -156,13 +173,70 @@ export function FormRenderer({ schema, formId }: { schema: FormSchema; formId: s
     );
   }
 
+  // ---- stepped display (paged / one-question-per-screen) ----
+  const settings = schema.settings;
+  const mode: DisplayMode =
+    (settings?.displayMode as DisplayMode) ?? (schema.pages.length > 1 ? "paged" : "single");
+  const visiblePages = schema.pages.filter((p) => evaluateBool(p.visibleIf, answers));
+
+  let steps: Step[];
+  if (mode === "paged" && visiblePages.length > 1) {
+    steps = visiblePages.map((p) => ({
+      key: p.name,
+      title: p.title,
+      description: p.description,
+      elements: p.elements,
+    }));
+  } else if (mode === "oneQuestionPerScreen") {
+    steps = visiblePages
+      .flatMap((p) => p.elements)
+      .filter((el) => evaluateBool(el.visibleIf, answers))
+      .map((el) => ({ key: el.name, elements: [el] }));
+  } else {
+    steps = [{ key: "all", elements: visiblePages.flatMap((p) => p.elements) }];
+  }
+
+  // Visibility can change with answers; never point past the end.
+  const stepIndex = Math.min(step, steps.length - 1);
+  const current = steps[stepIndex] ?? { key: "empty", elements: [] };
+  const isLastStep = stepIndex >= steps.length - 1;
+
+  /** Jump to the first step containing any of the errored fields (after full validation). */
+  function stepFor(errorKeys: string[]): number {
+    return steps.findIndex((s) =>
+      s.elements.some((el) => collectNames(el).some((n) => errorKeys.includes(n))),
+    );
+  }
+
+  function goNext() {
+    const found = validateElements(current.elements, answers);
+    if (Object.keys(found).length > 0) {
+      setErrors(found);
+      return;
+    }
+    setErrors({});
+    setStep(Math.min(stepIndex + 1, steps.length - 1));
+  }
+
+  function goBack() {
+    setFormError(null);
+    setStep(Math.max(0, stepIndex - 1));
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    // Enter inside an input submits the form; on intermediate steps that means "next".
+    if (!isLastStep) {
+      goNext();
+      return;
+    }
     setFormError(null);
 
     const found = validateAnswers(schema, answers);
     if (Object.keys(found).length > 0) {
       setErrors(found);
+      const target = stepFor(Object.keys(found));
+      if (target >= 0 && target !== stepIndex) setStep(target);
       return;
     }
     setErrors({});
@@ -227,11 +301,54 @@ export function FormRenderer({ schema, formId }: { schema: FormSchema; formId: s
         )}
         <h1>{L(schema.title)}</h1>
         {schema.description && <p className="muted">{L(schema.description)}</p>}
-        {schema.pages.flatMap((p) => p.elements).map(renderElement)}
+
+        {settings?.showProgressBar && steps.length > 1 && (
+          <progress
+            className="form-progress"
+            value={stepIndex + 1}
+            max={steps.length}
+            aria-label="Form progress"
+          />
+        )}
+
+        <div className="form-step" key={current.key}>
+          {steps.length > 1 && current.title && <h2 className="page-title">{L(current.title)}</h2>}
+          {steps.length > 1 && current.description && (
+            <p className="muted">{L(current.description)}</p>
+          )}
+          {current.elements.map(renderElement)}
+        </div>
+
         {formError && <p className="error">{formError}</p>}
-        <button type="submit" className="button">
-          {L(schema.settings?.submitButtonText) || "Submit"}
-        </button>
+
+        {steps.length > 1 ? (
+          <div className="step-nav">
+            <button
+              type="button"
+              className="button secondary"
+              onClick={goBack}
+              disabled={stepIndex === 0}
+            >
+              Back
+            </button>
+            <span className="muted step-count">
+              {stepIndex + 1} / {steps.length}
+            </span>
+            {isLastStep ? (
+              <button type="submit" className="button">
+                {L(settings?.submitButtonText) || "Submit"}
+              </button>
+            ) : (
+              <button type="button" className="button" onClick={goNext}>
+                Next
+              </button>
+            )}
+          </div>
+        ) : (
+          <button type="submit" className="button">
+            {L(settings?.submitButtonText) || "Submit"}
+          </button>
+        )}
       </form>
     </LanguageContext.Provider>
   );

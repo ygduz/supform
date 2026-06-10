@@ -25,12 +25,15 @@ function message(custom: I18nString | undefined, fallback: string): string {
   return localize(custom) || fallback;
 }
 
-/** Validate the answers against the elements the renderer displays, descending groups. */
-export function validateAnswers(schema: FormSchema, answers: Record<string, unknown>): FieldErrors {
+/** Validate answers against one list of elements (e.g. a single page), descending groups. */
+export function validateElements(
+  elements: Element[],
+  answers: Record<string, unknown>,
+): FieldErrors {
   const errors: FieldErrors = {};
 
-  const walk = (elements: Element[]) => {
-    for (const el of elements) {
+  const walk = (els: Element[]) => {
+    for (const el of els) {
       if (!evaluateBool(el.visibleIf, answers)) continue;
       if (el.type === "group") {
         walk(el.elements ?? []); // groups are a transparent scope
@@ -43,8 +46,16 @@ export function validateAnswers(schema: FormSchema, answers: Record<string, unkn
     }
   };
 
-  walk(schema.pages.flatMap((p) => p.elements));
+  walk(elements);
   return errors;
+}
+
+/** Validate the answers against the whole form (every page the renderer displays). */
+export function validateAnswers(schema: FormSchema, answers: Record<string, unknown>): FieldErrors {
+  return validateElements(
+    schema.pages.flatMap((p) => p.elements),
+    answers,
+  );
 }
 
 function validateField(el: Element, value: unknown, ctx: Record<string, unknown>): string | null {
