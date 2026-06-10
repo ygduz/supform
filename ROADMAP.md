@@ -68,7 +68,9 @@ A pragmatic build order. Each milestone is shippable on its own.
 - [x] Theme presets (8 one-click palettes) + welcome screen + thank-you redirect +
       design pass (button transitions, focus rings); settings.welcomeTitle/welcomeMessage/
       redirectUrl across all 4 schema contract files + SDK Form.settings()
-- [ ] Templates expansion: ~10 built-ins, form JSON import/export, local "My templates"
+- [x] Templates expansion: 9 built-ins (NPS, event registration, order, volunteer,
+      course evaluation, …), form JSON export/import in the builder, and local
+      "My templates" (save current form, shown in its own gallery section)
 
 ## M7 — Data credibility (better than Kobo)
 - [ ] Repeat-aware exports (one row per instance, extra XLSX sheets)

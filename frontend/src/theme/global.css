@@ -965,6 +965,16 @@ button:focus-visible {
 .template-card .button {
   margin-top: auto;
 }
+.template-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: auto;
+}
+.section-title {
+  margin: 28px 0 12px;
+  font-size: 18px;
+}
 
 /* Responses analytics */
 .view-tabs {

@@ -3,8 +3,8 @@ import { allElements } from "../builder/model";
 import { TEMPLATES } from "./templates";
 
 describe("form templates", () => {
-  it("exposes a non-empty gallery with unique ids and form names", () => {
-    expect(TEMPLATES.length).toBeGreaterThan(0);
+  it("exposes a sizeable gallery with unique ids and form names", () => {
+    expect(TEMPLATES.length).toBeGreaterThanOrEqual(9);
     const ids = TEMPLATES.map((t) => t.id);
     const names = TEMPLATES.map((t) => t.schema.name);
     expect(new Set(ids).size).toBe(ids.length);

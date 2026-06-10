@@ -1,8 +1,10 @@
 import { localize } from "@/lib/i18n";
 import { useBuilderStore } from "@/stores/builderStore";
-import { useEffect, useState } from "react";
+import type { FormSchema } from "@/types/form-schema";
+import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { FormRenderer } from "../renderer/FormRenderer";
+import { saveMyTemplate } from "../templates/myTemplates";
 import { CanvasList } from "./CanvasList";
 import { PropertiesPanel } from "./PropertiesPanel";
 import { SettingsPanel } from "./SettingsPanel";
@@ -27,6 +29,35 @@ export function BuilderPage() {
   const [tab, setTab] = useState<Tab>("properties");
   const [sharing, setSharing] = useState(false);
   const [integrations, setIntegrations] = useState(false);
+  const importRef = useRef<HTMLInputElement>(null);
+
+  function exportJson() {
+    const blob = new Blob([JSON.stringify(schema, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${schema.name || "form"}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  async function importJson(file: File) {
+    try {
+      const parsed = JSON.parse(await file.text()) as FormSchema;
+      if (!parsed || !Array.isArray(parsed.pages)) throw new Error("Not a Supform form schema.");
+      store.loadTemplate(parsed); // seeds a fresh draft; user saves to persist
+      navigate("/builder/new");
+    } catch (err) {
+      window.alert(`Could not import: ${(err as Error).message}`);
+    }
+  }
+
+  function saveAsTemplate() {
+    const name = window.prompt("Save this form as a template named:", localize(schema.title));
+    if (name === null) return;
+    saveMyTemplate(name, schema);
+    window.alert("Saved to My templates.");
+  }
 
   useEffect(() => {
     // Load (or reset) the draft whenever the route's form id changes.
@@ -126,6 +157,30 @@ export function BuilderPage() {
             </button>
           ) : null}
           {store.formId ? <Link to={`/forms/${store.formId}/responses`}>Responses</Link> : null}
+          <button type="button" title="Save as a personal template" onClick={saveAsTemplate}>
+            Save as template
+          </button>
+          <button type="button" title="Download this form's JSON schema" onClick={exportJson}>
+            Export JSON
+          </button>
+          <button
+            type="button"
+            title="Load a form from a JSON file"
+            onClick={() => importRef.current?.click()}
+          >
+            Import JSON
+          </button>
+          <input
+            ref={importRef}
+            type="file"
+            accept="application/json,.json"
+            hidden
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) importJson(file);
+              e.target.value = "";
+            }}
+          />
           <button type="button" onClick={() => store.save()} disabled={status === "saving"}>
             {status === "saving" ? "Saving…" : "Save draft"}
           </button>
