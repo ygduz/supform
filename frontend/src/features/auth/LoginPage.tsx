@@ -21,7 +21,7 @@ export function LoginPage() {
       }
       const { access_token } = await api.login(email, password);
       setAccessToken(access_token);
-      navigate("/builder/new");
+      navigate("/forms");
     } catch (err) {
       setError((err as Error).message);
     } finally {

@@ -90,6 +90,19 @@ export interface Member {
   role: string;
 }
 
+/** A form as listed on the dashboard. */
+export interface FormListItem {
+  id: string;
+  project_id: string;
+  name: string;
+  title: string;
+  status: string;
+  current_version: number | null;
+  created_at: string;
+  updated_at: string;
+  response_count: number;
+}
+
 /** An outbound webhook registered on a form. */
 export interface Webhook {
   id: string;
@@ -163,6 +176,10 @@ export const api = {
     }),
 
   // forms
+  listForms: () => request<FormListItem[]>("/api/v1/forms"),
+
+  deleteForm: (formId: string) => request<void>(`/api/v1/forms/${formId}`, { method: "DELETE" }),
+
   getPublishedSchema: (formId: string) => request<FormSchema>(`/api/v1/forms/${formId}/schema`),
 
   getForm: (formId: string) =>

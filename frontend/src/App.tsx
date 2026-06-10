@@ -1,9 +1,11 @@
-import { BrowserRouter, Link, Route, Routes } from "react-router-dom";
+import { isAuthenticated } from "@/api/client";
+import { BrowserRouter, Link, Navigate, Route, Routes } from "react-router-dom";
 import { ForgotPasswordPage } from "./features/auth/ForgotPasswordPage";
 import { LoginPage } from "./features/auth/LoginPage";
 import { ResetPasswordPage } from "./features/auth/ResetPasswordPage";
 import { VerifyEmailPage } from "./features/auth/VerifyEmailPage";
 import { BuilderPage } from "./features/builder/BuilderPage";
+import { FormsPage } from "./features/forms/FormsPage";
 import { ImportPage } from "./features/import/ImportPage";
 import { OfflineIndicator } from "./features/offline/OfflineIndicator";
 import { RendererPage } from "./features/renderer/RendererPage";
@@ -22,10 +24,10 @@ export function App() {
           Supform
         </Link>
         <nav>
+          <Link to="/forms">My forms</Link>
           <Link to="/templates">Templates</Link>
           <Link to="/builder/new">Builder</Link>
           <Link to="/import">Import</Link>
-          <Link to="/f/demo">Preview</Link>
           <Link to="/login">Sign in</Link>
         </nav>
       </header>
@@ -33,6 +35,7 @@ export function App() {
       <main className="app-main">
         <Routes>
           <Route path="/" element={<Home />} />
+          <Route path="/forms" element={<FormsPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
@@ -49,6 +52,8 @@ export function App() {
 }
 
 function Home() {
+  // Signed-in users land on their dashboard; the marketing splash is for visitors.
+  if (isAuthenticated()) return <Navigate to="/forms" replace />;
   return (
     <section className="home">
       <h1>Build beautiful forms.</h1>

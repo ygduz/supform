@@ -4,12 +4,18 @@ from __future__ import annotations
 
 import uuid
 
-from sqlalchemy import select
+from sqlalchemy import delete, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import NotFoundError, ValidationError
 from app.form_engine import validate_form
+from app.models.export_job import ExportJob
 from app.models.form import Form, FormVersion
+from app.models.media import MediaFile
+from app.models.project import Project
+from app.models.project_membership import ProjectMembership
+from app.models.submission import Submission
+from app.models.webhook import Webhook
 from app.schemas.form_schema import FormSchema
 from app.services import memberships
 
@@ -38,6 +44,44 @@ async def get_owned_form(
         # Don't leak the form's existence to a non-member.
         raise NotFoundError("Form not found") from None
     return form
+
+
+async def list_forms(db: AsyncSession, user_id: uuid.UUID) -> list[tuple[Form, int]]:
+    """Every form the user can see (owned or shared projects), with its response count.
+
+    One grouped subquery supplies the counts so the dashboard never goes N+1.
+    Most-recently-edited first — the form you're working on is the one you want.
+    """
+    counts = (
+        select(Submission.form_id, func.count(Submission.id).label("cnt"))
+        .group_by(Submission.form_id)
+        .subquery()
+    )
+    stmt = (
+        select(Form, func.coalesce(counts.c.cnt, 0))
+        .join(Project, Project.id == Form.project_id)
+        .outerjoin(ProjectMembership, ProjectMembership.project_id == Project.id)
+        .outerjoin(counts, counts.c.form_id == Form.id)
+        .where(or_(Project.owner_id == user_id, ProjectMembership.user_id == user_id))
+        .distinct()
+        .order_by(Form.updated_at.desc())
+    )
+    return [(form, count) for form, count in (await db.execute(stmt)).all()]
+
+
+async def delete_form(db: AsyncSession, form_id: uuid.UUID, user_id: uuid.UUID) -> None:
+    """Permanently delete a form and everything hanging off it. Owner-only.
+
+    Versions and submissions cascade at the ORM level; webhooks, export jobs, and media
+    rows are removed explicitly so the behavior is identical on Postgres and the SQLite
+    test database (which doesn't enforce FK cascades).
+    """
+    form = await get_owned_form(db, form_id, user_id, min_role="owner")
+    await db.execute(delete(Webhook).where(Webhook.form_id == form_id))
+    await db.execute(delete(ExportJob).where(ExportJob.form_id == form_id))
+    await db.execute(delete(MediaFile).where(MediaFile.form_id == form_id))
+    await db.delete(form)
+    await db.flush()
 
 
 async def create_form(

@@ -10,11 +10,31 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import get_current_user
 from app.db.session import get_db
 from app.models.user import User
-from app.schemas.api import FormCreate, FormDetail, FormOut, FormUpdate, PublishResult
+from app.schemas.api import (
+    FormCreate,
+    FormDetail,
+    FormListItem,
+    FormOut,
+    FormUpdate,
+    PublishResult,
+)
 from app.schemas.form_schema import FormSchema
 from app.services import forms as forms_service
 
 router = APIRouter(prefix="/forms", tags=["forms"])
+
+
+@router.get("", response_model=list[FormListItem])
+async def list_forms(
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> list[FormListItem]:
+    """Every form the caller can see (owned or shared), newest-edited first, with counts."""
+    rows = await forms_service.list_forms(db, user.id)
+    return [
+        FormListItem.model_validate(form).model_copy(update={"response_count": count})
+        for form, count in rows
+    ]
 
 
 @router.post("", response_model=FormOut, status_code=201)
@@ -43,6 +63,17 @@ async def update_form(
     user: User = Depends(get_current_user),
 ):
     return await forms_service.update_draft(db, form_id, payload.content, user.id)
+
+
+@router.delete("/{form_id}", status_code=204)
+async def delete_form(
+    form_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> None:
+    """Permanently delete a form and its versions/submissions/webhooks/exports. Owner-only."""
+    await forms_service.delete_form(db, form_id, user.id)
+    await db.commit()
 
 
 @router.post("/{form_id}/publish", response_model=PublishResult)

@@ -110,6 +110,13 @@ class FormOut(BaseModel):
     created_at: datetime
 
 
+class FormListItem(FormOut):
+    """Dashboard row: a form plus the stats the cards display."""
+
+    updated_at: datetime
+    response_count: int = 0
+
+
 class FormDetail(FormOut):
     draft_content: dict[str, Any]
 

@@ -52,6 +52,27 @@ A pragmatic build order. Each milestone is shippable on its own.
       config in settings, and a live language switcher in the renderer)
 - [x] Templates gallery (ready-made forms — contact, RSVP, feedback/NPS, job
       application — openable in the builder from /templates)
-- [ ] Collaboration & sharing
+- [x] Collaboration & sharing (delivered with the M1 roles work: project memberships,
+      viewer/editor/owner, Share dialog in the builder)
 - [x] Analytics dashboards (responses view toggles between an analytics panel —
       responses-over-time, choice-distribution bars, numeric stats — and the table)
+
+## M6 — Delight (easier & more beautiful than MS Forms)
+- [x] Forms dashboard — GET /forms with role-aware scope + response counts, owner-only
+      delete; /forms card grid with search, actions, and an empty state. Home/login now
+      land here.
+- [ ] Paged renderer: page navigation, progress bar, one-question-per-screen mode
+- [ ] Builder autosave + undo/redo
+- [ ] Theme presets + visual design pass + welcome/thank-you screens
+- [ ] Templates expansion: ~10 built-ins, form JSON import/export, local "My templates"
+
+## M7 — Data credibility (better than Kobo)
+- [ ] Repeat-aware exports (one row per instance, extra XLSX sheets)
+- [ ] Record validation / approval workflow (approved / on hold / not approved)
+- [ ] Geo questions + map view + cascading selects
+
+## M8 — Differentiators
+- [ ] AI form generation (prompt → draft schema, pluggable LLM)
+- [ ] Embed + prefill kit (iframe embed script, URL prefill, hidden fields, QR share)
+- [ ] Quiz scoring & outcomes
+- [ ] Email response notifications
