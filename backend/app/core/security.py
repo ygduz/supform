@@ -79,6 +79,26 @@ def create_refresh_token(subject: str) -> str:
     return _encode(payload)
 
 
+def create_purpose_token(
+    subject: str, token_type: str, *, expires_minutes: int, extra: dict[str, Any] | None = None
+) -> str:
+    """Short-lived signed token for one-off flows (email verification, password reset).
+
+    ``type`` is checked on the consuming side so a token minted for one purpose can't be
+    replayed against another. Callers can embed ``extra`` claims (e.g. a binding to the
+    current password hash, which makes a reset token single-use)."""
+    now = int(time.time())
+    payload: dict[str, Any] = {
+        "sub": subject,
+        "type": token_type,
+        "iat": now,
+        "exp": now + expires_minutes * 60,
+    }
+    if extra:
+        payload.update(extra)
+    return _encode(payload)
+
+
 def decode_token(token: str) -> dict[str, Any] | None:
     """Return the token payload, or ``None`` if the signature is invalid or it's expired."""
     try:

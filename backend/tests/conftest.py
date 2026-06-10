@@ -12,24 +12,30 @@ from sqlalchemy.pool import StaticPool
 
 from app.core import ratelimit
 from app.core.config import settings
+from app.core.email import MemoryEmailSender
 from app.db.base import Base
 from app.db.session import get_db
 from app.main import app
 
 
 @pytest.fixture(autouse=True)
-def _disable_rate_limiting():
-    """The suite hammers auth/submit endpoints; keep the limiter off unless a test opts in.
+def _test_runtime_env():
+    """Tame runtime services for the suite: rate limiting off, email captured in memory.
 
-    Tests that exercise the limiter re-enable it via monkeypatch. Counters are reset around
-    every test so state never leaks between them.
+    The suite hammers auth/submit endpoints (so the limiter is off unless a test opts back
+    in via monkeypatch), and signup now sends a verification email (captured in an
+    in-process outbox tests can assert against). Both are reset around every test.
     """
     ratelimit.reset()
-    previous = settings.rate_limit_enabled
+    MemoryEmailSender.clear()
+    prev_rl, prev_email = settings.rate_limit_enabled, settings.email_backend
     settings.rate_limit_enabled = False
+    settings.email_backend = "memory"
     yield
-    settings.rate_limit_enabled = previous
+    settings.rate_limit_enabled = prev_rl
+    settings.email_backend = prev_email
     ratelimit.reset()
+    MemoryEmailSender.clear()
 
 
 @pytest_asyncio.fixture

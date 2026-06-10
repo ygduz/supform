@@ -33,11 +33,29 @@ class TokenPair(BaseModel):
     token_type: str = "bearer"
 
 
+class EmailRequest(BaseModel):
+    email: EmailStr
+
+
+class TokenRequest(BaseModel):
+    token: str
+
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    password: str = Field(min_length=8)
+
+
+class MessageResponse(BaseModel):
+    detail: str
+
+
 class UserOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: uuid.UUID
     email: EmailStr
     full_name: str | None = None
+    is_verified: bool = False
 
 
 # ---- projects ----

@@ -115,6 +115,24 @@ export const api = {
       body: JSON.stringify({ email, password }),
     }),
 
+  verifyEmail: (token: string) =>
+    request<{ id: string; email: string; is_verified: boolean }>("/api/v1/auth/verify-email", {
+      method: "POST",
+      body: JSON.stringify({ token }),
+    }),
+
+  forgotPassword: (email: string) =>
+    request<{ detail: string }>("/api/v1/auth/forgot-password", {
+      method: "POST",
+      body: JSON.stringify({ email }),
+    }),
+
+  resetPassword: (token: string, password: string) =>
+    request<{ detail: string }>("/api/v1/auth/reset-password", {
+      method: "POST",
+      body: JSON.stringify({ token, password }),
+    }),
+
   // projects
   listProjects: () => request<Array<{ id: string; name: string }>>("/api/v1/projects"),
 

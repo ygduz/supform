@@ -40,6 +40,20 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 60
     refresh_token_expire_days: int = 14
 
+    # Public base URL of the frontend, used to build links in emails (verify, reset).
+    app_base_url: str = "http://localhost:5173"
+
+    # Email delivery (verification & password reset). Backends: console | smtp | memory.
+    email_backend: str = "console"
+    email_from: str = "Supform <no-reply@supform.local>"
+    smtp_host: str = "localhost"
+    smtp_port: int = 587
+    smtp_use_tls: bool = True
+    smtp_username: str = ""
+    smtp_password: str = ""
+    verify_token_expire_minutes: int = 60 * 24  # 24h to confirm an email
+    reset_token_expire_minutes: int = 30  # short-lived password-reset window
+
     # Rate limiting (per client IP, fixed window). Disable in tests that hammer endpoints.
     rate_limit_enabled: bool = True
 

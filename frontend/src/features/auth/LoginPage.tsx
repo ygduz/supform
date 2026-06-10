@@ -1,6 +1,6 @@
 import { api, setAccessToken } from "@/api/client";
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 /** Sign in (or create an account), then return to the builder. */
 export function LoginPage() {
@@ -61,6 +61,11 @@ export function LoginPage() {
       >
         {mode === "login" ? "Need an account? Sign up" : "Have an account? Sign in"}
       </button>
+      {mode === "login" && (
+        <Link to="/forgot-password" className="muted">
+          Forgot your password?
+        </Link>
+      )}
     </form>
   );
 }

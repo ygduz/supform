@@ -1,5 +1,8 @@
 import { BrowserRouter, Link, Route, Routes } from "react-router-dom";
+import { ForgotPasswordPage } from "./features/auth/ForgotPasswordPage";
 import { LoginPage } from "./features/auth/LoginPage";
+import { ResetPasswordPage } from "./features/auth/ResetPasswordPage";
+import { VerifyEmailPage } from "./features/auth/VerifyEmailPage";
 import { BuilderPage } from "./features/builder/BuilderPage";
 import { ImportPage } from "./features/import/ImportPage";
 import { OfflineIndicator } from "./features/offline/OfflineIndicator";
@@ -31,6 +34,9 @@ export function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
+          <Route path="/verify-email" element={<VerifyEmailPage />} />
           <Route path="/templates" element={<TemplatesPage />} />
           <Route path="/import" element={<ImportPage />} />
           <Route path="/builder/:formId" element={<BuilderPage />} />
