@@ -170,6 +170,23 @@ export function SettingsPanel() {
       </label>
 
       <label className="prop">
+        <span>Notify on response</span>
+        <input
+          type="text"
+          value={(settings.notifyEmails ?? []).join(", ")}
+          placeholder="you@example.com, team@example.com"
+          onChange={(e) => {
+            const emails = e.target.value
+              .split(",")
+              .map((s) => s.trim())
+              .filter(Boolean);
+            setSettings({ notifyEmails: emails.length ? emails : undefined });
+          }}
+        />
+        <small className="hint">Comma-separated emails alerted on each new response.</small>
+      </label>
+
+      <label className="prop">
         <span>Redirect after submit</span>
         <input
           type="url"

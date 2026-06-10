@@ -160,6 +160,7 @@ class FormSettings(BaseModel):
     welcome_title: I18nString | None = Field(default=None, alias="welcomeTitle")
     welcome_message: I18nString | None = Field(default=None, alias="welcomeMessage")
     redirect_url: str | None = Field(default=None, alias="redirectUrl")
+    notify_emails: list[str] = Field(default_factory=list, alias="notifyEmails")
 
 
 class FormSchema(BaseModel):

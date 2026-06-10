@@ -17,6 +17,7 @@ from app.models.submission import VALIDATION_STATUSES, Submission
 from app.models.user import User
 from app.schemas.api import SubmissionCreate, SubmissionOut, ValidationUpdate
 from app.services import forms as forms_service
+from app.services import notifications as notifications_service
 from app.services import submissions as submissions_service
 from app.services import webhooks as webhooks_service
 
@@ -54,6 +55,7 @@ async def submit(
     await db.commit()
     form = await forms_service.get_form(db, form_id)
     await webhooks_service.dispatch_submission_event(db, form, submission)
+    await notifications_service.dispatch_submission_notification(db, form, submission)
     return submission
 
 

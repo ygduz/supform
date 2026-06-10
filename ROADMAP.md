@@ -89,4 +89,5 @@ A pragmatic build order. Each milestone is shippable on its own.
       SUPFORM_AI_API_KEY is set; "Generate with AI" dialog on /templates)
 - [ ] Embed + prefill kit (iframe embed script, URL prefill, hidden fields, QR share)
 - [ ] Quiz scoring & outcomes
-- [ ] Email response notifications
+- [x] Email response notifications (settings.notifyEmails; Celery-offloaded email per
+      recipient on each submission via the pluggable email backend; builder input)

@@ -89,7 +89,8 @@
         "confirmationMessage": { "$ref": "#/$defs/i18nString" },
         "welcomeTitle": { "$ref": "#/$defs/i18nString" },
         "welcomeMessage": { "$ref": "#/$defs/i18nString" },
-        "redirectUrl": { "type": "string", "description": "Auto-redirect here after submitting." }
+        "redirectUrl": { "type": "string", "description": "Auto-redirect here after submitting." },
+        "notifyEmails": { "type": "array", "items": { "type": "string" }, "description": "Emailed on each new submission." }
       }
     },
     "page": {

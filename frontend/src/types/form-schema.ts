@@ -128,6 +128,8 @@ export interface FormSettings {
   welcomeMessage?: I18nString;
   /** Where to send the respondent after submitting (auto-redirect from the thank-you screen). */
   redirectUrl?: string;
+  /** Email addresses notified on each new submission. */
+  notifyEmails?: string[];
 }
 
 export interface FormSchema {

@@ -35,6 +35,21 @@ def deliver_webhook(
         raise self.retry(exc=exc, countdown=15 * (2**self.request.retries)) from exc
 
 
+@celery_app.task(name="notifications.send", bind=True, max_retries=3, default_retry_delay=30)
+def send_notification(self, emails: list[str], subject: str, body: str) -> dict[str, Any]:
+    """Email a new-response notification to each recipient via the configured backend."""
+    from app.core.config import settings
+    from app.core.email import send_email
+
+    rendered = body.replace("{app}", settings.app_base_url)
+    try:
+        for to in emails:
+            send_email(to, subject, rendered)
+        return {"sent": len(emails)}
+    except Exception as exc:  # mail server hiccup — retry with backoff
+        raise self.retry(exc=exc) from exc
+
+
 async def _build_export(job_id: str) -> dict[str, str]:
     # A worker is its own process with no running event loop, so a fresh async session
     # over the app engine is safe here (unlike calling this inline from a request).
