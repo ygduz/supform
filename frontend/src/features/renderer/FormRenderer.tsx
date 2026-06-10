@@ -129,6 +129,7 @@ export function FormRenderer({ schema, formId }: { schema: FormSchema; formId: s
                         inst[child.name],
                         (v) => writeInstance(i, child.name, v),
                         formId,
+                        scope,
                       )}
                       {errors[errorKey] && (
                         <small className="error field-error">{errors[errorKey]}</small>
@@ -167,7 +168,7 @@ export function FormRenderer({ schema, formId }: { schema: FormSchema; formId: s
             {el.required && " *"}
           </label>
         )}
-        {renderField(el, answers[el.name], (v) => setValue(el.name, v), formId)}
+        {renderField(el, answers[el.name], (v) => setValue(el.name, v), formId, answers)}
         {el.hint && <small className="hint">{L(el.hint)}</small>}
         {errors[el.name] && <small className="error field-error">{errors[el.name]}</small>}
       </div>

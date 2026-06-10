@@ -15,6 +15,7 @@ export const ELEMENT_PALETTE: { type: ElementType; label: string; icon: string }
   { type: "date", label: "Date", icon: "📅" },
   { type: "matrix", label: "Matrix", icon: "▦" },
   { type: "file", label: "File upload", icon: "📎" },
+  { type: "geopoint", label: "Location", icon: "📍" },
   { type: "group", label: "Section", icon: "📂" },
   { type: "repeat", label: "Repeating group", icon: "🔁" },
 ];

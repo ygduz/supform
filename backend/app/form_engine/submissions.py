@@ -151,6 +151,8 @@ def _validate_field(el: Element, value: Any, ctx: dict[str, Any]) -> str | None:
         return _validate_matrix(el, value, required)
     if el.type == "multi_choice":
         return _validate_multi_choice(el, value)
+    if el.type == "geopoint":
+        return _validate_geopoint(value)
 
     v = el.validation
     if v is not None:
@@ -209,6 +211,20 @@ def _validate_multi_choice(el: Element, value: Any) -> str | None:
             return _msg(v.message, f"Select at least {v.min_selected}.")
         if v.max_selected is not None and len(value) > v.max_selected:
             return _msg(v.message, f"Select at most {v.max_selected}.")
+    return None
+
+
+def _validate_geopoint(value: Any) -> str | None:
+    """A geopoint answer is ``{lat, lng, accuracy?}`` with lat/lng in valid ranges."""
+    if not isinstance(value, dict):
+        return "Expected a {lat, lng} location."
+    lat, lng = value.get("lat"), value.get("lng")
+    if not isinstance(lat, (int, float)) or not isinstance(lng, (int, float)):
+        return "Location must have numeric lat and lng."
+    if isinstance(lat, bool) or isinstance(lng, bool):
+        return "Location must have numeric lat and lng."
+    if not (-90 <= lat <= 90) or not (-180 <= lng <= 180):
+        return "Location is out of range."
     return None
 
 

@@ -1031,6 +1031,34 @@ button:focus-visible {
   background: #fee2e2;
   color: #991b1b;
 }
+
+/* Geopoint field + map */
+.geopoint-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+}
+.geopoint-coords {
+  display: flex;
+  gap: 12px;
+}
+.geopoint-coords label {
+  display: flex;
+  flex-direction: column;
+  font-size: 13px;
+  color: var(--muted);
+  gap: 2px;
+}
+.geopoint-coords input {
+  width: 130px;
+}
+.response-map {
+  height: 460px;
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
 .analytics {
   display: flex;
   flex-direction: column;

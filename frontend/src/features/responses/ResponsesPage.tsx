@@ -3,11 +3,12 @@ import type { FormSchema } from "@/types/form-schema";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { AnalyticsPanel } from "./AnalyticsPanel";
+import { MapPanel } from "./MapPanel";
 import { buildColumns } from "./columns";
 
 type Status = "loading" | "ready" | "unauth" | "error";
 type Format = "csv" | "xlsx" | "json";
-type View = "analytics" | "table";
+type View = "analytics" | "table" | "map";
 type StatusFilter = "all" | ValidationStatus;
 
 const STATUS_LABELS: Record<ValidationStatus, string> = {
@@ -83,6 +84,16 @@ export function ResponsesPage() {
   }, [formId]);
 
   const columns = useMemo(() => (schema ? buildColumns(schema) : []), [schema]);
+  const hasGeo = useMemo(
+    () =>
+      !!schema &&
+      schema.pages.some(function check(p): boolean {
+        const walk = (els: typeof p.elements): boolean =>
+          els.some((el) => el.type === "geopoint" || (el.elements ? walk(el.elements) : false));
+        return walk(p.elements);
+      }),
+    [schema],
+  );
   const tableRows = useMemo(
     () =>
       statusFilter === "all" ? rows : rows.filter((r) => r.validation_status === statusFilter),
@@ -174,9 +185,19 @@ export function ResponsesPage() {
             >
               Table
             </button>
+            {hasGeo && (
+              <button
+                type="button"
+                className={view === "map" ? "tab active" : "tab"}
+                onClick={() => setView("map")}
+              >
+                Map
+              </button>
+            )}
           </div>
 
           {view === "analytics" && schema && <AnalyticsPanel schema={schema} rows={rows} />}
+          {view === "map" && schema && <MapPanel schema={schema} rows={rows} />}
 
           {view === "table" && (
             <>

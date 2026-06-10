@@ -346,3 +346,24 @@ def test_calculated_field_bad_expression_does_not_crash() -> None:
     form = _form([{"type": "calculated", "name": "x", "calculate": "undefined_var ** 2"}])
     result = validate_submission(form, {})
     assert result.is_valid  # bad calc silently skipped — must not 500
+
+
+# ------------------------------------------------------------------ geopoint
+
+
+def test_geopoint_accepts_valid_location() -> None:
+    form = _form([{"type": "geopoint", "name": "where"}])
+    result = validate_submission(form, {"where": {"lat": 51.5, "lng": -0.12, "accuracy": 8}})
+    assert result.is_valid
+
+
+def test_geopoint_rejects_bad_shape_and_out_of_range() -> None:
+    form = _form([{"type": "geopoint", "name": "where"}])
+    assert not validate_submission(form, {"where": "51,-0.1"}).is_valid
+    assert not validate_submission(form, {"where": {"lat": 200, "lng": 0}}).is_valid
+    assert not validate_submission(form, {"where": {"lat": "x", "lng": 0}}).is_valid
+
+
+def test_geopoint_optional_when_empty() -> None:
+    form = _form([{"type": "geopoint", "name": "where"}])
+    assert validate_submission(form, {}).is_valid

@@ -8,6 +8,7 @@ import { type MediaRef, api } from "@/api/client";
 import { LanguageContext, localize } from "@/lib/i18n";
 import type { Choice, Element } from "@/types/form-schema";
 import { useContext, useState } from "react";
+import { evaluateBool } from "../expressions";
 
 type FieldProps = {
   element: Element;
@@ -15,6 +16,8 @@ type FieldProps = {
   onChange: (value: unknown) => void;
   /** The published form id, needed by fields that call the API (e.g. file upload). */
   formId?: string;
+  /** Current answers in scope, so options can be filtered by their `visibleIf` (cascading). */
+  scope?: Record<string, unknown>;
 };
 
 type Renderer = (p: FieldProps) => JSX.Element;
@@ -22,6 +25,10 @@ type Renderer = (p: FieldProps) => JSX.Element;
 /** Resolve a choice's display label in a language, falling back to its raw value. */
 const choiceLabel = (opt: Choice, lang: string): string =>
   localize(opt.label, lang) || String(opt.value);
+
+/** Options visible given the current answers — drives cascading / dependent selects. */
+const visibleChoices = (options: Choice[], scope: Record<string, unknown> = {}): Choice[] =>
+  options.filter((opt) => evaluateBool(opt.visibleIf, scope));
 
 const TextField: Renderer = ({ element, value, onChange }) => {
   const lang = useContext(LanguageContext);
@@ -81,11 +88,11 @@ const DateTimeField =
     />
   );
 
-const SingleChoice: Renderer = ({ element, value, onChange }) => {
+const SingleChoice: Renderer = ({ element, value, onChange, scope }) => {
   const lang = useContext(LanguageContext);
   return (
     <div className="choices">
-      {(element.options ?? []).map((opt) => (
+      {visibleChoices(element.options ?? [], scope).map((opt) => (
         <label key={String(opt.value)}>
           <input
             type="radio"
@@ -100,7 +107,7 @@ const SingleChoice: Renderer = ({ element, value, onChange }) => {
   );
 };
 
-const MultiChoice: Renderer = ({ element, value, onChange }) => {
+const MultiChoice: Renderer = ({ element, value, onChange, scope }) => {
   const lang = useContext(LanguageContext);
   const selected = Array.isArray(value) ? (value as Array<string | number | boolean>) : [];
   const toggle = (optValue: string | number | boolean) =>
@@ -111,7 +118,7 @@ const MultiChoice: Renderer = ({ element, value, onChange }) => {
     );
   return (
     <div className="choices">
-      {(element.options ?? []).map((opt) => (
+      {visibleChoices(element.options ?? [], scope).map((opt) => (
         <label key={String(opt.value)}>
           <input
             type="checkbox"
@@ -126,9 +133,9 @@ const MultiChoice: Renderer = ({ element, value, onChange }) => {
   );
 };
 
-const Dropdown: Renderer = ({ element, value, onChange }) => {
+const Dropdown: Renderer = ({ element, value, onChange, scope }) => {
   const lang = useContext(LanguageContext);
-  const options = element.options ?? [];
+  const options = visibleChoices(element.options ?? [], scope);
   return (
     <select
       id={element.name}
@@ -299,6 +306,82 @@ const FileField: Renderer = ({ element, value, onChange, formId }) => {
   );
 };
 
+interface GeoValue {
+  lat: number;
+  lng: number;
+  accuracy?: number;
+}
+
+const Geopoint: Renderer = ({ value, onChange }) => {
+  const point = (value ?? null) as GeoValue | null;
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  function locate() {
+    if (!navigator.geolocation) {
+      setError("Geolocation isn't available in this browser.");
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        onChange({
+          lat: Number(pos.coords.latitude.toFixed(6)),
+          lng: Number(pos.coords.longitude.toFixed(6)),
+          accuracy: Math.round(pos.coords.accuracy),
+        });
+        setBusy(false);
+      },
+      (err) => {
+        setError(err.message || "Couldn't get your location.");
+        setBusy(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000 },
+    );
+  }
+
+  const setCoord = (key: "lat" | "lng", raw: string) => {
+    const n = raw === "" ? undefined : Number(raw);
+    const base: GeoValue = point ?? { lat: 0, lng: 0 };
+    if (n === undefined || Number.isNaN(n)) {
+      onChange(key === "lat" ? { ...base, lat: 0 } : { ...base, lng: 0 });
+      return;
+    }
+    onChange({ ...base, [key]: n });
+  };
+
+  return (
+    <div className="geopoint-field">
+      <button type="button" className="button secondary" onClick={locate} disabled={busy}>
+        {busy ? "Locating…" : "📍 Use my location"}
+      </button>
+      <div className="geopoint-coords">
+        <label>
+          Lat
+          <input
+            type="number"
+            step="any"
+            value={point ? point.lat : ""}
+            onChange={(e) => setCoord("lat", e.target.value)}
+          />
+        </label>
+        <label>
+          Lng
+          <input
+            type="number"
+            step="any"
+            value={point ? point.lng : ""}
+            onChange={(e) => setCoord("lng", e.target.value)}
+          />
+        </label>
+      </div>
+      {point?.accuracy != null && <small className="hint">±{point.accuracy} m</small>}
+      {error && <small className="error">{error}</small>}
+    </div>
+  );
+};
+
 /** type -> renderer. Unknown types fall back to a text input. */
 const REGISTRY: Record<string, Renderer> = {
   text: TextField,
@@ -319,7 +402,8 @@ const REGISTRY: Record<string, Renderer> = {
   matrix: Matrix,
   file: FileField,
   image: FileField,
-  // TODO(M2): ranking, repeat, geopoint, signature, …
+  geopoint: Geopoint,
+  // TODO(M2): ranking, signature, …
 };
 
 export function renderField(
@@ -327,7 +411,10 @@ export function renderField(
   value: unknown,
   onChange: (v: unknown) => void,
   formId?: string,
+  scope?: Record<string, unknown>,
 ) {
   const Field = REGISTRY[element.type] ?? TextField;
-  return <Field element={element} value={value} onChange={onChange} formId={formId} />;
+  return (
+    <Field element={element} value={value} onChange={onChange} formId={formId} scope={scope} />
+  );
 }

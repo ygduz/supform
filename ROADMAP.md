@@ -79,7 +79,9 @@ A pragmatic build order. Each milestone is shippable on its own.
 - [x] Record validation / approval workflow: per-submission status (approved / on_hold /
       not_approved) with validated_by/at, editor-gated PATCH + filter + single-row delete;
       responses table gains status dropdowns, filter chips, and delete
-- [ ] Geo questions + map view + cascading selects
+- [x] Geo questions (geopoint widget: "use my location" + manual lat/lng, shape-validated
+      server-side), a Leaflet map view of responses, and cascading selects (options filtered
+      by Choice.visibleIf against the live answers)
 
 ## M8 — Differentiators
 - [ ] AI form generation (prompt → draft schema, pluggable LLM)
