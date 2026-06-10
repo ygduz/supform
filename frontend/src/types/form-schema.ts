@@ -13,13 +13,37 @@ export type I18nString = string | Record<string, string>;
 export type Expression = string;
 
 export type ElementType =
-  | "text" | "longtext" | "email" | "url" | "phone"
-  | "number" | "integer" | "decimal"
-  | "single_choice" | "multi_choice" | "dropdown" | "ranking" | "rating" | "scale"
-  | "date" | "time" | "datetime" | "boolean"
-  | "matrix" | "group" | "repeat"
-  | "file" | "image" | "signature" | "geopoint" | "barcode"
-  | "calculated" | "note" | "section" | "html"
+  | "text"
+  | "longtext"
+  | "email"
+  | "url"
+  | "phone"
+  | "number"
+  | "integer"
+  | "decimal"
+  | "single_choice"
+  | "multi_choice"
+  | "dropdown"
+  | "ranking"
+  | "rating"
+  | "scale"
+  | "date"
+  | "time"
+  | "datetime"
+  | "boolean"
+  | "matrix"
+  | "group"
+  | "repeat"
+  | "file"
+  | "image"
+  | "signature"
+  | "geopoint"
+  | "barcode"
+  | "calculated"
+  | "hidden"
+  | "note"
+  | "section"
+  | "html"
   // open set: custom types are allowed
   | (string & {});
 
@@ -27,7 +51,17 @@ export interface Choice {
   value: string | number | boolean;
   label?: I18nString;
   visibleIf?: Expression;
+  /** Points awarded when this option is chosen (quiz mode). */
+  score?: number;
   meta?: Record<string, unknown>;
+}
+
+/** A scored-result band shown on the thank-you screen when the score falls in [min, max]. */
+export interface Outcome {
+  min: number;
+  max: number;
+  message: I18nString;
+  redirectUrl?: string;
 }
 
 export interface Validation {
@@ -84,16 +118,32 @@ export interface Theme {
   primaryColor?: string;
   backgroundColor?: string;
   fontFamily?: string;
+  cornerRadius?: number;
+  coverImage?: string;
+  logo?: string;
   [key: string]: unknown;
 }
 
 export interface FormSettings {
   displayMode?: "paged" | "single" | "oneQuestionPerScreen";
   showProgressBar?: boolean;
+  shuffleQuestions?: boolean;
   allowMultipleSubmissions?: boolean;
   requireLogin?: boolean;
+  closeDate?: string;
+  maxResponses?: number;
   submitButtonText?: I18nString;
   confirmationMessage?: I18nString;
+  /** Optional welcome screen shown before the first step (paged / one-question modes). */
+  welcomeTitle?: I18nString;
+  welcomeMessage?: I18nString;
+  /** Where to send the respondent after submitting (auto-redirect from the thank-you screen). */
+  redirectUrl?: string;
+  /** Email addresses notified on each new submission. */
+  notifyEmails?: string[];
+  /** Score selected-option points and show an outcome on the thank-you screen. */
+  quizMode?: boolean;
+  outcomes?: Outcome[];
 }
 
 export interface FormSchema {

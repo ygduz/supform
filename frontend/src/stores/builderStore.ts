@@ -1,34 +1,396 @@
+import { api, isAuthenticated } from "@/api/client";
+import * as model from "@/features/builder/model";
+import type {
+  Choice,
+  Element,
+  ElementType,
+  FormSchema,
+  FormSettings,
+  Theme,
+} from "@/types/form-schema";
 import { create } from "zustand";
-import type { Element, ElementType, FormSchema } from "@/types/form-schema";
 
-/** In-memory builder state. Persistence to the backend draft is wired in M2. */
-interface BuilderState {
-  schema: FormSchema;
-  addElement: (type: ElementType) => void;
-  updateSchema: (schema: FormSchema) => void;
+type Status = "idle" | "loading" | "saving" | "publishing" | "error";
+
+const NOT_SIGNED_IN = "Please sign in to save your form.";
+const HISTORY_LIMIT = 50;
+const AUTOSAVE_DELAY_MS = 2000;
+
+/** Find the user's first project, or create a default one to hold their forms. */
+async function resolveProjectId(): Promise<string> {
+  const projects = await api.listProjects();
+  if (projects.length > 0) return projects[0].id;
+  const created = await api.createProject("My forms");
+  return created.id;
 }
 
-const EMPTY: FormSchema = {
-  schemaVersion: "1.0",
-  name: "untitled_form",
-  title: "Untitled form",
-  pages: [{ name: "page1", elements: [] }],
-};
+interface BuilderState {
+  formId: string | null;
+  projectId: string | null;
+  schema: FormSchema;
+  selectedName: string | null;
+  activePage: number;
+  status: Status;
+  error: string | null;
+  dirty: boolean;
+  // Set when a template was seeded for a new form, so `init("new")` won't wipe it.
+  templateLoaded: boolean;
+  // Undo/redo history of schema snapshots (bounded; cleared on init/loadTemplate).
+  past: FormSchema[];
+  future: FormSchema[];
 
-let counter = 0;
+  init: (formId: string) => Promise<void>;
+  loadTemplate: (schema: FormSchema) => void;
+  undo: () => void;
+  redo: () => void;
+  select: (name: string | null) => void;
+  setTitle: (title: string) => void;
+  setTheme: (patch: Partial<Theme>) => void;
+  setSettings: (patch: Partial<FormSettings>) => void;
+  setLanguages: (languages: string[], defaultLanguage?: string) => void;
 
-export const useBuilderStore = create<BuilderState>((set) => ({
-  schema: EMPTY,
-  addElement: (type) =>
-    set((state) => {
-      counter += 1;
-      const el: Element = { type, name: `q${counter}`, label: `Question ${counter}` };
-      if (type === "single_choice" || type === "multi_choice" || type === "dropdown") {
-        el.options = [{ value: "option_1", label: "Option 1" }];
+  add: (type: ElementType) => void;
+  update: (name: string, patch: Partial<Element>) => void;
+  remove: (name: string) => void;
+  duplicate: (name: string) => void;
+  moveBy: (name: string, delta: number) => void;
+  moveTo: (name: string, index: number) => void;
+
+  addOption: (name: string) => void;
+  updateOption: (name: string, index: number, patch: Partial<Choice>) => void;
+  removeOption: (name: string, index: number) => void;
+
+  addRow: (name: string) => void;
+  updateRow: (name: string, index: number, patch: Partial<Choice>) => void;
+  removeRow: (name: string, index: number) => void;
+  addColumn: (name: string) => void;
+  updateColumn: (name: string, index: number, patch: Partial<Choice>) => void;
+  removeColumn: (name: string, index: number) => void;
+
+  setActivePage: (index: number) => void;
+  addPage: () => void;
+  removePage: (index: number) => void;
+  renamePage: (index: number, title: string) => void;
+
+  save: () => Promise<void>;
+  publish: () => Promise<void>;
+}
+
+type Updater = Partial<BuilderState> | ((s: BuilderState) => Partial<BuilderState>);
+
+export const useBuilderStore = create<BuilderState>((rawSet, get) => {
+  // ---- history + autosave plumbing ----
+  // Every schema-mutating action below funnels through `set`, which snapshots the prior
+  // schema for undo and (re)arms the autosave timer — so adding a new action gets both
+  // behaviors for free. `quiet` suspends recording for resets (init/loadTemplate/undo).
+  let recording = true;
+  let saveTimer: ReturnType<typeof setTimeout> | null = null;
+
+  const cancelAutosave = () => {
+    if (saveTimer) {
+      clearTimeout(saveTimer);
+      saveTimer = null;
+    }
+  };
+
+  const scheduleAutosave = () => {
+    cancelAutosave();
+    saveTimer = setTimeout(() => {
+      saveTimer = null;
+      const s = get();
+      if (s.dirty && s.status !== "saving" && s.status !== "publishing" && isAuthenticated()) {
+        void s.save();
       }
-      const pages = structuredClone(state.schema.pages);
-      pages[0].elements.push(el);
-      return { schema: { ...state.schema, pages } };
-    }),
-  updateSchema: (schema) => set({ schema }),
-}));
+    }, AUTOSAVE_DELAY_MS);
+  };
+
+  const set = (partial: Updater) => {
+    const prev = get();
+    rawSet(partial);
+    if (!recording || !prev) return;
+    const next = get();
+    if (next.schema !== prev.schema && next.dirty) {
+      rawSet({ past: [...prev.past, prev.schema].slice(-HISTORY_LIMIT), future: [] });
+      scheduleAutosave();
+    }
+  };
+
+  const quiet = (fn: () => void) => {
+    recording = false;
+    try {
+      fn();
+    } finally {
+      recording = true;
+    }
+  };
+
+  return {
+    formId: null,
+    projectId: null,
+    schema: model.createEmptyForm(),
+    selectedName: null,
+    activePage: 0,
+    status: "idle",
+    error: null,
+    dirty: false,
+    templateLoaded: false,
+    past: [],
+    future: [],
+
+    init: async (formId) => {
+      cancelAutosave();
+      if (formId === "new") {
+        // A template was just chosen — keep it instead of resetting to a blank form.
+        if (get().templateLoaded) {
+          rawSet({ templateLoaded: false });
+          return;
+        }
+        quiet(() =>
+          rawSet({
+            formId: null,
+            projectId: null,
+            schema: model.createEmptyForm(),
+            selectedName: null,
+            activePage: 0,
+            dirty: false,
+            past: [],
+            future: [],
+          }),
+        );
+        return;
+      }
+      // Loading an existing form supersedes any pending template seed.
+      rawSet({ templateLoaded: false, status: "loading", error: null });
+      try {
+        const form = await api.getForm(formId);
+        quiet(() =>
+          rawSet({
+            formId,
+            projectId: form.project_id,
+            schema: form.draft_content as FormSchema,
+            selectedName: null,
+            activePage: 0,
+            status: "idle",
+            dirty: false,
+            past: [],
+            future: [],
+          }),
+        );
+      } catch (err) {
+        // Fall back to an empty draft so the builder is still usable offline.
+        quiet(() =>
+          rawSet({
+            status: "error",
+            error: (err as Error).message,
+            schema: model.createEmptyForm(),
+          }),
+        );
+      }
+    },
+
+    loadTemplate: (schema) => {
+      cancelAutosave();
+      quiet(() =>
+        rawSet({
+          formId: null,
+          projectId: null,
+          // Deep-clone so editing the draft never mutates the shared template definition.
+          schema: structuredClone(schema),
+          selectedName: null,
+          activePage: 0,
+          status: "idle",
+          error: null,
+          dirty: true,
+          templateLoaded: true,
+          past: [],
+          future: [],
+        }),
+      );
+    },
+
+    undo: () => {
+      const s = get();
+      const prev = s.past[s.past.length - 1];
+      if (!prev) return;
+      quiet(() =>
+        rawSet({
+          schema: prev,
+          past: s.past.slice(0, -1),
+          future: [s.schema, ...s.future].slice(0, HISTORY_LIMIT),
+          activePage: Math.min(s.activePage, prev.pages.length - 1),
+          selectedName: null,
+          dirty: true,
+        }),
+      );
+      scheduleAutosave();
+    },
+
+    redo: () => {
+      const s = get();
+      const next = s.future[0];
+      if (!next) return;
+      quiet(() =>
+        rawSet({
+          schema: next,
+          past: [...s.past, s.schema].slice(-HISTORY_LIMIT),
+          future: s.future.slice(1),
+          activePage: Math.min(s.activePage, next.pages.length - 1),
+          selectedName: null,
+          dirty: true,
+        }),
+      );
+      scheduleAutosave();
+    },
+
+    select: (name) => set({ selectedName: name }),
+
+    setTitle: (title) => set((s) => ({ schema: { ...s.schema, title }, dirty: true })),
+
+    setLanguages: (languages, defaultLanguage) =>
+      set((s) => ({
+        schema: {
+          ...s.schema,
+          languages,
+          defaultLanguage: defaultLanguage ?? s.schema.defaultLanguage ?? languages[0] ?? "en",
+        },
+        dirty: true,
+      })),
+
+    setTheme: (patch) =>
+      set((s) => {
+        // Drop keys set back to empty so the theme object stays clean.
+        const merged = { ...s.schema.theme, ...patch };
+        for (const k of Object.keys(merged)) {
+          if (merged[k] === undefined || merged[k] === "") delete merged[k];
+        }
+        return { schema: { ...s.schema, theme: merged }, dirty: true };
+      }),
+
+    setSettings: (patch) =>
+      set((s) => {
+        const merged = { ...s.schema.settings, ...patch };
+        for (const k of Object.keys(merged)) {
+          if (
+            merged[k as keyof FormSettings] === undefined ||
+            merged[k as keyof FormSettings] === ""
+          )
+            delete merged[k as keyof FormSettings];
+        }
+        return { schema: { ...s.schema, settings: merged }, dirty: true };
+      }),
+
+    add: (type) =>
+      set((s) => {
+        // Add inside the selected element when it's a container, else onto the active page.
+        const selected = s.selectedName ? model.findElement(s.schema, s.selectedName) : null;
+        const parentName =
+          selected && model.isContainerType(selected.type) ? selected.name : undefined;
+        const { schema, name } = model.addElement(s.schema, type, {
+          pageIndex: s.activePage,
+          parentName,
+        });
+        return { schema, selectedName: name, dirty: true };
+      }),
+
+    update: (name, patch) =>
+      set((s) => ({ schema: model.updateElement(s.schema, name, patch), dirty: true })),
+
+    remove: (name) =>
+      set((s) => ({
+        schema: model.removeElement(s.schema, name),
+        selectedName: s.selectedName === name ? null : s.selectedName,
+        dirty: true,
+      })),
+
+    duplicate: (name) =>
+      set((s) => {
+        const result = model.duplicateElement(s.schema, name);
+        return { schema: result.schema, selectedName: result.name, dirty: true };
+      }),
+
+    moveBy: (name, delta) =>
+      set((s) => ({ schema: model.moveBy(s.schema, name, delta), dirty: true })),
+
+    moveTo: (name, index) =>
+      set((s) => ({ schema: model.moveElement(s.schema, name, index), dirty: true })),
+
+    addOption: (name) => set((s) => ({ schema: model.addOption(s.schema, name), dirty: true })),
+
+    updateOption: (name, index, patch) =>
+      set((s) => ({ schema: model.updateOption(s.schema, name, index, patch), dirty: true })),
+
+    removeOption: (name, index) =>
+      set((s) => ({ schema: model.removeOption(s.schema, name, index), dirty: true })),
+
+    addRow: (name) => set((s) => ({ schema: model.addRow(s.schema, name), dirty: true })),
+    updateRow: (name, index, patch) =>
+      set((s) => ({ schema: model.updateRow(s.schema, name, index, patch), dirty: true })),
+    removeRow: (name, index) =>
+      set((s) => ({ schema: model.removeRow(s.schema, name, index), dirty: true })),
+
+    addColumn: (name) => set((s) => ({ schema: model.addColumn(s.schema, name), dirty: true })),
+    updateColumn: (name, index, patch) =>
+      set((s) => ({ schema: model.updateColumn(s.schema, name, index, patch), dirty: true })),
+    removeColumn: (name, index) =>
+      set((s) => ({ schema: model.removeColumn(s.schema, name, index), dirty: true })),
+
+    setActivePage: (index) => set({ activePage: index, selectedName: null }),
+
+    addPage: () =>
+      set((s) => {
+        const { schema, index } = model.addPage(s.schema);
+        return { schema, activePage: index, selectedName: null, dirty: true };
+      }),
+
+    removePage: (index) =>
+      set((s) => {
+        const schema = model.removePage(s.schema, index);
+        return {
+          schema,
+          activePage: Math.min(s.activePage, schema.pages.length - 1),
+          selectedName: null,
+          dirty: true,
+        };
+      }),
+
+    renamePage: (index, title) =>
+      set((s) => ({ schema: model.renamePage(s.schema, index, title), dirty: true })),
+
+    save: async () => {
+      const { formId, schema } = get();
+      if (!isAuthenticated()) {
+        set({ status: "error", error: NOT_SIGNED_IN });
+        return;
+      }
+      set({ status: "saving", error: null });
+      try {
+        if (formId) {
+          await api.saveDraft(formId, schema);
+          set({ status: "idle", dirty: false });
+        } else {
+          // First save of a brand-new form: place it in a project and persist its id.
+          const projectId = await resolveProjectId();
+          const created = await api.createForm(projectId, schema);
+          set({ formId: created.id, projectId, status: "idle", dirty: false });
+        }
+      } catch (err) {
+        set({ status: "error", error: (err as Error).message });
+      }
+    },
+
+    publish: async () => {
+      set({ status: "publishing", error: null });
+      await get().save(); // creates-or-updates and resolves formId
+      if (get().status === "error") return;
+      const { formId } = get();
+      if (!formId) return;
+      set({ status: "publishing" });
+      try {
+        await api.publish(formId);
+        set({ status: "idle", dirty: false });
+      } catch (err) {
+        set({ status: "error", error: (err as Error).message });
+      }
+    },
+  };
+});

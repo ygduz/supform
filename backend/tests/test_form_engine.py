@@ -40,17 +40,34 @@ def test_valid_form_has_no_issues():
 
 
 def test_duplicate_names_flagged():
-    data = {**CONTACT, "pages": [{"name": "p", "elements": [
-        {"type": "text", "name": "x"}, {"type": "text", "name": "x"},
-    ]}]}
+    data = {
+        **CONTACT,
+        "pages": [
+            {
+                "name": "p",
+                "elements": [
+                    {"type": "text", "name": "x"},
+                    {"type": "text", "name": "x"},
+                ],
+            }
+        ],
+    }
     issues = validate_form(FormSchema.model_validate(data))
     assert any("Duplicate" in i.message for i in issues)
 
 
 def test_choice_without_options_flagged():
-    data = {**CONTACT, "pages": [{"name": "p", "elements": [
-        {"type": "single_choice", "name": "c", "label": "C"},
-    ]}]}
+    data = {
+        **CONTACT,
+        "pages": [
+            {
+                "name": "p",
+                "elements": [
+                    {"type": "single_choice", "name": "c", "label": "C"},
+                ],
+            }
+        ],
+    }
     issues = validate_form(FormSchema.model_validate(data))
     assert any("needs options" in i.message for i in issues)
 

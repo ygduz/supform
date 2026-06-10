@@ -3,10 +3,9 @@ from __future__ import annotations
 import uuid
 
 from sqlalchemy import ForeignKey, Integer, String, UniqueConstraint
-from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.db.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
+from app.db.base import Base, JSONType, TimestampMixin, UUIDPrimaryKeyMixin
 
 
 class Form(UUIDPrimaryKeyMixin, TimestampMixin, Base):
@@ -22,16 +21,16 @@ class Form(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     status: Mapped[str] = mapped_column(String(20), default="draft")  # draft|published|archived
 
     # The live, editable Supform schema (JSONB). Conforms to packages/form-schema.
-    draft_content: Mapped[dict] = mapped_column(JSONB, default=dict)
+    draft_content: Mapped[dict] = mapped_column(JSONType, default=dict)
 
     # Points at the currently published version number (None until first publish).
     current_version: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
     project = relationship("Project", back_populates="forms")
-    versions: Mapped[list["FormVersion"]] = relationship(
+    versions: Mapped[list[FormVersion]] = relationship(
         back_populates="form", cascade="all, delete-orphan", order_by="FormVersion.version"
     )
-    submissions: Mapped[list["Submission"]] = relationship(  # noqa: F821
+    submissions: Mapped[list[Submission]] = relationship(  # noqa: F821
         back_populates="form", cascade="all, delete-orphan"
     )
 
@@ -48,6 +47,6 @@ class FormVersion(UUIDPrimaryKeyMixin, TimestampMixin, Base):
 
     form_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("forms.id"), index=True)
     version: Mapped[int] = mapped_column(Integer)
-    content: Mapped[dict] = mapped_column(JSONB)  # frozen Supform schema
+    content: Mapped[dict] = mapped_column(JSONType)  # frozen Supform schema
 
     form = relationship("Form", back_populates="versions")

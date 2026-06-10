@@ -84,8 +84,27 @@
         "allowMultipleSubmissions": { "type": "boolean", "default": true },
         "requireLogin": { "type": "boolean", "default": false },
         "closeDate": { "type": "string", "format": "date-time" },
+        "maxResponses": { "type": "integer", "minimum": 0, "description": "Stop accepting submissions after this many responses." },
         "submitButtonText": { "$ref": "#/$defs/i18nString" },
-        "confirmationMessage": { "$ref": "#/$defs/i18nString" }
+        "confirmationMessage": { "$ref": "#/$defs/i18nString" },
+        "welcomeTitle": { "$ref": "#/$defs/i18nString" },
+        "welcomeMessage": { "$ref": "#/$defs/i18nString" },
+        "redirectUrl": { "type": "string", "description": "Auto-redirect here after submitting." },
+        "notifyEmails": { "type": "array", "items": { "type": "string" }, "description": "Emailed on each new submission." },
+        "quizMode": { "type": "boolean", "default": false },
+        "outcomes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["min", "max", "message"],
+            "properties": {
+              "min": { "type": "number" },
+              "max": { "type": "number" },
+              "message": { "$ref": "#/$defs/i18nString" },
+              "redirectUrl": { "type": "string" }
+            }
+          }
+        }
       }
     },
     "page": {
@@ -116,7 +135,7 @@
             "single_choice", "multi_choice", "dropdown", "rating", "ranking", "scale",
             "date", "time", "datetime", "boolean", "matrix",
             "file", "image", "signature", "geopoint", "barcode",
-            "calculated", "note", "section", "group", "repeat", "html", "image_block"
+            "calculated", "hidden", "note", "section", "group", "repeat", "html", "image_block"
           ]
         },
         "name": {
@@ -186,6 +205,7 @@
         "value": { "type": ["string", "number", "boolean"] },
         "label": { "$ref": "#/$defs/i18nString" },
         "visibleIf": { "$ref": "#/$defs/expression" },
+        "score": { "type": "number", "description": "Points awarded when chosen (quiz mode)." },
         "meta": { "type": "object", "additionalProperties": true }
       }
     },

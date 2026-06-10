@@ -7,16 +7,16 @@ submissions against these models. Keep this file and the JSON Schema in lock-ste
 
 from __future__ import annotations
 
-from enum import Enum
-from typing import Any, Union
+from enum import StrEnum
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
 # An i18n string is either a plain string or a {locale: text} map.
-I18nString = Union[str, dict[str, str]]
+I18nString = str | dict[str, str]
 
 
-class ElementType(str, Enum):
+class ElementType(StrEnum):
     """Core element types. The set is intentionally open — the engine tolerates unknown
     types (treated as generic value fields) so the platform stays flexible."""
 
@@ -54,6 +54,7 @@ class ElementType(str, Enum):
     BARCODE = "barcode"
     # derived / layout
     CALCULATED = "calculated"
+    HIDDEN = "hidden"
     NOTE = "note"
     SECTION = "section"
     HTML = "html"
@@ -65,11 +66,23 @@ class Choice(BaseModel):
     value: str | int | float | bool
     label: I18nString | None = None
     visible_if: str | None = Field(default=None, alias="visibleIf")
+    score: float | None = None  # points awarded when chosen (quiz mode)
     meta: dict[str, Any] = Field(default_factory=dict)
 
 
+class Outcome(BaseModel):
+    """A scored-result band: shown on the thank-you screen when score is in [min, max]."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    min: float
+    max: float
+    message: I18nString
+    redirect_url: str | None = Field(default=None, alias="redirectUrl")
+
+
 class Validation(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
 
     min: float | None = None
     max: float | None = None
@@ -117,7 +130,7 @@ class Element(BaseModel):
     columns: list[Choice] | None = None
 
     # nesting
-    elements: list["Element"] | None = None
+    elements: list[Element] | None = None
     repeat: RepeatSettings | None = None
 
     meta: dict[str, Any] = Field(default_factory=dict)
@@ -134,12 +147,15 @@ class Page(BaseModel):
 
 
 class Theme(BaseModel):
-    model_config = ConfigDict(extra="allow")
+    model_config = ConfigDict(populate_by_name=True, extra="allow")
 
     preset: str = "supform-light"
     primary_color: str | None = Field(default=None, alias="primaryColor")
     background_color: str | None = Field(default=None, alias="backgroundColor")
     font_family: str | None = Field(default=None, alias="fontFamily")
+    corner_radius: int | None = Field(default=None, alias="cornerRadius")
+    cover_image: str | None = Field(default=None, alias="coverImage")
+    logo: str | None = None
 
 
 class FormSettings(BaseModel):
@@ -147,10 +163,19 @@ class FormSettings(BaseModel):
 
     display_mode: str = Field(default="paged", alias="displayMode")
     show_progress_bar: bool = Field(default=True, alias="showProgressBar")
+    shuffle_questions: bool = Field(default=False, alias="shuffleQuestions")
     allow_multiple_submissions: bool = Field(default=True, alias="allowMultipleSubmissions")
     require_login: bool = Field(default=False, alias="requireLogin")
+    close_date: str | None = Field(default=None, alias="closeDate")
+    max_responses: int | None = Field(default=None, alias="maxResponses")
     submit_button_text: I18nString | None = Field(default=None, alias="submitButtonText")
     confirmation_message: I18nString | None = Field(default=None, alias="confirmationMessage")
+    welcome_title: I18nString | None = Field(default=None, alias="welcomeTitle")
+    welcome_message: I18nString | None = Field(default=None, alias="welcomeMessage")
+    redirect_url: str | None = Field(default=None, alias="redirectUrl")
+    notify_emails: list[str] = Field(default_factory=list, alias="notifyEmails")
+    quiz_mode: bool = Field(default=False, alias="quizMode")
+    outcomes: list[Outcome] = Field(default_factory=list)
 
 
 class FormSchema(BaseModel):
@@ -171,7 +196,7 @@ class FormSchema(BaseModel):
     pages: list[Page] = Field(default_factory=list)
 
     # ---- convenience ----
-    def iter_elements(self) -> "list[Element]":
+    def iter_elements(self) -> list[Element]:
         """Flatten all elements (recursing into groups/repeats)."""
         out: list[Element] = []
 

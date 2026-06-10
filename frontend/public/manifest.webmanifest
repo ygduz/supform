@@ -1,0 +1,17 @@
+{
+  "name": "Supform",
+  "short_name": "Supform",
+  "description": "Build beautiful forms and collect responses — online or offline.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#2563eb",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
