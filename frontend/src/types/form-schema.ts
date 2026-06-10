@@ -123,6 +123,11 @@ export interface FormSettings {
   maxResponses?: number;
   submitButtonText?: I18nString;
   confirmationMessage?: I18nString;
+  /** Optional welcome screen shown before the first step (paged / one-question modes). */
+  welcomeTitle?: I18nString;
+  welcomeMessage?: I18nString;
+  /** Where to send the respondent after submitting (auto-redirect from the thank-you screen). */
+  redirectUrl?: string;
 }
 
 export interface FormSchema {

@@ -30,6 +30,7 @@ class Form:
         self.title = title or name
         self.description = description
         self._pages: list[dict[str, Any]] = [{"name": page, "elements": []}]
+        self._settings: dict[str, Any] = {}
 
     # ---- building ----
     def add(self, *elements: Element, page: int = 0) -> "Form":
@@ -44,6 +45,13 @@ class Form:
         self._pages.append(page)
         return self
 
+    def settings(self, **kwargs: Any) -> "Form":
+        """Set form-level settings (camelCase keys, e.g. ``displayMode``, ``welcomeTitle``,
+        ``confirmationMessage``, ``redirectUrl``, ``requireLogin``). See packages/form-schema.
+        ``None`` values are ignored so callers can pass optionals through freely."""
+        self._settings.update({k: v for k, v in kwargs.items() if v is not None})
+        return self
+
     # ---- serialization ----
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -51,6 +59,7 @@ class Form:
             "name": self.name,
             "title": self.title,
             **({"description": self.description} if self.description else {}),
+            **({"settings": self._settings} if self._settings else {}),
             "pages": self._pages,
         }
 

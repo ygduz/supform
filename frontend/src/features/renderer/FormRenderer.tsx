@@ -3,7 +3,7 @@ import { LanguageContext, formLanguages, languageLabel, localize } from "@/lib/i
 import { isNetworkError, queueSubmission } from "@/lib/offline";
 import type { Element, FormSchema, I18nString } from "@/types/form-schema";
 import type { JSX } from "react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { evaluateBool } from "./expressions";
 import { renderField } from "./fields/registry";
 import { themeToStyle } from "./theme";
@@ -40,6 +40,7 @@ export function FormRenderer({ schema, formId }: { schema: FormSchema; formId: s
   const [submitted, setSubmitted] = useState(false);
   const [queuedOffline, setQueuedOffline] = useState(false);
   const [step, setStep] = useState(0);
+  const [started, setStarted] = useState(false);
 
   // Multi-language support: offer a switcher when the form declares >1 language.
   const languages = formLanguages(schema.languages, schema.defaultLanguage);
@@ -263,6 +264,20 @@ export function FormRenderer({ schema, formId }: { schema: FormSchema; formId: s
     }
   }
 
+  const theme = schema.theme;
+  const hasWelcome = Boolean(settings?.welcomeTitle || settings?.welcomeMessage);
+
+  // After a successful (online) submit, optionally bounce to the configured URL.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: fire once on success only.
+  useEffect(() => {
+    if (submitted && !queuedOffline && !isLocal && settings?.redirectUrl) {
+      const t = setTimeout(() => {
+        window.location.href = settings.redirectUrl as string;
+      }, 1500);
+      return () => clearTimeout(t);
+    }
+  }, [submitted]);
+
   if (submitted) {
     if (queuedOffline) {
       return (
@@ -272,10 +287,30 @@ export function FormRenderer({ schema, formId }: { schema: FormSchema; formId: s
         </p>
       );
     }
-    return <p className="confirmation">{L(schema.settings?.confirmationMessage) || "Thanks!"}</p>;
+    return (
+      <p className="confirmation">
+        {L(settings?.confirmationMessage) || "Thanks!"}
+        {settings?.redirectUrl && !isLocal && (
+          <span className="muted redirect-note"> Redirecting…</span>
+        )}
+      </p>
+    );
   }
 
-  const theme = schema.theme;
+  // Welcome screen (paged / one-question modes): a cover + title + Start button.
+  if (hasWelcome && !started && mode !== "single") {
+    return (
+      <div className="form-renderer welcome-screen" style={themeToStyle(theme)}>
+        {theme?.coverImage && <img className="form-cover" src={theme.coverImage} alt="" />}
+        {theme?.logo && <img className="form-logo" src={theme.logo} alt="" />}
+        <h1>{L(settings?.welcomeTitle) || L(schema.title)}</h1>
+        {settings?.welcomeMessage && <p className="muted">{L(settings.welcomeMessage)}</p>}
+        <button type="button" className="button" onClick={() => setStarted(true)}>
+          Start
+        </button>
+      </div>
+    );
+  }
 
   return (
     <LanguageContext.Provider value={lang}>

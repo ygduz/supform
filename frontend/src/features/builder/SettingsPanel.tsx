@@ -168,6 +168,42 @@ export function SettingsPanel() {
           onChange={(e) => setSettings({ confirmationMessage: e.target.value || undefined })}
         />
       </label>
+
+      <label className="prop">
+        <span>Redirect after submit</span>
+        <input
+          type="url"
+          value={settings.redirectUrl ?? ""}
+          placeholder="https://example.com/thank-you"
+          onChange={(e) => setSettings({ redirectUrl: e.target.value || undefined })}
+        />
+        <small className="hint">Send respondents here after they submit.</small>
+      </label>
+
+      <fieldset className="prop-fieldset">
+        <legend>Welcome screen</legend>
+        <small className="hint">
+          Shown before the first question in paged / one-question-per-screen modes.
+        </small>
+        <label className="prop">
+          <span>Welcome title</span>
+          <input
+            type="text"
+            value={localize(settings.welcomeTitle)}
+            placeholder="(optional)"
+            onChange={(e) => setSettings({ welcomeTitle: e.target.value || undefined })}
+          />
+        </label>
+        <label className="prop">
+          <span>Welcome message</span>
+          <input
+            type="text"
+            value={localize(settings.welcomeMessage)}
+            placeholder="(optional)"
+            onChange={(e) => setSettings({ welcomeMessage: e.target.value || undefined })}
+          />
+        </label>
+      </fieldset>
     </div>
   );
 }

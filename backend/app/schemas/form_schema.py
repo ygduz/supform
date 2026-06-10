@@ -157,6 +157,9 @@ class FormSettings(BaseModel):
     max_responses: int | None = Field(default=None, alias="maxResponses")
     submit_button_text: I18nString | None = Field(default=None, alias="submitButtonText")
     confirmation_message: I18nString | None = Field(default=None, alias="confirmationMessage")
+    welcome_title: I18nString | None = Field(default=None, alias="welcomeTitle")
+    welcome_message: I18nString | None = Field(default=None, alias="welcomeMessage")
+    redirect_url: str | None = Field(default=None, alias="redirectUrl")
 
 
 class FormSchema(BaseModel):

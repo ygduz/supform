@@ -86,7 +86,10 @@
         "closeDate": { "type": "string", "format": "date-time" },
         "maxResponses": { "type": "integer", "minimum": 0, "description": "Stop accepting submissions after this many responses." },
         "submitButtonText": { "$ref": "#/$defs/i18nString" },
-        "confirmationMessage": { "$ref": "#/$defs/i18nString" }
+        "confirmationMessage": { "$ref": "#/$defs/i18nString" },
+        "welcomeTitle": { "$ref": "#/$defs/i18nString" },
+        "welcomeMessage": { "$ref": "#/$defs/i18nString" },
+        "redirectUrl": { "type": "string", "description": "Auto-redirect here after submitting." }
       }
     },
     "page": {

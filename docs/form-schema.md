@@ -29,6 +29,17 @@ A page is a logical screen/section. With `settings.displayMode`:
 
 A page may have a `visibleIf` to skip whole sections.
 
+## Settings
+
+`settings` carries form-level behavior and presentation:
+- `displayMode`, `showProgressBar`, `shuffleQuestions`
+- collection: `requireLogin`, `allowMultipleSubmissions`, `closeDate`, `maxResponses`
+- copy: `submitButtonText`, `confirmationMessage` (i18n)
+- `welcomeTitle` / `welcomeMessage` (i18n) — an optional welcome screen shown before the
+  first step in `paged` / `oneQuestionPerScreen` modes.
+- `redirectUrl` — send the respondent here after submitting (auto-redirect from the
+  thank-you screen).
+
 ## Elements
 
 Every field/block is an **element**. The required keys are `type` and `name`.

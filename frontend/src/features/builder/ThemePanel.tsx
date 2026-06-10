@@ -1,10 +1,65 @@
 import { useBuilderStore } from "@/stores/builderStore";
+import type { Theme } from "@/types/form-schema";
 
 const FONTS = [
   { label: "Default (Inter)", value: "" },
   { label: "System sans", value: "system-ui, sans-serif" },
   { label: "Serif (Georgia)", value: "Georgia, 'Times New Roman', serif" },
   { label: "Monospace", value: "ui-monospace, 'SFMono-Regular', monospace" },
+];
+
+/** One-click starting points. Each sets concrete values so the renderer needs no lookup. */
+const PRESETS: { id: string; name: string; theme: Theme }[] = [
+  {
+    id: "ocean",
+    name: "Ocean",
+    theme: { primaryColor: "#2563eb", backgroundColor: "#ffffff", cornerRadius: 10 },
+  },
+  {
+    id: "forest",
+    name: "Forest",
+    theme: { primaryColor: "#16a34a", backgroundColor: "#f7fdf9", cornerRadius: 12 },
+  },
+  {
+    id: "sunset",
+    name: "Sunset",
+    theme: { primaryColor: "#ea580c", backgroundColor: "#fffaf5", cornerRadius: 14 },
+  },
+  {
+    id: "berry",
+    name: "Berry",
+    theme: { primaryColor: "#db2777", backgroundColor: "#fff7fb", cornerRadius: 16 },
+  },
+  {
+    id: "midnight",
+    name: "Midnight",
+    theme: { primaryColor: "#6366f1", backgroundColor: "#0f172a", cornerRadius: 10 },
+  },
+  {
+    id: "slate",
+    name: "Slate",
+    theme: { primaryColor: "#0f172a", backgroundColor: "#f8fafc", cornerRadius: 6 },
+  },
+  {
+    id: "mono",
+    name: "Mono",
+    theme: {
+      primaryColor: "#111827",
+      backgroundColor: "#ffffff",
+      cornerRadius: 2,
+      fontFamily: "ui-monospace, 'SFMono-Regular', monospace",
+    },
+  },
+  {
+    id: "warm",
+    name: "Warm",
+    theme: {
+      primaryColor: "#b45309",
+      backgroundColor: "#fffbeb",
+      cornerRadius: 12,
+      fontFamily: "Georgia, 'Times New Roman', serif",
+    },
+  },
 ];
 
 /** Form-level design controls. Edits live in `schema.theme` and apply to the live preview. */
@@ -15,6 +70,25 @@ export function ThemePanel() {
   return (
     <div className="props">
       <h3>Theme</h3>
+
+      <div className="prop">
+        <span>Presets</span>
+        <div className="preset-grid">
+          {PRESETS.map((p) => (
+            <button
+              key={p.id}
+              type="button"
+              className="preset-swatch"
+              title={p.name}
+              onClick={() => setTheme(p.theme)}
+              style={{ background: p.theme.backgroundColor }}
+            >
+              <span style={{ background: p.theme.primaryColor }} />
+              {p.name}
+            </button>
+          ))}
+        </div>
+      </div>
 
       <label className="prop prop-color">
         <span>Primary color</span>

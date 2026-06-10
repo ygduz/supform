@@ -65,7 +65,9 @@ A pragmatic build order. Each milestone is shippable on its own.
       one-question-per-screen mode, page visibleIf, display-mode setting in the builder
 - [x] Builder autosave (debounced 2s) + undo/redo (bounded history, Ctrl+Z/Ctrl+Shift+Z,
       toolbar buttons, "Saving… / Saved ✓" indicator)
-- [ ] Theme presets + visual design pass + welcome/thank-you screens
+- [x] Theme presets (8 one-click palettes) + welcome screen + thank-you redirect +
+      design pass (button transitions, focus rings); settings.welcomeTitle/welcomeMessage/
+      redirectUrl across all 4 schema contract files + SDK Form.settings()
 - [ ] Templates expansion: ~10 built-ins, form JSON import/export, local "My templates"
 
 ## M7 — Data credibility (better than Kobo)
