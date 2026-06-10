@@ -54,6 +54,11 @@ class Settings(BaseSettings):
     verify_token_expire_minutes: int = 60 * 24  # 24h to confirm an email
     reset_token_expire_minutes: int = 30  # short-lived password-reset window
 
+    # AI form generation (optional; off until an API key is set). Anthropic-compatible.
+    ai_api_key: str = ""
+    ai_model: str = "claude-sonnet-4-6"
+    ai_base_url: str = "https://api.anthropic.com/v1/messages"
+
     # Rate limiting (per client IP, fixed window). Disable in tests that hammer endpoints.
     rate_limit_enabled: bool = True
 

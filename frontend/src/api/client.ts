@@ -149,6 +149,13 @@ export const api = {
       body: JSON.stringify({ token, password }),
     }),
 
+  // ai
+  generateForm: (prompt: string) =>
+    request<FormSchema>("/api/v1/ai/generate-form", {
+      method: "POST",
+      body: JSON.stringify({ prompt }),
+    }),
+
   // projects
   listProjects: () => request<Array<{ id: string; name: string }>>("/api/v1/projects"),
 

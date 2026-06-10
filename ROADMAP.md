@@ -84,7 +84,9 @@ A pragmatic build order. Each milestone is shippable on its own.
       by Choice.visibleIf against the live answers)
 
 ## M8 — Differentiators
-- [ ] AI form generation (prompt → draft schema, pluggable LLM)
+- [x] AI form generation (prompt → validated draft schema via an Anthropic-compatible
+      Messages API over httpx; self-correcting retry; rate-limited; pluggable & off until
+      SUPFORM_AI_API_KEY is set; "Generate with AI" dialog on /templates)
 - [ ] Embed + prefill kit (iframe embed script, URL prefill, hidden fields, QR share)
 - [ ] Quiz scoring & outcomes
 - [ ] Email response notifications

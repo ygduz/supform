@@ -2,6 +2,7 @@ import { useBuilderStore } from "@/stores/builderStore";
 import type { FormSchema } from "@/types/form-schema";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { AIGenerateDialog } from "./AIGenerateDialog";
 import { type SavedTemplate, deleteMyTemplate, listMyTemplates } from "./myTemplates";
 import { TEMPLATES } from "./templates";
 
@@ -10,6 +11,7 @@ export function TemplatesPage() {
   const navigate = useNavigate();
   const loadTemplate = useBuilderStore((s) => s.loadTemplate);
   const [mine, setMine] = useState<SavedTemplate[]>(() => listMyTemplates());
+  const [aiOpen, setAiOpen] = useState(false);
 
   const use = (schema: FormSchema) => {
     loadTemplate(schema);
@@ -35,6 +37,13 @@ export function TemplatesPage() {
         </button>
         .
       </p>
+
+      <div className="ai-cta">
+        <button type="button" className="button" onClick={() => setAiOpen(true)}>
+          ✨ Generate with AI
+        </button>
+      </div>
+      {aiOpen && <AIGenerateDialog onClose={() => setAiOpen(false)} />}
 
       {mine.length > 0 && (
         <>

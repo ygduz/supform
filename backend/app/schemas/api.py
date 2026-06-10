@@ -33,6 +33,10 @@ class TokenPair(BaseModel):
     token_type: str = "bearer"
 
 
+class AIGenerateRequest(BaseModel):
+    prompt: str = Field(min_length=1, max_length=2000)
+
+
 class EmailRequest(BaseModel):
     email: EmailStr
 

@@ -1059,6 +1059,29 @@ button:focus-visible {
   border: 1px solid var(--border);
   border-radius: var(--radius);
 }
+
+/* AI generation */
+.ai-cta {
+  margin: 8px 0 16px;
+}
+.ai-prompt {
+  width: 100%;
+  margin: 8px 0;
+  font: inherit;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  resize: vertical;
+}
+.ai-examples {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+.ai-examples .chip {
+  text-align: left;
+}
 .analytics {
   display: flex;
   flex-direction: column;
