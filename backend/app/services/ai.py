@@ -24,7 +24,9 @@ class AIServiceError(SupformError):
 
 
 def is_configured() -> bool:
-    return bool(settings.ai_api_key)
+    # A key enables any provider; the OpenAI shape also covers local servers (Ollama,
+    # LM Studio, vLLM) that need no key — so it's available whenever that provider is chosen.
+    return bool(settings.ai_api_key) or settings.ai_provider == "openai"
 
 
 _SYSTEM_PROMPT = """\
@@ -51,16 +53,44 @@ Use "visibleIf" with simple expressions (e.g. "age >= 18") for conditional field
 Field "name" values must be unique. Keep it focused and realistic."""
 
 
-def _build_payload(messages: list[dict[str, str]]) -> dict[str, Any]:
-    return {
+def _is_openai() -> bool:
+    return settings.ai_provider == "openai"
+
+
+def _request(messages: list[dict[str, str]]) -> tuple[dict[str, str], dict[str, Any]]:
+    """Build the (headers, body) for the configured provider's chat API."""
+    if _is_openai():
+        # OpenAI shape: the system prompt is a leading message; key is optional (local).
+        headers = {"content-type": "application/json"}
+        if settings.ai_api_key:
+            headers["authorization"] = f"Bearer {settings.ai_api_key}"
+        body = {
+            "model": settings.ai_model,
+            "max_tokens": 4096,
+            "messages": [{"role": "system", "content": _SYSTEM_PROMPT}, *messages],
+        }
+        return headers, body
+    # Anthropic shape: dedicated system field + key header.
+    headers = {
+        "x-api-key": settings.ai_api_key,
+        "anthropic-version": "2023-06-01",
+        "content-type": "application/json",
+    }
+    body = {
         "model": settings.ai_model,
         "max_tokens": 4096,
         "system": _SYSTEM_PROMPT,
         "messages": messages,
     }
+    return headers, body
 
 
 def _extract_text(response: dict[str, Any]) -> str:
+    if _is_openai():
+        choices = response.get("choices") or []
+        if choices:
+            return (choices[0].get("message") or {}).get("content", "").strip()
+        return ""
     parts = response.get("content") or []
     return "".join(p.get("text", "") for p in parts if p.get("type") == "text").strip()
 
@@ -85,15 +115,9 @@ def _parse_schema(text: str) -> FormSchema:
 async def _call_api(messages: list[dict[str, str]]) -> str:
     import httpx
 
-    headers = {
-        "x-api-key": settings.ai_api_key,
-        "anthropic-version": "2023-06-01",
-        "content-type": "application/json",
-    }
+    headers, body = _request(messages)
     async with httpx.AsyncClient(timeout=60.0) as client:
-        resp = await client.post(
-            settings.ai_base_url, headers=headers, json=_build_payload(messages)
-        )
+        resp = await client.post(settings.ai_base_url, headers=headers, json=body)
         resp.raise_for_status()
         return _extract_text(resp.json())
 

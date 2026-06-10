@@ -58,6 +58,9 @@ class Settings(BaseSettings):
     ai_api_key: str = ""
     ai_model: str = "claude-sonnet-4-6"
     ai_base_url: str = "https://api.anthropic.com/v1/messages"
+    # Request/response shape: "anthropic" (Claude) or "openai" (OpenAI, Ollama, LM Studio,
+    # vLLM, OpenRouter, …). Use "openai" with a local server for free, self-hosted AI.
+    ai_provider: str = "anthropic"
 
     # Rate limiting (per client IP, fixed window). Disable in tests that hammer endpoints.
     rate_limit_enabled: bool = True

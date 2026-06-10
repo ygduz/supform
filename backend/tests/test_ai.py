@@ -82,6 +82,36 @@ async def test_extract_text_joins_text_parts():
     assert json.loads(text)["name"] == "feedback"
 
 
+def test_anthropic_request_shape(monkeypatch):
+    monkeypatch.setattr(settings, "ai_provider", "anthropic")
+    monkeypatch.setattr(settings, "ai_api_key", "secret")
+    headers, body = ai_service._request([{"role": "user", "content": "hi"}])
+    assert headers["x-api-key"] == "secret"
+    assert "system" in body and body["messages"][0]["role"] == "user"
+
+
+def test_openai_request_shape_and_extract(monkeypatch):
+    monkeypatch.setattr(settings, "ai_provider", "openai")
+    monkeypatch.setattr(settings, "ai_api_key", "secret")
+    headers, body = ai_service._request([{"role": "user", "content": "hi"}])
+    # OpenAI uses a Bearer token and a leading system *message* (no top-level system field).
+    assert headers["authorization"] == "Bearer secret"
+    assert "system" not in body
+    assert body["messages"][0] == {"role": "system", "content": ai_service._SYSTEM_PROMPT}
+    # And reads the reply from choices[].message.content.
+    reply = {"choices": [{"message": {"content": json.dumps(_GOOD)}}]}
+    assert json.loads(ai_service._extract_text(reply))["name"] == "feedback"
+
+
+def test_openai_provider_needs_no_key(monkeypatch):
+    # Local servers (Ollama) need no key — the feature is "configured" purely by provider.
+    monkeypatch.setattr(settings, "ai_provider", "openai")
+    monkeypatch.setattr(settings, "ai_api_key", "")
+    assert ai_service.is_configured() is True
+    headers, _ = ai_service._request([{"role": "user", "content": "hi"}])
+    assert "authorization" not in headers  # no key -> no auth header
+
+
 async def _login(client: httpx.AsyncClient, email: str) -> dict:
     await client.post("/api/v1/auth/signup", json={"email": email, "password": "supersecret"})
     r = await client.post("/api/v1/auth/login", json={"email": email, "password": "supersecret"})
