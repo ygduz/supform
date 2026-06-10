@@ -31,6 +31,9 @@ class ExpressionError(Exception):
 # Cap exponents so a form expression like ``2 ** 9999999`` (which runs on every public
 # submission) can't burn CPU/memory. Legitimate form math never needs a huge exponent.
 _MAX_POW_EXPONENT = 64
+# Cap sequence repetition (``'a' * n`` / ``[x] * n``) for the same reason: ``*`` on a
+# str/list/tuple repeats it, so an unbounded count can allocate gigabytes.
+_MAX_REPEAT = 10_000
 
 
 def _safe_pow(base: Any, exponent: Any) -> Any:
@@ -39,10 +42,19 @@ def _safe_pow(base: Any, exponent: Any) -> Any:
     return operator.pow(base, exponent)
 
 
+def _safe_mul(left: Any, right: Any) -> Any:
+    # Sequence repetition is the dangerous case; numeric multiplication is cheap.
+    for seq, count in ((left, right), (right, left)):
+        if isinstance(seq, (str, bytes, list, tuple)) and isinstance(count, int):
+            if count > _MAX_REPEAT:
+                raise ExpressionError("Repetition count too large")
+    return operator.mul(left, right)
+
+
 _BIN_OPS: dict[type[ast.operator], Callable[[Any, Any], Any]] = {
     ast.Add: operator.add,
     ast.Sub: operator.sub,
-    ast.Mult: operator.mul,
+    ast.Mult: _safe_mul,
     ast.Div: operator.truediv,
     ast.Mod: operator.mod,
     ast.Pow: _safe_pow,
@@ -97,10 +109,19 @@ def evaluate(expression: str, context: Context) -> Any:
 
 
 def evaluate_bool(expression: str | None, context: Context, *, default: bool = True) -> bool:
-    """Convenience for relevance-style expressions; empty expression -> ``default``."""
+    """Convenience for relevance-style expressions; empty expression -> ``default``.
+
+    Relevance runs on every public submission, so a logic error must never 500 the
+    request. A malformed/erroring expression (e.g. ``age >= 18`` when ``age`` is
+    unanswered, yielding ``None >= 18``) falls back to ``default`` — matching how
+    ``calculate`` and custom validation already swallow their evaluation errors.
+    """
     if not expression:
         return default
-    return bool(evaluate(expression, context))
+    try:
+        return bool(evaluate(expression, context))
+    except Exception:  # noqa: BLE001 - relevance must fail safe, never crash submission
+        return default
 
 
 def _eval(node: ast.AST, ctx: Context) -> Any:  # noqa: C901 - small dispatcher

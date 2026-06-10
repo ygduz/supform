@@ -4,11 +4,17 @@ import {
   type KVStorage,
   cacheSchema,
   isNetworkError,
+  isRetryable,
   listQueued,
   queueSubmission,
   readCachedSchema,
   syncQueued,
 } from "./offline";
+
+/** Mimic the api client's ApiError: an Error carrying an HTTP status. */
+function httpError(status: number): Error {
+  return Object.assign(new Error(`HTTP ${status}`), { status });
+}
 
 function memoryStore(): KVStorage {
   const map = new Map<string, string>();
@@ -78,23 +84,58 @@ describe("submission queue", () => {
     expect(remaining.map((i) => i.answers)).toEqual([{ q: "b" }, { q: "c" }]);
   });
 
-  it("a server rejection drops the item instead of retrying forever", async () => {
+  it("a permanent client rejection (422) drops only that item and keeps going", async () => {
     const store = memoryStore();
     queueSubmission("form-1", { q: "bad" }, store);
     queueSubmission("form-1", { q: "good" }, store);
 
     const result = await syncQueued(async (_formId, answers) => {
-      if ((answers as { q: string }).q === "bad") throw new Error("422 validation failed");
+      if ((answers as { q: string }).q === "bad") throw httpError(422);
     }, store);
 
     expect(result).toEqual({ sent: 1, rejected: 1, remaining: 0 });
     expect(listQueued(store)).toHaveLength(0);
   });
+
+  it("keeps queued data when the session has expired (401) instead of dropping it", async () => {
+    const store = memoryStore();
+    queueSubmission("form-1", { q: "a" }, store);
+    queueSubmission("form-1", { q: "b" }, store);
+
+    const result = await syncQueued(async () => {
+      throw httpError(401); // token expired while offline
+    }, store);
+
+    expect(result).toEqual({ sent: 0, rejected: 0, remaining: 2 });
+    expect(listQueued(store)).toHaveLength(2);
+  });
+
+  it("retries on a server error (5xx) rather than discarding the response", async () => {
+    const store = memoryStore();
+    queueSubmission("form-1", { q: "a" }, store);
+
+    const result = await syncQueued(async () => {
+      throw httpError(503);
+    }, store);
+
+    expect(result.remaining).toBe(1);
+    expect(listQueued(store)).toHaveLength(1);
+  });
 });
 
-describe("isNetworkError", () => {
-  it("matches fetch-level TypeErrors only", () => {
+describe("error classification", () => {
+  it("isNetworkError matches fetch-level TypeErrors only", () => {
     expect(isNetworkError(new TypeError("Failed to fetch"))).toBe(true);
     expect(isNetworkError(new Error("500"))).toBe(false);
+  });
+
+  it("isRetryable keeps network/401/408/429/5xx and drops other 4xx", () => {
+    expect(isRetryable(new TypeError("Failed to fetch"))).toBe(true);
+    expect(isRetryable(httpError(401))).toBe(true);
+    expect(isRetryable(httpError(429))).toBe(true);
+    expect(isRetryable(httpError(503))).toBe(true);
+    expect(isRetryable(httpError(422))).toBe(false);
+    expect(isRetryable(httpError(403))).toBe(false);
+    expect(isRetryable(new Error("no status"))).toBe(false);
   });
 });

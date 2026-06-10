@@ -43,3 +43,36 @@ def test_huge_exponent_is_rejected():
     # Guard against a CPU/memory DoS on the public submit path.
     with pytest.raises(ExpressionError):
         evaluate("2 ** 999999999", {})
+
+
+def test_numeric_multiplication_still_works():
+    assert evaluate("qty * 3", {"qty": 4}) == 12
+
+
+def test_huge_sequence_repetition_is_rejected():
+    # ``'a' * n`` / ``[x] * n`` repeats the sequence — cap it like the exponent guard.
+    with pytest.raises(ExpressionError):
+        evaluate("'a' * 999999999", {})
+    with pytest.raises(ExpressionError):
+        evaluate("[0] * 999999999", {})
+    # Order shouldn't matter (count on either side).
+    with pytest.raises(ExpressionError):
+        evaluate("999999999 * 'a'", {})
+
+
+def test_small_repetition_is_allowed():
+    assert evaluate("'ab' * 3", {}) == "ababab"
+
+
+def test_relevance_fails_safe_on_evaluation_error():
+    # A relevance expression that errors at runtime (e.g. None >= 18 for an unanswered
+    # field) must fall back to the default instead of raising (which would 500 a submit).
+    assert evaluate_bool("age >= 18", {"age": None}, default=True) is True
+    assert evaluate_bool("age >= 18", {"age": None}, default=False) is False
+    # Division by zero similarly fails safe rather than crashing.
+    assert evaluate_bool("1 / x > 0", {"x": 0}, default=False) is False
+
+
+def test_relevance_repetition_dos_does_not_crash_submission():
+    # The DoS guard raises ExpressionError, which evaluate_bool swallows to the default.
+    assert evaluate_bool("count('a' * 999999999) > 0", {}, default=False) is False

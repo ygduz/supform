@@ -32,6 +32,21 @@ export function isNetworkError(err: unknown): boolean {
   return err instanceof TypeError;
 }
 
+/**
+ * Should a failed delivery be retried later (keep it queued) rather than dropped?
+ *
+ * Retry on conditions that a later attempt can plausibly fix: no network, an expired
+ * session (401), request timeout (408), rate limiting (429), or any server error (5xx).
+ * Genuine client rejections (validation 422, closed 403, not-found 404, …) are permanent
+ * — the response reached the server and was refused, so retrying would only fail again.
+ */
+export function isRetryable(err: unknown): boolean {
+  if (isNetworkError(err)) return true;
+  const status = (err as { status?: number })?.status;
+  if (typeof status !== "number") return false; // unknown error shape — don't loop forever
+  return status === 401 || status === 408 || status === 429 || status >= 500;
+}
+
 // ---- schema cache ----
 
 export function cacheSchema(formId: string, schema: FormSchema, store = defaultStorage()): void {
@@ -91,16 +106,17 @@ export function queueSubmission(
 
 export interface SyncResult {
   sent: number;
-  rejected: number; // server refused (e.g. validation/closed) — dropped, retrying won't help
-  remaining: number; // still queued (network unavailable)
+  rejected: number; // server definitively refused (e.g. validation 422) — dropped
+  remaining: number; // still queued (offline, expired session, or server error)
 }
 
 /**
  * Try to deliver every queued submission, oldest first.
  *
- * A network failure stops the pass (still offline) and keeps the rest queued. A server
- * rejection drops the item: the response reached the server and was refused, so a retry
- * would only fail the same way.
+ * A retryable failure (offline, expired session, rate limit, or server error) stops the
+ * pass and keeps this item and everything after it queued — those conditions usually
+ * affect the whole batch and clear up together (reconnect, re-auth). Only a permanent
+ * client rejection drops the offending item; the rest of the queue still gets a chance.
  */
 export async function syncQueued(
   submit: (formId: string, answers: Record<string, unknown>) => Promise<unknown>,
@@ -116,11 +132,11 @@ export async function syncQueued(
       await submit(item.formId, item.answers);
       result.sent++;
     } catch (err) {
-      if (isNetworkError(err)) {
-        keep.push(...queue.slice(i)); // still offline; keep this and everything after
+      if (isRetryable(err)) {
+        keep.push(...queue.slice(i)); // keep this and everything after; try again later
         break;
       }
-      result.rejected++;
+      result.rejected++; // permanent rejection — drop this one, keep going
     }
   }
 
