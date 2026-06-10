@@ -41,6 +41,27 @@ export function BuilderPage() {
     }
   }, [store.formId, formId, navigate]);
 
+  useEffect(() => {
+    // Ctrl/Cmd+Z undo, Ctrl/Cmd+Shift+Z redo — except inside text inputs, where the
+    // browser's own text-editing undo must keep working.
+    const onKey = (e: KeyboardEvent) => {
+      if (!(e.ctrlKey || e.metaKey) || e.key.toLowerCase() !== "z") return;
+      const target = e.target as HTMLElement | null;
+      if (
+        target instanceof HTMLInputElement ||
+        target instanceof HTMLTextAreaElement ||
+        target?.isContentEditable
+      ) {
+        return;
+      }
+      e.preventDefault();
+      if (e.shiftKey) useBuilderStore.getState().redo();
+      else useBuilderStore.getState().undo();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
   const elements = pageElements(schema, activePage);
   const selected = selectedName ? findElement(schema, selectedName) : null;
 
@@ -55,8 +76,26 @@ export function BuilderPage() {
           aria-label="Form title"
         />
         <div className="toolbar-actions">
+          <button
+            type="button"
+            title="Undo (Ctrl+Z)"
+            onClick={() => store.undo()}
+            disabled={store.past.length === 0}
+          >
+            ↶
+          </button>
+          <button
+            type="button"
+            title="Redo (Ctrl+Shift+Z)"
+            onClick={() => store.redo()}
+            disabled={store.future.length === 0}
+          >
+            ↷
+          </button>
           {error ? <span className="error">{error}</span> : null}
-          <span className="muted">{dirty ? "Unsaved changes" : "Saved"}</span>
+          <span className="muted">
+            {status === "saving" ? "Saving…" : dirty ? "Unsaved changes" : "Saved ✓"}
+          </span>
           {store.formId ? (
             <button
               type="button"

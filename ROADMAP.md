@@ -63,7 +63,8 @@ A pragmatic build order. Each milestone is shippable on its own.
       land here.
 - [x] Paged renderer: Back/Next page navigation with per-page validation, progress bar,
       one-question-per-screen mode, page visibleIf, display-mode setting in the builder
-- [ ] Builder autosave + undo/redo
+- [x] Builder autosave (debounced 2s) + undo/redo (bounded history, Ctrl+Z/Ctrl+Shift+Z,
+      toolbar buttons, "Saving… / Saved ✓" indicator)
 - [ ] Theme presets + visual design pass + welcome/thank-you screens
 - [ ] Templates expansion: ~10 built-ins, form JSON import/export, local "My templates"
 
