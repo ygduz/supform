@@ -66,11 +66,14 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   return res.status === 204 ? (undefined as T) : ((await res.json()) as T);
 }
 
+export type ValidationStatus = "approved" | "not_approved" | "on_hold";
+
 export interface SubmissionRow {
   id: string;
   form_version: number;
   answers: Record<string, unknown>;
   created_at: string;
+  validation_status: ValidationStatus | null;
 }
 
 /** Reference a file field stores as its answer after upload. */
@@ -233,6 +236,15 @@ export const api = {
 
   listSubmissions: (formId: string) =>
     request<SubmissionRow[]>(`/api/v1/forms/${formId}/submissions?limit=500`),
+
+  setValidationStatus: (formId: string, submissionId: string, status: ValidationStatus | null) =>
+    request<SubmissionRow>(`/api/v1/forms/${formId}/submissions/${submissionId}/validation`, {
+      method: "PATCH",
+      body: JSON.stringify({ status }),
+    }),
+
+  deleteSubmission: (formId: string, submissionId: string) =>
+    request<void>(`/api/v1/forms/${formId}/submissions/${submissionId}`, { method: "DELETE" }),
 
   /** Import an XLSForm or ODK XForm file into a new draft form on a project. */
   importForm: async (

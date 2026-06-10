@@ -1,11 +1,15 @@
 from __future__ import annotations
 
 import uuid
+from datetime import datetime
 
-from sqlalchemy import ForeignKey, Integer, String
+from sqlalchemy import DateTime, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base, JSONType, TimestampMixin, UUIDPrimaryKeyMixin
+
+# Post-submission review states (a la Kobo's record validation).
+VALIDATION_STATUSES = ("approved", "not_approved", "on_hold")
 
 
 class Submission(UUIDPrimaryKeyMixin, TimestampMixin, Base):
@@ -25,5 +29,10 @@ class Submission(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     # Optional respondent (None for anonymous public submissions).
     respondent_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"), nullable=True)
     source: Mapped[str] = mapped_column(String(30), default="web")  # web|api|import|offline
+
+    # Review workflow: a reviewer can mark a record approved / not_approved / on_hold.
+    validation_status: Mapped[str | None] = mapped_column(String(20), nullable=True, index=True)
+    validated_by: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+    validated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     form = relationship("Form", back_populates="submissions")

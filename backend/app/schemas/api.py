@@ -139,6 +139,12 @@ class SubmissionOut(BaseModel):
     form_version: int
     answers: dict[str, Any]
     created_at: datetime
+    validation_status: str | None = None
+
+
+class ValidationUpdate(BaseModel):
+    # None clears the status back to unreviewed.
+    status: str | None = None
 
 
 # ---- webhooks ----

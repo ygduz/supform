@@ -1,4 +1,4 @@
-import { type SubmissionRow, api, isAuthenticated } from "@/api/client";
+import { type SubmissionRow, type ValidationStatus, api, isAuthenticated } from "@/api/client";
 import type { FormSchema } from "@/types/form-schema";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
@@ -8,6 +8,19 @@ import { buildColumns } from "./columns";
 type Status = "loading" | "ready" | "unauth" | "error";
 type Format = "csv" | "xlsx" | "json";
 type View = "analytics" | "table";
+type StatusFilter = "all" | ValidationStatus;
+
+const STATUS_LABELS: Record<ValidationStatus, string> = {
+  approved: "Approved",
+  on_hold: "On hold",
+  not_approved: "Not approved",
+};
+const STATUS_FILTERS: { id: StatusFilter; label: string }[] = [
+  { id: "all", label: "All" },
+  { id: "approved", label: "Approved" },
+  { id: "on_hold", label: "On hold" },
+  { id: "not_approved", label: "Not approved" },
+];
 
 /** Responses dashboard: analytics charts, a submissions table, and export downloads. */
 export function ResponsesPage() {
@@ -17,6 +30,29 @@ export function ResponsesPage() {
   const [status, setStatus] = useState<Status>("loading");
   const [error, setError] = useState<string | null>(null);
   const [view, setView] = useState<View>("analytics");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+
+  async function onSetStatus(row: SubmissionRow, next: ValidationStatus | null) {
+    if (!formId) return;
+    setError(null);
+    try {
+      await api.setValidationStatus(formId, row.id, next);
+      setRows((prev) => prev.map((r) => (r.id === row.id ? { ...r, validation_status: next } : r)));
+    } catch (err) {
+      setError((err as Error).message);
+    }
+  }
+
+  async function onDeleteRow(row: SubmissionRow) {
+    if (!formId || !window.confirm("Delete this response? This cannot be undone.")) return;
+    setError(null);
+    try {
+      await api.deleteSubmission(formId, row.id);
+      setRows((prev) => prev.filter((r) => r.id !== row.id));
+    } catch (err) {
+      setError((err as Error).message);
+    }
+  }
 
   useEffect(() => {
     if (!formId) return;
@@ -47,6 +83,11 @@ export function ResponsesPage() {
   }, [formId]);
 
   const columns = useMemo(() => (schema ? buildColumns(schema) : []), [schema]);
+  const tableRows = useMemo(
+    () =>
+      statusFilter === "all" ? rows : rows.filter((r) => r.validation_status === statusFilter),
+    [rows, statusFilter],
+  );
 
   const download = useCallback(
     async (format: Format) => {
@@ -138,28 +179,70 @@ export function ResponsesPage() {
           {view === "analytics" && schema && <AnalyticsPanel schema={schema} rows={rows} />}
 
           {view === "table" && (
-            <div className="table-scroll">
-              <table className="responses-table">
-                <thead>
-                  <tr>
-                    <th>Submitted</th>
-                    {columns.map((col) => (
-                      <th key={col.key}>{col.label}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {rows.map((row) => (
-                    <tr key={row.id}>
-                      <td className="muted">{new Date(row.created_at).toLocaleString()}</td>
+            <>
+              <div className="filter-chips">
+                {STATUS_FILTERS.map((f) => (
+                  <button
+                    type="button"
+                    key={f.id}
+                    className={statusFilter === f.id ? "chip active" : "chip"}
+                    onClick={() => setStatusFilter(f.id)}
+                  >
+                    {f.label}
+                  </button>
+                ))}
+              </div>
+              <div className="table-scroll">
+                <table className="responses-table">
+                  <thead>
+                    <tr>
+                      <th>Status</th>
+                      <th>Submitted</th>
                       {columns.map((col) => (
-                        <td key={col.key}>{col.value(row.answers)}</td>
+                        <th key={col.key}>{col.label}</th>
                       ))}
+                      <th />
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {tableRows.map((row) => (
+                      <tr key={row.id}>
+                        <td>
+                          <select
+                            className={`status-select ${row.validation_status ?? "none"}`}
+                            value={row.validation_status ?? ""}
+                            onChange={(e) =>
+                              onSetStatus(row, (e.target.value || null) as ValidationStatus | null)
+                            }
+                            aria-label="Validation status"
+                          >
+                            <option value="">Unreviewed</option>
+                            {(Object.keys(STATUS_LABELS) as ValidationStatus[]).map((s) => (
+                              <option key={s} value={s}>
+                                {STATUS_LABELS[s]}
+                              </option>
+                            ))}
+                          </select>
+                        </td>
+                        <td className="muted">{new Date(row.created_at).toLocaleString()}</td>
+                        {columns.map((col) => (
+                          <td key={col.key}>{col.value(row.answers)}</td>
+                        ))}
+                        <td>
+                          <button
+                            type="button"
+                            className="link-button danger"
+                            onClick={() => onDeleteRow(row)}
+                          >
+                            Delete
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
           )}
         </>
       )}

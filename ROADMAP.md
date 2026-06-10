@@ -76,7 +76,9 @@ A pragmatic build order. Each milestone is shippable on its own.
 - [x] Repeat-aware exports: XLSX emits one long-format sheet per repeat (one row per
       instance, linked by _parent_id); main sheet treats a repeat as a single column
       (fixes repeat children leaking in as empty columns)
-- [ ] Record validation / approval workflow (approved / on hold / not approved)
+- [x] Record validation / approval workflow: per-submission status (approved / on_hold /
+      not_approved) with validated_by/at, editor-gated PATCH + filter + single-row delete;
+      responses table gains status dropdowns, filter chips, and delete
 - [ ] Geo questions + map view + cascading selects
 
 ## M8 — Differentiators
