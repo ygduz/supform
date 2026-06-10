@@ -1,0 +1,23 @@
+# Mirror exactly what CI enforces, so unformatted/broken code can't be committed.
+#   pip install pre-commit && pre-commit install
+repos:
+  - repo: local
+    hooks:
+      - id: ruff-format
+        name: ruff format (backend + sdk)
+        entry: bash -c 'cd backend && python -m ruff format --check . && cd ../sdk/python && python -m ruff format --check .'
+        language: system
+        files: \.py$
+        pass_filenames: false
+      - id: ruff-lint
+        name: ruff check (backend + sdk)
+        entry: bash -c 'cd backend && python -m ruff check . && cd ../sdk/python && python -m ruff check .'
+        language: system
+        files: \.py$
+        pass_filenames: false
+      - id: biome
+        name: biome check (frontend)
+        entry: bash -c 'cd frontend && npx biome check src'
+        language: system
+        files: ^frontend/src/.*\.(ts|tsx|css|json)$
+        pass_filenames: false

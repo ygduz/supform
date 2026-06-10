@@ -24,6 +24,10 @@ class Settings(BaseSettings):
     debug: bool = True
     secret_key: str = "change-me"
 
+    # Observability — error tracking (no-op until a DSN is set; needs the [monitoring] extra).
+    sentry_dsn: str = ""
+    sentry_traces_sample_rate: float = 0.0
+
     # API
     api_host: str = "0.0.0.0"
     api_port: int = 8000
