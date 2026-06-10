@@ -70,6 +70,11 @@ export function PropertiesPanel({ element }: { element: Element }) {
           onAdd={() => store.addOption(name)}
           onUpdate={(i, label) => store.updateOption(name, i, choiceFrom(label))}
           onRemove={(i) => store.removeOption(name, i)}
+          onScore={
+            store.schema.settings?.quizMode
+              ? (i, score) => store.updateOption(name, i, { score })
+              : undefined
+          }
         />
       )}
 
@@ -342,6 +347,8 @@ function ListEditor(props: {
   onAdd: () => void;
   onUpdate: (index: number, label: string) => void;
   onRemove: (index: number) => void;
+  /** When set, show a per-option score input (quiz mode). */
+  onScore?: (index: number, score: number | undefined) => void;
 }) {
   return (
     <div className="prop">
@@ -353,6 +360,18 @@ function ListEditor(props: {
             value={localize(item.label) || String(item.value)}
             onChange={(e) => props.onUpdate(i, e.target.value)}
           />
+          {props.onScore && (
+            <input
+              type="number"
+              className="option-score"
+              title="Score"
+              value={item.score ?? ""}
+              placeholder="pts"
+              onChange={(e) =>
+                props.onScore?.(i, e.target.value === "" ? undefined : Number(e.target.value))
+              }
+            />
+          )}
           <button type="button" title="Remove" onClick={() => props.onRemove(i)}>
             ✕
           </button>

@@ -29,6 +29,26 @@ function collectNames(el: Element): string[] {
   return names;
 }
 
+/** Sum the scores of every chosen option (client-side mirror of the server's compute). */
+function scoreFor(schema: FormSchema, answers: Answers): number {
+  let total = 0;
+  const walk = (els: Element[]) => {
+    for (const el of els) {
+      if (el.options) {
+        const chosen = Array.isArray(answers[el.name]) ? answers[el.name] : [answers[el.name]];
+        for (const opt of el.options) {
+          if (typeof opt.score === "number" && (chosen as unknown[]).includes(opt.value)) {
+            total += opt.score;
+          }
+        }
+      }
+      if (el.elements) walk(el.elements);
+    }
+  };
+  for (const p of schema.pages) walk(p.elements);
+  return total;
+}
+
 const NUMERIC_TYPES = new Set(["number", "integer", "decimal", "scale", "rating"]);
 
 /** Coerce a URL-string prefill value to the shape a field of `type` expects. */
@@ -303,12 +323,20 @@ export function FormRenderer({ schema, formId }: { schema: FormSchema; formId: s
   const theme = schema.theme;
   const hasWelcome = Boolean(settings?.welcomeTitle || settings?.welcomeMessage);
 
+  // Quiz scoring: pick the matching outcome band; its redirect (if any) wins.
+  const quizScore = settings?.quizMode ? scoreFor(schema, answers) : null;
+  const outcome =
+    quizScore !== null
+      ? (settings?.outcomes ?? []).find((o) => quizScore >= o.min && quizScore <= o.max)
+      : undefined;
+  const redirectUrl = outcome?.redirectUrl ?? settings?.redirectUrl;
+
   // After a successful (online) submit, optionally bounce to the configured URL.
   // biome-ignore lint/correctness/useExhaustiveDependencies: fire once on success only.
   useEffect(() => {
-    if (submitted && !queuedOffline && !isLocal && settings?.redirectUrl) {
+    if (submitted && !queuedOffline && !isLocal && redirectUrl) {
       const t = setTimeout(() => {
-        window.location.href = settings.redirectUrl as string;
+        window.location.href = redirectUrl;
       }, 1500);
       return () => clearTimeout(t);
     }
@@ -324,12 +352,15 @@ export function FormRenderer({ schema, formId }: { schema: FormSchema; formId: s
       );
     }
     return (
-      <p className="confirmation">
-        {L(settings?.confirmationMessage) || "Thanks!"}
-        {settings?.redirectUrl && !isLocal && (
-          <span className="muted redirect-note"> Redirecting…</span>
+      <div className="confirmation">
+        {settings?.quizMode && (
+          <p className="quiz-score">
+            Your score: <strong>{quizScore}</strong>
+          </p>
         )}
-      </p>
+        <p>{L(outcome?.message) || L(settings?.confirmationMessage) || "Thanks!"}</p>
+        {redirectUrl && !isLocal && <span className="muted redirect-note">Redirecting…</span>}
+      </div>
     );
   }
 

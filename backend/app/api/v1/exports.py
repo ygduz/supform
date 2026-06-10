@@ -60,7 +60,12 @@ async def export_submissions(
         .order_by(Submission.created_at.asc())
     )
     submissions: list[dict[str, Any]] = [
-        {"id": str(sub.id), "created_at": sub.created_at, "answers": sub.answers}
+        {
+            "id": str(sub.id),
+            "created_at": sub.created_at,
+            "answers": sub.answers,
+            "metadata": sub.metadata_,
+        }
         for sub in await db.scalars(stmt)
     ]
 

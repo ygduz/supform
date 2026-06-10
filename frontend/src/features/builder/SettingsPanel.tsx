@@ -1,5 +1,6 @@
 import { languageLabel, localize } from "@/lib/i18n";
 import { useBuilderStore } from "@/stores/builderStore";
+import type { Outcome } from "@/types/form-schema";
 import { useState } from "react";
 
 /** Form-level collection settings. Enforced server-side on the public submit endpoint. */
@@ -9,6 +10,14 @@ export function SettingsPanel() {
   const languages = schema.languages ?? [];
   const defaultLanguage = schema.defaultLanguage ?? "en";
   const [newLang, setNewLang] = useState("");
+
+  const outcomes = settings.outcomes ?? [];
+  const setOutcome = (i: number, patch: Partial<Outcome>) =>
+    setSettings({ outcomes: outcomes.map((o, idx) => (idx === i ? { ...o, ...patch } : o)) });
+  const addOutcome = () =>
+    setSettings({ outcomes: [...outcomes, { min: 0, max: 0, message: "" }] });
+  const removeOutcome = (i: number) =>
+    setSettings({ outcomes: outcomes.filter((_, idx) => idx !== i) });
 
   const addLanguage = () => {
     const code = newLang.trim().toLowerCase();
@@ -220,6 +229,57 @@ export function SettingsPanel() {
             onChange={(e) => setSettings({ welcomeMessage: e.target.value || undefined })}
           />
         </label>
+      </fieldset>
+
+      <fieldset className="prop-fieldset">
+        <legend>Quiz</legend>
+        <label className="prop prop-check">
+          <input
+            type="checkbox"
+            checked={Boolean(settings.quizMode)}
+            onChange={(e) => setSettings({ quizMode: e.target.checked || undefined })}
+          />
+          <span>Score answers (quiz mode)</span>
+        </label>
+        {settings.quizMode && (
+          <div className="prop">
+            <span>Outcomes</span>
+            <small className="hint">
+              Show a message based on the total score. Set a point value per option in each
+              question's settings.
+            </small>
+            {outcomes.map((o, i) => (
+              // biome-ignore lint/suspicious/noArrayIndexKey: outcomes have no stable id
+              <div className="outcome-row" key={i}>
+                <input
+                  type="number"
+                  aria-label="Min score"
+                  value={o.min}
+                  onChange={(e) => setOutcome(i, { min: Number(e.target.value) })}
+                />
+                <input
+                  type="number"
+                  aria-label="Max score"
+                  value={o.max}
+                  onChange={(e) => setOutcome(i, { max: Number(e.target.value) })}
+                />
+                <input
+                  type="text"
+                  aria-label="Outcome message"
+                  placeholder="Message"
+                  value={localize(o.message)}
+                  onChange={(e) => setOutcome(i, { message: e.target.value })}
+                />
+                <button type="button" className="link-button" onClick={() => removeOutcome(i)}>
+                  ✕
+                </button>
+              </div>
+            ))}
+            <button type="button" className="link-button" onClick={addOutcome}>
+              + Add outcome
+            </button>
+          </div>
+        )}
       </fieldset>
     </div>
   );

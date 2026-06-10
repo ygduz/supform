@@ -51,7 +51,17 @@ export interface Choice {
   value: string | number | boolean;
   label?: I18nString;
   visibleIf?: Expression;
+  /** Points awarded when this option is chosen (quiz mode). */
+  score?: number;
   meta?: Record<string, unknown>;
+}
+
+/** A scored-result band shown on the thank-you screen when the score falls in [min, max]. */
+export interface Outcome {
+  min: number;
+  max: number;
+  message: I18nString;
+  redirectUrl?: string;
 }
 
 export interface Validation {
@@ -131,6 +141,9 @@ export interface FormSettings {
   redirectUrl?: string;
   /** Email addresses notified on each new submission. */
   notifyEmails?: string[];
+  /** Score selected-option points and show an outcome on the thank-you screen. */
+  quizMode?: boolean;
+  outcomes?: Outcome[];
 }
 
 export interface FormSchema {

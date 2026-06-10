@@ -66,7 +66,19 @@ class Choice(BaseModel):
     value: str | int | float | bool
     label: I18nString | None = None
     visible_if: str | None = Field(default=None, alias="visibleIf")
+    score: float | None = None  # points awarded when chosen (quiz mode)
     meta: dict[str, Any] = Field(default_factory=dict)
+
+
+class Outcome(BaseModel):
+    """A scored-result band: shown on the thank-you screen when score is in [min, max]."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    min: float
+    max: float
+    message: I18nString
+    redirect_url: str | None = Field(default=None, alias="redirectUrl")
 
 
 class Validation(BaseModel):
@@ -162,6 +174,8 @@ class FormSettings(BaseModel):
     welcome_message: I18nString | None = Field(default=None, alias="welcomeMessage")
     redirect_url: str | None = Field(default=None, alias="redirectUrl")
     notify_emails: list[str] = Field(default_factory=list, alias="notifyEmails")
+    quiz_mode: bool = Field(default=False, alias="quizMode")
+    outcomes: list[Outcome] = Field(default_factory=list)
 
 
 class FormSchema(BaseModel):

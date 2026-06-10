@@ -1113,6 +1113,25 @@ button:focus-visible {
   border: 1px solid var(--border);
   border-radius: var(--radius);
 }
+
+/* Quiz authoring + result */
+.outcome-row {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+}
+.outcome-row input[type="number"] {
+  width: 64px;
+}
+.outcome-row input[type="text"] {
+  flex: 1;
+}
+.option-score {
+  width: 64px;
+}
+.quiz-score {
+  font-size: 18px;
+}
 .analytics {
   display: flex;
   flex-direction: column;

@@ -7,6 +7,7 @@
 
 from app.form_engine.expressions import ExpressionError, evaluate
 from app.form_engine.schema import SchemaIssue, validate_form
+from app.form_engine.scoring import compute_score, match_outcome
 from app.form_engine.submissions import SubmissionValidationResult, validate_submission
 
 __all__ = [
@@ -16,4 +17,6 @@ __all__ = [
     "SchemaIssue",
     "validate_submission",
     "SubmissionValidationResult",
+    "compute_score",
+    "match_outcome",
 ]

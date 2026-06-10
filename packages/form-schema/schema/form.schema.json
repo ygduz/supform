@@ -90,7 +90,21 @@
         "welcomeTitle": { "$ref": "#/$defs/i18nString" },
         "welcomeMessage": { "$ref": "#/$defs/i18nString" },
         "redirectUrl": { "type": "string", "description": "Auto-redirect here after submitting." },
-        "notifyEmails": { "type": "array", "items": { "type": "string" }, "description": "Emailed on each new submission." }
+        "notifyEmails": { "type": "array", "items": { "type": "string" }, "description": "Emailed on each new submission." },
+        "quizMode": { "type": "boolean", "default": false },
+        "outcomes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["min", "max", "message"],
+            "properties": {
+              "min": { "type": "number" },
+              "max": { "type": "number" },
+              "message": { "$ref": "#/$defs/i18nString" },
+              "redirectUrl": { "type": "string" }
+            }
+          }
+        }
       }
     },
     "page": {
@@ -191,6 +205,7 @@
         "value": { "type": ["string", "number", "boolean"] },
         "label": { "$ref": "#/$defs/i18nString" },
         "visibleIf": { "$ref": "#/$defs/expression" },
+        "score": { "type": "number", "description": "Points awarded when chosen (quiz mode)." },
         "meta": { "type": "object", "additionalProperties": true }
       }
     },

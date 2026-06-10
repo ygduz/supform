@@ -90,6 +90,9 @@ A pragmatic build order. Each milestone is shippable on its own.
 - [x] Embed + prefill kit: hidden field type, URL-param prefill (type-coerced), a bare
       /embed/:id route + public/embed.js auto-resizing iframe snippet, and a share dialog
       with public link + embed code + QR (qrcode)
-- [ ] Quiz scoring & outcomes
+- [x] Quiz scoring & outcomes: per-option scores, settings.quizMode + outcome bands;
+      server-computed _score stored on the submission, exposed in SubmissionOut and a
+      _score export column; renderer shows the matching outcome (+ its redirect) on the
+      thank-you screen; builder quiz toggle, per-option score inputs, outcomes editor
 - [x] Email response notifications (settings.notifyEmails; Celery-offloaded email per
       recipient on each submission via the pluggable email backend; builder input)

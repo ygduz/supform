@@ -54,8 +54,11 @@ def compute_columns(form: FormSchema) -> list[str]:
 
     Matrix fields expand to one column per row; a repeat is a single JSON-summary column
     (its rows are exported long-format on a separate sheet); every other field is one column.
+    Quiz forms add a leading ``_score`` column.
     """
     columns: list[str] = list(META_COLUMNS)
+    if form.settings.quiz_mode:
+        columns.append("_score")
     for el in _top_level_fields(form):
         if el.type == "matrix":
             columns.extend(_matrix_row_keys(el))
@@ -124,6 +127,8 @@ def flatten_rows(form: FormSchema, submissions: Iterable[dict[str, Any]]) -> lis
             "_id": sub.get("id"),
             "_submitted_at": sub.get("created_at"),
         }
+        if form.settings.quiz_mode:
+            row["_score"] = (sub.get("metadata") or {}).get("_score", "")
         for el in elements:
             value = answers.get(el.name)
             if el.type == "matrix":

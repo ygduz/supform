@@ -144,6 +144,7 @@ class SubmissionOut(BaseModel):
     answers: dict[str, Any]
     created_at: datetime
     validation_status: str | None = None
+    score: float | None = None
 
 
 class ValidationUpdate(BaseModel):

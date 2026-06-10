@@ -36,3 +36,8 @@ class Submission(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     validated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     form = relationship("Form", back_populates="submissions")
+
+    @property
+    def score(self) -> float | None:
+        """Quiz score, computed at submit time and stored in metadata (None if not a quiz)."""
+        return (self.metadata_ or {}).get("_score")

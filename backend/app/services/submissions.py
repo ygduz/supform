@@ -10,7 +10,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import AuthError, PermissionDeniedError, ValidationError
-from app.form_engine import validate_submission
+from app.form_engine import compute_score, validate_submission
 from app.models.submission import Submission
 from app.schemas.form_schema import FormSettings
 from app.services.forms import get_form, get_published_schema
@@ -36,11 +36,16 @@ async def create_submission(
     if not result.is_valid:
         raise ValidationError("Submission failed validation", details=result.errors)
 
+    meta = dict(metadata or {})
+    if schema.settings.quiz_mode:
+        # Server-computed so a client can't inflate its own score.
+        meta["_score"] = compute_score(schema, result.cleaned)
+
     submission = Submission(
         form_id=form_id,
         form_version=schema.version,
         answers=result.cleaned,
-        metadata_=metadata or {},
+        metadata_=meta,
         respondent_id=respondent_id,
         source=source,
     )
