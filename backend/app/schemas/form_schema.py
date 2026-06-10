@@ -54,6 +54,7 @@ class ElementType(StrEnum):
     BARCODE = "barcode"
     # derived / layout
     CALCULATED = "calculated"
+    HIDDEN = "hidden"
     NOTE = "note"
     SECTION = "section"
     HTML = "html"

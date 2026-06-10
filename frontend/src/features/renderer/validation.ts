@@ -12,7 +12,7 @@ import { evaluateBool } from "./expressions";
 
 export type FieldErrors = Record<string, string>;
 
-const PRESENTATIONAL = new Set(["note", "section", "html", "calculated"]);
+const PRESENTATIONAL = new Set(["note", "section", "html", "calculated", "hidden"]);
 
 function isEmpty(value: unknown): boolean {
   if (value === undefined || value === null || value === "") return true;

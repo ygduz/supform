@@ -1082,6 +1082,37 @@ button:focus-visible {
 .ai-examples .chip {
   text-align: left;
 }
+
+/* Embed + share-link dialog */
+.embed-root {
+  padding: 16px;
+}
+.copy-row {
+  display: flex;
+  gap: 8px;
+}
+.copy-row input {
+  flex: 1;
+}
+.embed-snippet {
+  width: 100%;
+  font-family: ui-monospace, monospace;
+  font-size: 12px;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  resize: vertical;
+}
+.qr-block {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+.qr-canvas {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
 .analytics {
   display: flex;
   flex-direction: column;

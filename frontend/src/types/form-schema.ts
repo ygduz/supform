@@ -40,6 +40,7 @@ export type ElementType =
   | "geopoint"
   | "barcode"
   | "calculated"
+  | "hidden"
   | "note"
   | "section"
   | "html"

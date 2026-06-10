@@ -367,3 +367,16 @@ def test_geopoint_rejects_bad_shape_and_out_of_range() -> None:
 def test_geopoint_optional_when_empty() -> None:
     form = _form([{"type": "geopoint", "name": "where"}])
     assert validate_submission(form, {}).is_valid
+
+
+# ------------------------------------------------------------------ hidden fields
+
+
+def test_hidden_field_value_passes_through_unvalidated() -> None:
+    form = _form([{"type": "hidden", "name": "utm_source", "required": True}])
+    # Even marked required, a hidden field never blocks submission; its value is kept.
+    result = validate_submission(form, {"utm_source": "newsletter"})
+    assert result.is_valid
+    assert result.cleaned["utm_source"] == "newsletter"
+    # And it's fine when absent.
+    assert validate_submission(form, {}).is_valid

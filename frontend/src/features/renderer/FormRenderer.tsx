@@ -29,12 +29,46 @@ function collectNames(el: Element): string[] {
   return names;
 }
 
+const NUMERIC_TYPES = new Set(["number", "integer", "decimal", "scale", "rating"]);
+
+/** Coerce a URL-string prefill value to the shape a field of `type` expects. */
+function coercePrefill(type: string, raw: string): unknown {
+  if (NUMERIC_TYPES.has(type)) {
+    const n = Number(raw);
+    return Number.isNaN(n) ? raw : n;
+  }
+  if (type === "boolean") return raw === "true" || raw === "1" || raw === "yes";
+  if (type === "multi_choice") return raw.split(",").map((s) => s.trim());
+  return raw;
+}
+
+/** Seed answers from `?field=value` URL params and hidden-field defaults. */
+function buildInitialAnswers(schema: FormSchema, search: string): Answers {
+  const params = new URLSearchParams(search);
+  const answers: Answers = {};
+  const walk = (els: Element[]) => {
+    for (const el of els) {
+      if (params.has(el.name)) {
+        answers[el.name] = coercePrefill(el.type, params.get(el.name) as string);
+      } else if (el.type === "hidden" && el.defaultValue !== undefined) {
+        answers[el.name] = el.defaultValue;
+      }
+      if (el.elements) walk(el.elements);
+    }
+  };
+  for (const p of schema.pages) walk(p.elements);
+  return answers;
+}
+
 /**
  * The renderer turns a FormSchema into an interactive form. It is fully schema-driven:
  * field widgets come from a type registry, and visibility honors `visibleIf` live.
+ * Answers can be prefilled from URL query params (e.g. embeds, campaign links).
  */
 export function FormRenderer({ schema, formId }: { schema: FormSchema; formId: string }) {
-  const [answers, setAnswers] = useState<Answers>({});
+  const [answers, setAnswers] = useState<Answers>(() =>
+    buildInitialAnswers(schema, typeof window !== "undefined" ? window.location.search : ""),
+  );
   const [errors, setErrors] = useState<FieldErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
@@ -63,6 +97,7 @@ export function FormRenderer({ schema, formId }: { schema: FormSchema; formId: s
 
   /** Render one element, descending into groups (a transparent answer scope). */
   function renderElement(el: Element): JSX.Element | null {
+    if (el.type === "hidden") return null; // carried in answers, never shown
     if (!evaluateBool(el.visibleIf, answers)) return null;
 
     if (el.type === "group") {
@@ -113,7 +148,7 @@ export function FormRenderer({ schema, formId }: { schema: FormSchema; formId: s
                   </button>
                 </div>
                 {(el.elements ?? []).map((child) => {
-                  if (PRESENTATIONAL.has(child.type)) return null;
+                  if (PRESENTATIONAL.has(child.type) || child.type === "hidden") return null;
                   if (!evaluateBool(child.visibleIf, scope)) return null;
                   const errorKey = `${el.name}[${i}].${child.name}`;
                   return (

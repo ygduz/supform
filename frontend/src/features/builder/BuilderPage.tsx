@@ -9,6 +9,7 @@ import { CanvasList } from "./CanvasList";
 import { PropertiesPanel } from "./PropertiesPanel";
 import { SettingsPanel } from "./SettingsPanel";
 import { ShareDialog } from "./ShareDialog";
+import { ShareLinkDialog } from "./ShareLinkDialog";
 import { ThemePanel } from "./ThemePanel";
 import { WebhooksDialog } from "./WebhooksDialog";
 import { findElement, pageElements } from "./model";
@@ -28,6 +29,7 @@ export function BuilderPage() {
   const { schema, selectedName, activePage, status, error, dirty } = store;
   const [tab, setTab] = useState<Tab>("properties");
   const [sharing, setSharing] = useState(false);
+  const [shareLink, setShareLink] = useState(false);
   const [integrations, setIntegrations] = useState(false);
   const importRef = useRef<HTMLInputElement>(null);
 
@@ -130,10 +132,8 @@ export function BuilderPage() {
           {store.formId ? (
             <button
               type="button"
-              title="Copy public form link"
-              onClick={() => {
-                navigator.clipboard?.writeText(`${window.location.origin}/f/${store.formId}`);
-              }}
+              title="Public link, embed code, and QR"
+              onClick={() => setShareLink(true)}
             >
               Share link
             </button>
@@ -305,6 +305,9 @@ export function BuilderPage() {
       )}
       {integrations && store.formId && (
         <WebhooksDialog formId={store.formId} onClose={() => setIntegrations(false)} />
+      )}
+      {shareLink && store.formId && (
+        <ShareLinkDialog formId={store.formId} onClose={() => setShareLink(false)} />
       )}
     </div>
   );

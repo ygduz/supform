@@ -121,7 +121,7 @@
             "single_choice", "multi_choice", "dropdown", "rating", "ranking", "scale",
             "date", "time", "datetime", "boolean", "matrix",
             "file", "image", "signature", "geopoint", "barcode",
-            "calculated", "note", "section", "group", "repeat", "html", "image_block"
+            "calculated", "hidden", "note", "section", "group", "repeat", "html", "image_block"
           ]
         },
         "name": {

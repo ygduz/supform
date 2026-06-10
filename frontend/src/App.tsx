@@ -1,10 +1,11 @@
 import { isAuthenticated } from "@/api/client";
-import { BrowserRouter, Link, Navigate, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Link, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { ForgotPasswordPage } from "./features/auth/ForgotPasswordPage";
 import { LoginPage } from "./features/auth/LoginPage";
 import { ResetPasswordPage } from "./features/auth/ResetPasswordPage";
 import { VerifyEmailPage } from "./features/auth/VerifyEmailPage";
 import { BuilderPage } from "./features/builder/BuilderPage";
+import { EmbedPage } from "./features/embed/EmbedPage";
 import { FormsPage } from "./features/forms/FormsPage";
 import { ImportPage } from "./features/import/ImportPage";
 import { OfflineIndicator } from "./features/offline/OfflineIndicator";
@@ -14,11 +15,27 @@ import { TemplatesPage } from "./features/templates/TemplatesPage";
 
 /**
  * App shell + routing. Routes are intentionally minimal in the scaffold; each feature
- * owns its own subtree.
+ * owns its own subtree. Embedded forms (`/embed/:id`) render bare, without app chrome.
  */
 export function App() {
   return (
     <BrowserRouter>
+      <Shell />
+    </BrowserRouter>
+  );
+}
+
+function Shell() {
+  const bare = useLocation().pathname.startsWith("/embed/");
+  if (bare) {
+    return (
+      <Routes>
+        <Route path="/embed/:formId" element={<EmbedPage />} />
+      </Routes>
+    );
+  }
+  return (
+    <>
       <header className="app-header">
         <Link to="/" className="brand">
           Supform
@@ -47,7 +64,7 @@ export function App() {
           <Route path="/forms/:formId/responses" element={<ResponsesPage />} />
         </Routes>
       </main>
-    </BrowserRouter>
+    </>
   );
 }
 

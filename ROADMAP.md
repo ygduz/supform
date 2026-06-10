@@ -87,7 +87,9 @@ A pragmatic build order. Each milestone is shippable on its own.
 - [x] AI form generation (prompt → validated draft schema via an Anthropic-compatible
       Messages API over httpx; self-correcting retry; rate-limited; pluggable & off until
       SUPFORM_AI_API_KEY is set; "Generate with AI" dialog on /templates)
-- [ ] Embed + prefill kit (iframe embed script, URL prefill, hidden fields, QR share)
+- [x] Embed + prefill kit: hidden field type, URL-param prefill (type-coerced), a bare
+      /embed/:id route + public/embed.js auto-resizing iframe snippet, and a share dialog
+      with public link + embed code + QR (qrcode)
 - [ ] Quiz scoring & outcomes
 - [x] Email response notifications (settings.notifyEmails; Celery-offloaded email per
       recipient on each submission via the pluggable email backend; builder input)

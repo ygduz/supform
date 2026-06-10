@@ -89,6 +89,9 @@ def _validate_scope(
             _validate_repeat(el, answers, cleaned, errors, ctx, key)
             continue
 
+        if el.type == "hidden":
+            continue  # carry the (prefilled) value through without validating it
+
         error = _validate_field(el, answers.get(el.name), ctx)
         if error:
             errors[key] = error
