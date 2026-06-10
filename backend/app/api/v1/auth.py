@@ -9,6 +9,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import AuthError
+from app.core.ratelimit import rate_limit
 from app.core.security import (
     create_access_token,
     create_refresh_token,
@@ -22,8 +23,14 @@ from app.schemas.api import LoginRequest, RefreshRequest, SignupRequest, TokenPa
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
+# Credential endpoints are throttled per IP to blunt brute-force / credential stuffing.
+_login_throttle = rate_limit(10, 60, scope="auth-login")
+_signup_throttle = rate_limit(5, 60, scope="auth-signup")
 
-@router.post("/signup", response_model=UserOut, status_code=201)
+
+@router.post(
+    "/signup", response_model=UserOut, status_code=201, dependencies=[Depends(_signup_throttle)]
+)
 async def signup(payload: SignupRequest, db: AsyncSession = Depends(get_db)) -> User:
     existing = await db.scalar(select(User).where(User.email == payload.email))
     if existing:
@@ -38,7 +45,7 @@ async def signup(payload: SignupRequest, db: AsyncSession = Depends(get_db)) -> 
     return user
 
 
-@router.post("/login", response_model=TokenPair)
+@router.post("/login", response_model=TokenPair, dependencies=[Depends(_login_throttle)])
 async def login(payload: LoginRequest, db: AsyncSession = Depends(get_db)) -> TokenPair:
     user = await db.scalar(select(User).where(User.email == payload.email))
     if not user or not verify_password(payload.password, user.hashed_password):

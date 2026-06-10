@@ -44,6 +44,11 @@ class AuthError(SupformError):
     code = "auth_error"
 
 
+class RateLimitError(SupformError):
+    status_code = 429
+    code = "rate_limited"
+
+
 def install_exception_handlers(app: FastAPI) -> None:
     @app.exception_handler(SupformError)
     async def _handle(_: Request, exc: SupformError) -> JSONResponse:  # type: ignore[unused-ignore]

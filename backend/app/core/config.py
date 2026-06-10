@@ -40,6 +40,14 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 60
     refresh_token_expire_days: int = 14
 
+    # Rate limiting (per client IP, fixed window). Disable in tests that hammer endpoints.
+    rate_limit_enabled: bool = True
+
+    # Webhooks
+    # Block webhook URLs that point at private/loopback/link-local/metadata addresses
+    # (SSRF guard). Disable only if you intentionally deliver to internal services.
+    webhook_block_private_ips: bool = True
+
     # Storage
     storage_backend: str = "local"  # local | s3
     storage_local_path: str = "./media"

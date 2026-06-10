@@ -10,9 +10,26 @@ import pytest_asyncio
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.pool import StaticPool
 
+from app.core import ratelimit
+from app.core.config import settings
 from app.db.base import Base
 from app.db.session import get_db
 from app.main import app
+
+
+@pytest.fixture(autouse=True)
+def _disable_rate_limiting():
+    """The suite hammers auth/submit endpoints; keep the limiter off unless a test opts in.
+
+    Tests that exercise the limiter re-enable it via monkeypatch. Counters are reset around
+    every test so state never leaks between them.
+    """
+    ratelimit.reset()
+    previous = settings.rate_limit_enabled
+    settings.rate_limit_enabled = False
+    yield
+    settings.rate_limit_enabled = previous
+    ratelimit.reset()
 
 
 @pytest_asyncio.fixture

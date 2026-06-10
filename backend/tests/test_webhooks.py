@@ -55,6 +55,18 @@ async def test_webhook_crud_and_auth(client: httpx.AsyncClient):
     )
     assert bad.status_code == 422
 
+    # SSRF guard: internal / loopback / metadata targets are refused (DNS-free checks).
+    for unsafe in (
+        "http://169.254.169.254/latest/meta-data/",  # cloud metadata (link-local)
+        "http://localhost:6379/",  # loopback hostname
+        "http://127.0.0.1/",  # loopback IP
+        "http://10.0.0.5/internal",  # private range
+    ):
+        blocked = await client.post(
+            f"/api/v1/forms/{form_id}/webhooks", json={"url": unsafe}, headers=owner
+        )
+        assert blocked.status_code == 422, unsafe
+
     # Delete
     deleted = await client.delete(f"/api/v1/forms/{form_id}/webhooks/{webhook_id}", headers=owner)
     assert deleted.status_code == 204

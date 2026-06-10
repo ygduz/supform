@@ -18,6 +18,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import NotFoundError, ValidationError
+from app.core.ssrf import assert_safe_url
 from app.models.form import Form
 from app.models.submission import Submission
 from app.models.webhook import Webhook
@@ -39,8 +40,7 @@ async def create_webhook(
     secret: str | None = None,
     event: str = SUBMISSION_CREATED,
 ) -> Webhook:
-    if not url.startswith(("http://", "https://")):
-        raise ValidationError("Webhook URL must be an http(s) URL", details={"url": url})
+    assert_safe_url(url)
     if event != SUBMISSION_CREATED:
         raise ValidationError(f"Unsupported event: {event!r}", details={"event": event})
     webhook = Webhook(
@@ -72,8 +72,7 @@ async def update_webhook(
 ) -> Webhook:
     webhook = await get_webhook(db, form_id, webhook_id)
     if url is not None:
-        if not url.startswith(("http://", "https://")):
-            raise ValidationError("Webhook URL must be an http(s) URL", details={"url": url})
+        assert_safe_url(url)
         webhook.url = url
     if active is not None:
         webhook.active = active
@@ -144,6 +143,10 @@ def deliver(url: str, secret: str, payload: dict[str, Any], *, timeout: float = 
     transport errors so the Celery task can retry.
     """
     import httpx
+
+    # Re-check at delivery time too: the host may resolve differently now (DNS rebinding)
+    # than it did when the webhook was created.
+    assert_safe_url(url)
 
     body = json.dumps(payload, separators=(",", ":")).encode()
     headers = {

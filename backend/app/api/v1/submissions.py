@@ -9,6 +9,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user, get_optional_user
+from app.core.ratelimit import rate_limit
 from app.db.session import get_db
 from app.models.submission import Submission
 from app.models.user import User
@@ -19,8 +20,16 @@ from app.services import webhooks as webhooks_service
 
 router = APIRouter(tags=["submissions"])
 
+# The public submit endpoint is unauthenticated; throttle per IP to limit spam floods.
+_submit_throttle = rate_limit(30, 60, scope="submit")
 
-@router.post("/forms/{form_id}/submissions", response_model=SubmissionOut, status_code=201)
+
+@router.post(
+    "/forms/{form_id}/submissions",
+    response_model=SubmissionOut,
+    status_code=201,
+    dependencies=[Depends(_submit_throttle)],
+)
 async def submit(
     form_id: uuid.UUID,
     payload: SubmissionCreate,
