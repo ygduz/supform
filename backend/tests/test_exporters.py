@@ -119,3 +119,71 @@ def test_xlsx_reopens_with_expected_header() -> None:
     second = {row[0].value: row for row in sheet.iter_rows(min_row=2)}
     langs_idx = header.index("langs")
     assert second["s1"][langs_idx].value == "py; go"
+
+
+def _repeat_form() -> FormSchema:
+    return FormSchema.model_validate(
+        {
+            "name": "household",
+            "title": "Household",
+            "pages": [
+                {
+                    "name": "p1",
+                    "elements": [
+                        {"type": "text", "name": "address", "label": "Address"},
+                        {
+                            "type": "repeat",
+                            "name": "members",
+                            "label": "Members",
+                            "elements": [
+                                {"type": "text", "name": "member_name", "label": "Name"},
+                                {"type": "integer", "name": "age", "label": "Age"},
+                            ],
+                        },
+                    ],
+                }
+            ],
+        }
+    )
+
+
+def _repeat_submissions() -> list[dict]:
+    return [
+        {
+            "id": "h1",
+            "created_at": "2026-06-08T10:00:00",
+            "answers": {
+                "address": "1 Main St",
+                "members": [
+                    {"member_name": "Ada", "age": 40},
+                    {"member_name": "Bo", "age": 12},
+                ],
+            },
+        },
+        {"id": "h2", "created_at": "2026-06-08T11:00:00", "answers": {"address": "2 Oak Ave"}},
+    ]
+
+
+def test_main_sheet_treats_repeat_as_a_single_column() -> None:
+    # Repeat child fields must NOT leak in as (always-empty) top-level columns.
+    cols = compute_columns(_repeat_form())
+    assert cols == ["_id", "_submitted_at", "address", "members"]
+    assert "member_name" not in cols and "age" not in cols
+
+
+def test_xlsx_emits_one_long_format_sheet_per_repeat() -> None:
+    data = export_xlsx(_repeat_form(), _repeat_submissions())
+    workbook = load_workbook(io.BytesIO(data))
+    assert "Submissions" in workbook.sheetnames
+    assert "members" in workbook.sheetnames
+
+    members = workbook["members"]
+    header = [cell.value for cell in members[1]]
+    assert header == ["_parent_id", "_index", "member_name", "age"]
+
+    rows = [[c.value for c in row] for row in members.iter_rows(min_row=2)]
+    # Two instances from h1, linked back to the parent submission, in order; none from h2.
+    assert rows == [
+        ["h1", "0", "Ada", "40"],
+        ["h1", "1", "Bo", "12"],
+    ]

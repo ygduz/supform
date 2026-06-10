@@ -73,7 +73,9 @@ A pragmatic build order. Each milestone is shippable on its own.
       "My templates" (save current form, shown in its own gallery section)
 
 ## M7 — Data credibility (better than Kobo)
-- [ ] Repeat-aware exports (one row per instance, extra XLSX sheets)
+- [x] Repeat-aware exports: XLSX emits one long-format sheet per repeat (one row per
+      instance, linked by _parent_id); main sheet treats a repeat as a single column
+      (fixes repeat children leaking in as empty columns)
 - [ ] Record validation / approval workflow (approved / on hold / not approved)
 - [ ] Geo questions + map view + cascading selects
 
