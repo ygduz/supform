@@ -1988,3 +1988,247 @@ button:focus-visible {
   color: var(--text);
   border-color: var(--muted);
 }
+
+/* ================================================================
+   Overview / Minimap panel
+   ================================================================ */
+
+.ov-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+.ov-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px 8px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.ov-total {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.ov-page-tag {
+  font-size: 11px;
+  background: var(--primary);
+  color: #fff;
+  border-radius: 999px;
+  padding: 2px 8px;
+}
+
+.ov-list {
+  list-style: none;
+  margin: 0;
+  padding: 6px;
+  overflow-y: auto;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.ov-row {
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  transition: background 0.1s, border-color 0.1s;
+}
+
+.ov-row:hover {
+  background: var(--surface);
+  border-color: var(--border);
+}
+
+.ov-row.ov-selected {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+}
+
+.ov-row.ov-container {
+  border-color: var(--border);
+  background: var(--surface);
+}
+
+.ov-row.ov-container.ov-selected {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+}
+
+.ov-row-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  min-height: 36px;
+}
+
+.ov-handle {
+  cursor: grab;
+  color: var(--muted);
+  user-select: none;
+  font-size: 12px;
+  opacity: 0.5;
+  flex-shrink: 0;
+}
+
+.ov-handle:hover {
+  opacity: 1;
+}
+
+.ov-row-head:active .ov-handle {
+  cursor: grabbing;
+}
+
+.ov-index {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--muted);
+  min-width: 16px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.ov-chip {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 5px;
+  border-radius: 5px;
+  flex-shrink: 0;
+  letter-spacing: 0;
+  font-variant-numeric: tabular-nums;
+  min-width: 22px;
+  text-align: center;
+}
+
+.ov-label {
+  flex: 1;
+  text-align: left;
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 13px;
+  color: var(--text);
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.3;
+}
+
+.ov-label:hover {
+  color: var(--primary);
+}
+
+.ov-expand {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.ov-expand:hover {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.ov-count {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  background: rgba(0, 0, 0, 0.07);
+  border-radius: 999px;
+  padding: 1px 6px;
+  min-width: 20px;
+  text-align: center;
+}
+
+.ov-chevron {
+  font-size: 10px;
+  color: var(--muted);
+}
+
+/* nested child rows */
+.ov-children {
+  padding: 0 8px 6px 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ov-child-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 6px;
+  border-radius: 5px;
+}
+
+.ov-child-row:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.ov-child-label {
+  font-size: 12px;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ov-child-empty {
+  padding: 4px 6px 6px 40px;
+  font-size: 12px;
+  color: var(--muted);
+  font-style: italic;
+}
+
+/* drag ghost */
+.ov-ghost {
+  background: white;
+  border: 1px solid #bfdbfe;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14);
+  border-radius: 8px;
+  opacity: 1 !important;
+}
+
+.ov-label-ghost {
+  flex: 1;
+  font-size: 13px;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ov-count-ghost {
+  background: rgba(0, 0, 0, 0.07);
+}
+
+/* empty state */
+.ov-empty {
+  padding: 32px 16px;
+  text-align: center;
+  color: var(--muted);
+}
+
+.ov-empty p {
+  margin: 0 0 6px;
+}
+
+.ov-empty-hint {
+  font-size: 13px;
+}

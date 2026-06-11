@@ -19,6 +19,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { FormRenderer } from "../renderer/FormRenderer";
 import { saveMyTemplate } from "../templates/myTemplates";
 import { BuilderCanvas, type DropLocation } from "./BuilderCanvas";
+import { OverviewPanel } from "./OverviewPanel";
 import { PaletteItem } from "./PaletteItem";
 import { PropertiesPanel } from "./PropertiesPanel";
 import { SettingsPanel } from "./SettingsPanel";
@@ -29,7 +30,7 @@ import { WebhooksDialog } from "./WebhooksDialog";
 import { findElement, pageElements } from "./model";
 import { ELEMENT_PALETTE } from "./palette";
 
-type Tab = "properties" | "theme" | "settings" | "preview";
+type Tab = "overview" | "properties" | "theme" | "settings" | "preview";
 
 export function BuilderPage() {
   const { formId = "new" } = useParams();
@@ -37,7 +38,7 @@ export function BuilderPage() {
   const store = useBuilderStore();
   const init = useBuilderStore((s) => s.init);
   const { schema, selectedName, selectedNames, activePage, status, error, dirty } = store;
-  const [tab, setTab] = useState<Tab>("properties");
+  const [tab, setTab] = useState<Tab>("overview");
   const [sharing, setSharing] = useState(false);
   const [shareLink, setShareLink] = useState(false);
   const [integrations, setIntegrations] = useState(false);
@@ -131,6 +132,12 @@ export function BuilderPage() {
       navigate(`/builder/${store.formId}`, { replace: true });
     }
   }, [store.formId, formId, navigate]);
+
+  // Auto-switch to Properties when the user selects an element.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: intentionally only on selectedName
+  useEffect(() => {
+    if (selectedName && tab === "overview") setTab("properties");
+  }, [selectedName]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -409,18 +416,19 @@ export function BuilderPage() {
           {/* Inspector */}
           <aside className="inspector">
             <div className="tabs">
-              {(["properties", "theme", "settings", "preview"] as Tab[]).map((t) => (
+              {(["overview", "properties", "theme", "settings", "preview"] as Tab[]).map((t) => (
                 <button
                   key={t}
                   type="button"
                   className={tab === t ? "tab active" : "tab"}
                   onClick={() => setTab(t)}
                 >
-                  {t.charAt(0).toUpperCase() + t.slice(1)}
+                  {t === "overview" ? "Map" : t.charAt(0).toUpperCase() + t.slice(1)}
                 </button>
               ))}
             </div>
 
+            {tab === "overview" && <OverviewPanel />}
             {tab === "properties" &&
               (selected ? (
                 <PropertiesPanel element={selected} />
