@@ -79,9 +79,23 @@ export function BuilderPage() {
 
     // Zones store their location directly; element cards store it under `location`.
     const data = over.data.current as (DropLocation & { location?: DropLocation }) | undefined;
-    const loc: DropLocation | undefined =
+    let loc: DropLocation | undefined =
       data?.location ?? (data?.pageIndex !== undefined ? data : undefined);
     if (!loc) return;
+
+    // Dropping onto a section card means "into the section" (appended at the end),
+    // unless the dragged item is already a direct child of that section.
+    const overEl = findElement(schema, overId);
+    if (overEl && (overEl.type === "group" || overEl.type === "repeat")) {
+      const isOwnChild = overEl.elements?.some((c) => c.name === activeId) ?? false;
+      if (!isOwnChild && overId !== activeId) {
+        loc = {
+          pageIndex: loc.pageIndex,
+          parentName: overEl.name,
+          index: overEl.elements?.length ?? 0,
+        };
+      }
+    }
 
     if (activeId.startsWith("palette:")) {
       // Palette drag → insert new element at the drop target's position.
@@ -133,12 +147,6 @@ export function BuilderPage() {
     }
   }, [store.formId, formId, navigate]);
 
-  // Auto-switch to Properties when the user selects an element.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: intentionally only on selectedName
-  useEffect(() => {
-    if (selectedName && tab === "overview") setTab("properties");
-  }, [selectedName]);
-
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement | null;
@@ -164,6 +172,15 @@ export function BuilderPage() {
           store.removeSelected();
         } else if (selectedName) {
           e.preventDefault();
+          // Deleting a section takes its questions with it — confirm first.
+          const el = findElement(schema, selectedName);
+          const kids = el?.elements?.length ?? 0;
+          if (el && (el.type === "group" || el.type === "repeat") && kids > 0) {
+            const ok = window.confirm(
+              `Delete this section and the ${kids} ${kids === 1 ? "question" : "questions"} inside it?`,
+            );
+            if (!ok) return;
+          }
           store.remove(selectedName);
         }
         return;

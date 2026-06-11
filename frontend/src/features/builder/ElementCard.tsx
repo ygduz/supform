@@ -109,8 +109,14 @@ export function ElementCard({
 
   return (
     <li ref={setNodeRef} style={style} className={cls}>
-      <div className="el-row" {...(groupingSource ? {} : { ...attributes, ...listeners })}>
-        <span className="drag-handle" aria-hidden="true">
+      <div className="el-row">
+        {/* Explicit drag activator: pointer drags from interactive children (the card-body
+            button, inputs) are ignored by dnd-kit, so the handle carries the listeners. */}
+        <span
+          className="drag-handle"
+          aria-hidden="true"
+          {...(groupingSource ? {} : { ...attributes, ...listeners })}
+        >
           ⋮⋮
         </span>
 
@@ -214,7 +220,22 @@ export function ElementCard({
               ⊞
             </button>
           )}
-          <button type="button" title="Delete" onClick={() => remove(element.name)}>
+          <button
+            type="button"
+            title="Delete"
+            onClick={() => {
+              // Deleting a section takes its questions with it — confirm first.
+              if (container && childCount > 0) {
+                const ok = window.confirm(
+                  `Delete this section and the ${childCount} ${
+                    childCount === 1 ? "question" : "questions"
+                  } inside it?\n\nTip: use Ungroup (⊟) to keep the questions.`,
+                );
+                if (!ok) return;
+              }
+              remove(element.name);
+            }}
+          >
             🗑
           </button>
         </div>
@@ -223,6 +244,7 @@ export function ElementCard({
       {!container && !isDragging && (
         <div
           className="el-preview"
+          {...(groupingSource ? {} : listeners)}
           onClick={handleCardClick}
           onKeyDown={(e) => {
             if (e.key === "Enter" || e.key === " ")
