@@ -183,6 +183,102 @@ function cloneSubtree(el: Element, taken: Set<string>): Element {
 }
 
 // ---------------------------------------------------------------- element ops
+
+/** Insert a new element of `type` at a precise position (used by palette drag-to-canvas). */
+export function addElementAt(
+  schema: FormSchema,
+  type: ElementType,
+  target: { pageIndex: number; parentName?: string },
+  index: number,
+): { schema: FormSchema; name: string } {
+  const name = nextName(schema);
+  const el = makeElement(type, name);
+
+  if (target.parentName) {
+    const next = mapElement(schema, target.parentName, (parent) => {
+      const children = [...(parent.elements ?? [])];
+      children.splice(Math.max(0, Math.min(index, children.length)), 0, el);
+      return { ...parent, elements: children };
+    });
+    return { schema: next, name };
+  }
+
+  const pages = schema.pages.map((p, i) => {
+    if (i !== target.pageIndex) return p;
+    const children = [...p.elements];
+    children.splice(Math.max(0, Math.min(index, children.length)), 0, el);
+    return { ...p, elements: children };
+  });
+  return { schema: { ...schema, pages }, name };
+}
+
+/**
+ * Wrap a set of sibling elements into a new group in-place.
+ * All names must live in the same sibling list — if they span containers or pages the
+ * schema is returned unchanged (groupName will be empty string).
+ */
+export function groupElements(
+  schema: FormSchema,
+  names: string[],
+): { schema: FormSchema; groupName: string } {
+  if (names.length < 2) return { schema, groupName: "" };
+
+  const nameSet = new Set(names);
+  const newGroupName = nextName(schema);
+  let groupName = "";
+
+  const tryGroup = (siblings: Element[]): Element[] | null => {
+    const indices: number[] = [];
+    siblings.forEach((e, i) => {
+      if (nameSet.has(e.name)) indices.push(i);
+    });
+    if (indices.length !== names.length) return null;
+
+    const minIdx = Math.min(...indices);
+    const ordered = [...indices].sort((a, b) => a - b).map((i) => siblings[i]);
+    const group: Element = {
+      type: "group",
+      name: newGroupName,
+      label: DEFAULT_LABELS["group"] ?? "Section",
+      elements: ordered,
+    };
+    groupName = newGroupName;
+
+    const remaining = siblings.filter((e) => !nameSet.has(e.name));
+    const insertPos = siblings.slice(0, minIdx).filter((e) => !nameSet.has(e.name)).length;
+    return [...remaining.slice(0, insertPos), group, ...remaining.slice(insertPos)];
+  };
+
+  let changed = false;
+  const walkList = (elements: Element[]): Element[] => {
+    if (changed) return elements;
+    const grouped = tryGroup(elements);
+    if (grouped) {
+      changed = true;
+      return grouped;
+    }
+    let listChanged = false;
+    const mapped = elements.map((el) => {
+      if (!el.elements || changed) return el;
+      const next = walkList(el.elements);
+      if (next !== el.elements) {
+        listChanged = true;
+        return { ...el, elements: next };
+      }
+      return el;
+    });
+    return listChanged ? mapped : elements;
+  };
+
+  const pages = schema.pages.map((p) => {
+    const walked = walkList(p.elements);
+    return walked !== p.elements ? { ...p, elements: walked } : p;
+  });
+
+  if (!changed) return { schema, groupName: "" };
+  return { schema: { ...schema, pages }, groupName };
+}
+
 export function addElement(
   schema: FormSchema,
   type: ElementType,

@@ -29,6 +29,8 @@ interface BuilderState {
   projectId: string | null;
   schema: FormSchema;
   selectedName: string | null;
+  /** The full multi-select set. Size > 1 means multi-select mode is active. */
+  selectedNames: Set<string>;
   activePage: number;
   status: Status;
   error: string | null;
@@ -43,19 +45,35 @@ interface BuilderState {
   loadTemplate: (schema: FormSchema) => void;
   undo: () => void;
   redo: () => void;
+  /** Plain select — sets focus to one element and clears multi-select. */
   select: (name: string | null) => void;
+  /** Toggle one element in/out of the multi-select set (Ctrl/Cmd+click). */
+  selectToggle: (name: string) => void;
+  /** Extend selection from the last focused element to `name` (Shift+click). */
+  selectRange: (name: string) => void;
+  clearSelection: () => void;
   setTitle: (title: string) => void;
   setTheme: (patch: Partial<Theme>) => void;
   setSettings: (patch: Partial<FormSettings>) => void;
   setLanguages: (languages: string[], defaultLanguage?: string) => void;
 
   add: (type: ElementType) => void;
+  /** Insert a new element of `type` at an explicit position (palette drag-to-canvas). */
+  addAt: (type: ElementType, target: { pageIndex: number; parentName?: string }, index: number) => void;
   update: (name: string, patch: Partial<Element>) => void;
   remove: (name: string) => void;
   duplicate: (name: string) => void;
   moveBy: (name: string, delta: number) => void;
   moveTo: (name: string, index: number) => void;
   moveInto: (name: string, target: { pageIndex: number; parentName?: string }, index: number) => void;
+  /** Wrap all selectedNames into a new group in-place. No-op if they span different parents. */
+  groupSelected: () => void;
+  /** Duplicate all selected elements (each after itself). */
+  duplicateSelected: () => void;
+  /** Delete all selected elements. */
+  removeSelected: () => void;
+  /** Set required=true/false on all selected elements. */
+  setRequiredSelected: (required: boolean) => void;
 
   addOption: (name: string) => void;
   updateOption: (name: string, index: number, patch: Partial<Choice>) => void;
@@ -130,6 +148,7 @@ export const useBuilderStore = create<BuilderState>((rawSet, get) => {
     projectId: null,
     schema: model.createEmptyForm(),
     selectedName: null,
+    selectedNames: new Set<string>(),
     activePage: 0,
     status: "idle",
     error: null,
@@ -152,6 +171,7 @@ export const useBuilderStore = create<BuilderState>((rawSet, get) => {
             projectId: null,
             schema: model.createEmptyForm(),
             selectedName: null,
+            selectedNames: new Set<string>(),
             activePage: 0,
             dirty: false,
             past: [],
@@ -170,6 +190,7 @@ export const useBuilderStore = create<BuilderState>((rawSet, get) => {
             projectId: form.project_id,
             schema: form.draft_content as FormSchema,
             selectedName: null,
+            selectedNames: new Set<string>(),
             activePage: 0,
             status: "idle",
             dirty: false,
@@ -198,6 +219,7 @@ export const useBuilderStore = create<BuilderState>((rawSet, get) => {
           // Deep-clone so editing the draft never mutates the shared template definition.
           schema: structuredClone(schema),
           selectedName: null,
+          selectedNames: new Set<string>(),
           activePage: 0,
           status: "idle",
           error: null,
@@ -220,6 +242,7 @@ export const useBuilderStore = create<BuilderState>((rawSet, get) => {
           future: [s.schema, ...s.future].slice(0, HISTORY_LIMIT),
           activePage: Math.min(s.activePage, prev.pages.length - 1),
           selectedName: null,
+          selectedNames: new Set<string>(),
           dirty: true,
         }),
       );
@@ -237,13 +260,51 @@ export const useBuilderStore = create<BuilderState>((rawSet, get) => {
           future: s.future.slice(1),
           activePage: Math.min(s.activePage, next.pages.length - 1),
           selectedName: null,
+          selectedNames: new Set<string>(),
           dirty: true,
         }),
       );
       scheduleAutosave();
     },
 
-    select: (name) => set({ selectedName: name }),
+    select: (name) =>
+      rawSet({
+        selectedName: name,
+        selectedNames: name ? new Set([name]) : new Set<string>(),
+      }),
+
+    selectToggle: (name) => {
+      const { selectedNames } = get();
+      const next = new Set(selectedNames);
+      if (next.has(name)) {
+        next.delete(name);
+      } else {
+        next.add(name);
+      }
+      rawSet({
+        selectedName: next.size > 0 ? name : null,
+        selectedNames: next,
+      });
+    },
+
+    selectRange: (name) => {
+      const { schema, activePage, selectedName } = get();
+      const pageEls = model.pageElements(schema, activePage).map((e) => e.name);
+      const anchor = selectedName;
+      if (!anchor || !pageEls.includes(anchor) || !pageEls.includes(name)) {
+        rawSet({ selectedName: name, selectedNames: new Set([name]) });
+        return;
+      }
+      const aIdx = pageEls.indexOf(anchor);
+      const bIdx = pageEls.indexOf(name);
+      const [lo, hi] = aIdx <= bIdx ? [aIdx, bIdx] : [bIdx, aIdx];
+      rawSet({
+        selectedName: name,
+        selectedNames: new Set(pageEls.slice(lo, hi + 1)),
+      });
+    },
+
+    clearSelection: () => rawSet({ selectedName: null, selectedNames: new Set<string>() }),
 
     setTitle: (title) => set((s) => ({ schema: { ...s.schema, title }, dirty: true })),
 
@@ -290,7 +351,13 @@ export const useBuilderStore = create<BuilderState>((rawSet, get) => {
           pageIndex: s.activePage,
           parentName,
         });
-        return { schema, selectedName: name, dirty: true };
+        return { schema, selectedName: name, selectedNames: new Set([name]), dirty: true };
+      }),
+
+    addAt: (type, target, index) =>
+      set((s) => {
+        const { schema, name } = model.addElementAt(s.schema, type, target, index);
+        return { schema, selectedName: name, selectedNames: new Set([name]), dirty: true };
       }),
 
     update: (name, patch) =>
@@ -300,13 +367,69 @@ export const useBuilderStore = create<BuilderState>((rawSet, get) => {
       set((s) => ({
         schema: model.removeElement(s.schema, name),
         selectedName: s.selectedName === name ? null : s.selectedName,
+        selectedNames: (() => {
+          const next = new Set(s.selectedNames);
+          next.delete(name);
+          return next;
+        })(),
         dirty: true,
       })),
 
     duplicate: (name) =>
       set((s) => {
         const result = model.duplicateElement(s.schema, name);
-        return { schema: result.schema, selectedName: result.name, dirty: true };
+        return {
+          schema: result.schema,
+          selectedName: result.name,
+          selectedNames: new Set([result.name]),
+          dirty: true,
+        };
+      }),
+
+    groupSelected: () =>
+      set((s) => {
+        if (s.selectedNames.size < 2) return {};
+        const { schema, groupName } = model.groupElements(s.schema, [...s.selectedNames]);
+        if (!groupName) return {};
+        return {
+          schema,
+          selectedName: groupName,
+          selectedNames: new Set([groupName]),
+          dirty: true,
+        };
+      }),
+
+    duplicateSelected: () =>
+      set((s) => {
+        if (s.selectedNames.size === 0) return {};
+        let schema = s.schema;
+        const newNames: string[] = [];
+        for (const name of s.selectedNames) {
+          const result = model.duplicateElement(schema, name);
+          schema = result.schema;
+          newNames.push(result.name);
+        }
+        return { schema, selectedNames: new Set(newNames), selectedName: newNames[0], dirty: true };
+      }),
+
+    removeSelected: () =>
+      set((s) => {
+        if (s.selectedNames.size === 0) return {};
+        let schema = s.schema;
+        for (const name of s.selectedNames) {
+          schema = model.removeElement(schema, name);
+        }
+        return { schema, selectedName: null, selectedNames: new Set<string>(), dirty: true };
+      }),
+
+    setRequiredSelected: (required) =>
+      set((s) => {
+        if (s.selectedNames.size === 0) return {};
+        let schema = s.schema;
+        for (const name of s.selectedNames) {
+          schema = model.updateElement(schema, name, { required });
+        }
+        return { schema, dirty: true };
       }),
 
     moveBy: (name, delta) =>
@@ -341,7 +464,8 @@ export const useBuilderStore = create<BuilderState>((rawSet, get) => {
     removeColumn: (name, index) =>
       set((s) => ({ schema: model.removeColumn(s.schema, name, index), dirty: true })),
 
-    setActivePage: (index) => set({ activePage: index, selectedName: null }),
+    setActivePage: (index) =>
+      set({ activePage: index, selectedName: null, selectedNames: new Set<string>() }),
 
     addPage: () =>
       set((s) => {
@@ -356,6 +480,7 @@ export const useBuilderStore = create<BuilderState>((rawSet, get) => {
           schema,
           activePage: Math.min(s.activePage, schema.pages.length - 1),
           selectedName: null,
+          selectedNames: new Set<string>(),
           dirty: true,
         };
       }),

@@ -4,25 +4,26 @@ import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable"
 import type { DropLocation } from "./BuilderCanvas";
 import { ElementCard } from "./ElementCard";
 
-/**
- * One sortable list of sibling elements (a page's top level or a container's children).
- * Container elements recurse — an ElementCard renders a nested CanvasList — and the shared
- * DndContext in BuilderCanvas lets drags cross list boundaries (into/out of groups).
- */
 export function CanvasList({
   elements,
   selectedName,
+  selectedNames,
   pageIndex,
   parentName,
-  activeName,
-  overName,
+  activeDragId,
+  overDragId,
+  groupingSource,
+  onGroupLink,
 }: {
   elements: Element[];
   selectedName: string | null;
+  selectedNames: Set<string>;
   pageIndex: number;
   parentName?: string;
-  activeName: string | null;
-  overName: string | null;
+  activeDragId: string | null;
+  overDragId: string | null;
+  groupingSource: string | null;
+  onGroupLink: (name: string) => void;
 }) {
   return (
     <SortableContext items={elements.map((e) => e.name)} strategy={verticalListSortingStrategy}>
@@ -35,19 +36,23 @@ export function CanvasList({
             count={elements.length}
             location={{ pageIndex, parentName, index: i }}
             selected={el.name === selectedName}
+            inSelection={selectedNames.has(el.name)}
+            multiSelect={selectedNames.size > 1}
             selectedName={selectedName}
-            activeName={activeName}
-            overName={overName}
+            selectedNames={selectedNames}
+            activeDragId={activeDragId}
+            overDragId={overDragId}
+            groupingSource={groupingSource}
+            onGroupLink={onGroupLink}
           />
         ))}
       </ol>
-      {/* Tail zone: drop below the last card to append (also the whole area of an empty list). */}
       <DropZone
         id={`zone:${parentName ?? `page-${pageIndex}`}`}
         location={{ pageIndex, parentName, index: elements.length }}
         empty={elements.length === 0}
-        dragging={activeName !== null}
-        over={overName === `zone:${parentName ?? `page-${pageIndex}`}`}
+        dragging={activeDragId !== null}
+        over={overDragId === `zone:${parentName ?? `page-${pageIndex}`}`}
         label={parentName ? "Drop here to add to this group" : "Drop here"}
       />
     </SortableContext>
