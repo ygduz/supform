@@ -3,6 +3,7 @@ import { useBuilderStore } from "@/stores/builderStore";
 import type { Element } from "@/types/form-schema";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { useEffect, useRef } from "react";
 import type { DropLocation } from "./BuilderCanvas";
 import { CanvasList } from "./CanvasList";
 import { CardPreview } from "./CardPreview";
@@ -62,6 +63,19 @@ export function ElementCard({
     disabled: groupingSource !== null,
   });
 
+  // Scroll the card into view when it becomes selected (e.g. from the Map panel).
+  // `nearest` keeps the canvas still when the card is already visible.
+  const nodeRef = useRef<HTMLLIElement | null>(null);
+  const setRefs = (node: HTMLLIElement | null) => {
+    nodeRef.current = node;
+    setNodeRef(node);
+  };
+  useEffect(() => {
+    if (selected && !isDragging) {
+      nodeRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+  }, [selected, isDragging]);
+
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition,
@@ -108,7 +122,7 @@ export function ElementCard({
   }
 
   return (
-    <li ref={setNodeRef} style={style} className={cls}>
+    <li ref={setRefs} style={style} className={cls}>
       <div className="el-row">
         {/* Explicit drag activator: pointer drags from interactive children (the card-body
             button, inputs) are ignored by dnd-kit, so the handle carries the listeners. */}
