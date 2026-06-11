@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { FormRenderer } from "../renderer/FormRenderer";
 import { saveMyTemplate } from "../templates/myTemplates";
-import { CanvasList } from "./CanvasList";
+import { BuilderCanvas } from "./BuilderCanvas";
 import { PropertiesPanel } from "./PropertiesPanel";
 import { SettingsPanel } from "./SettingsPanel";
 import { ShareDialog } from "./ShareDialog";
@@ -247,7 +247,7 @@ export function BuilderPage() {
           {elements.length === 0 ? (
             <p className="muted empty">Pick a question type on the left to start building.</p>
           ) : (
-            <CanvasList elements={elements} selectedName={selectedName} />
+            <BuilderCanvas elements={elements} selectedName={selectedName} pageIndex={activePage} />
           )}
         </section>
 

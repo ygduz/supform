@@ -247,6 +247,54 @@ export function moveElement(schema: FormSchema, name: string, toIndex: number): 
   });
 }
 
+/** True when `name` is (or is nested anywhere inside) the element `ancestorName`. */
+export function isDescendantOf(schema: FormSchema, name: string, ancestorName: string): boolean {
+  if (name === ancestorName) return true;
+  const ancestor = findElement(schema, ancestorName);
+  if (!ancestor?.elements) return false;
+  const walk = (els: Element[]): boolean =>
+    els.some((el) => el.name === name || (el.elements ? walk(el.elements) : false));
+  return walk(ancestor.elements);
+}
+
+/**
+ * Move an element (with its subtree) to a new parent — a page's top level or a container —
+ * at `index` within the target's child list. Powers drag-and-drop across containers.
+ * No-ops when the move would nest a container inside itself or its own descendants.
+ */
+export function moveElementTo(
+  schema: FormSchema,
+  name: string,
+  target: { pageIndex: number; parentName?: string },
+  index: number,
+): FormSchema {
+  const el = findElement(schema, name);
+  if (!el) return schema;
+  if (target.parentName && isDescendantOf(schema, target.parentName, name)) return schema;
+
+  const without = removeElement(schema, name);
+
+  if (target.parentName) {
+    return mapElement(without, target.parentName, (parent) => {
+      const children = [...(parent.elements ?? [])];
+      const clamped = Math.max(0, Math.min(index, children.length));
+      children.splice(clamped, 0, el);
+      return { ...parent, elements: children };
+    });
+  }
+
+  return {
+    ...without,
+    pages: without.pages.map((p, i) => {
+      if (i !== target.pageIndex) return p;
+      const children = [...p.elements];
+      const clamped = Math.max(0, Math.min(index, children.length));
+      children.splice(clamped, 0, el);
+      return { ...p, elements: children };
+    }),
+  };
+}
+
 export function moveBy(schema: FormSchema, name: string, delta: number): FormSchema {
   return transformSiblings(schema, name, (siblings, from) => {
     const to = Math.max(0, Math.min(from + delta, siblings.length - 1));

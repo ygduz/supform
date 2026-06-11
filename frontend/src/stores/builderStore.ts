@@ -55,6 +55,7 @@ interface BuilderState {
   duplicate: (name: string) => void;
   moveBy: (name: string, delta: number) => void;
   moveTo: (name: string, index: number) => void;
+  moveInto: (name: string, target: { pageIndex: number; parentName?: string }, index: number) => void;
 
   addOption: (name: string) => void;
   updateOption: (name: string, index: number, patch: Partial<Choice>) => void;
@@ -313,6 +314,12 @@ export const useBuilderStore = create<BuilderState>((rawSet, get) => {
 
     moveTo: (name, index) =>
       set((s) => ({ schema: model.moveElement(s.schema, name, index), dirty: true })),
+
+    moveInto: (name, target, index) =>
+      set((s) => {
+        const schema = model.moveElementTo(s.schema, name, target, index);
+        return schema === s.schema ? {} : { schema, dirty: true };
+      }),
 
     addOption: (name) => set((s) => ({ schema: model.addOption(s.schema, name), dirty: true })),
 
