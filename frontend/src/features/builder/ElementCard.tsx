@@ -8,6 +8,15 @@ import { CanvasList } from "./CanvasList";
 import { CardPreview } from "./CardPreview";
 import { isContainerType } from "./model";
 
+/** Tooltip text for the ⚡ badge: which rules this question carries. */
+function logicSummary(element: Element): string {
+  const parts: string[] = [];
+  if (element.visibleIf) parts.push(`Visible if: ${element.visibleIf}`);
+  if (element.requiredIf) parts.push(`Required if: ${element.requiredIf}`);
+  if (element.enableIf) parts.push(`Enabled if: ${element.enableIf}`);
+  return parts.join("\n");
+}
+
 interface Props {
   element: Element;
   index: number;
@@ -131,7 +140,14 @@ export function ElementCard({
               {element.required ? <span className="el-required">*</span> : null}
             </span>
           )}
-          <span className="el-type">{element.type.replace(/_/g, " ")}</span>
+          <span className="el-type">
+            {element.type.replace(/_/g, " ")}
+            {(element.visibleIf || element.requiredIf || element.enableIf) && (
+              <span className="el-logic-badge" title={logicSummary(element)}>
+                ⚡ logic
+              </span>
+            )}
+          </span>
         </div>
 
         <div className="el-actions">
