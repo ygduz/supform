@@ -61,6 +61,40 @@ describe("containers (group / repeat)", () => {
   });
 });
 
+describe("ungroupElement", () => {
+  /** page: q1, group(q3 [q2, q4]), q5 — built by grouping q2+q4 */
+  const grouped = () => {
+    let s = empty();
+    s = m.addElement(s, "text").schema; // q1
+    s = m.addElement(s, "text").schema; // q2
+    s = m.addElement(s, "text").schema; // q3
+    const g = m.groupElements(s, ["q2", "q3"]);
+    return g.schema; // q1, q4(group: q2, q3)
+  };
+
+  it("replaces the group with its children in place", () => {
+    const s = grouped();
+    expect(m.pageElements(s, 0).map((e) => e.name)).toEqual(["q1", "q4"]);
+    const { schema, childNames } = m.ungroupElement(s, "q4");
+    expect(childNames).toEqual(["q2", "q3"]);
+    expect(m.pageElements(schema, 0).map((e) => e.name)).toEqual(["q1", "q2", "q3"]);
+    expect(m.findElement(schema, "q4")).toBeNull();
+  });
+
+  it("removes an empty group", () => {
+    const s = m.addElement(empty(), "group").schema; // q1
+    const { schema, childNames } = m.ungroupElement(s, "q1");
+    expect(childNames).toEqual([]);
+    expect(m.pageElements(schema, 0)).toHaveLength(0);
+  });
+
+  it("no-ops for non-container elements", () => {
+    const s = m.addElement(empty(), "text").schema;
+    const { schema } = m.ungroupElement(s, "q1");
+    expect(schema).toBe(s);
+  });
+});
+
 describe("moveElementTo (cross-container drag & drop)", () => {
   /** page: q1 (group), q2, q3 */
   const base = () => {

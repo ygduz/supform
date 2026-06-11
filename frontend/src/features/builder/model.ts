@@ -279,6 +279,25 @@ export function groupElements(
   return { schema: { ...schema, pages }, groupName };
 }
 
+/**
+ * Dissolve a group/repeat: replace it with its children at the same position in the
+ * parent's list. Returns the schema unchanged if `name` is not a container.
+ */
+export function ungroupElement(
+  schema: FormSchema,
+  name: string,
+): { schema: FormSchema; childNames: string[] } {
+  const el = findElement(schema, name);
+  if (!el || !isContainerType(el.type)) return { schema, childNames: [] };
+  const children = el.elements ?? [];
+  const next = transformSiblings(schema, name, (siblings, idx) => [
+    ...siblings.slice(0, idx),
+    ...children,
+    ...siblings.slice(idx + 1),
+  ]);
+  return { schema: next, childNames: children.map((c) => c.name) };
+}
+
 export function addElement(
   schema: FormSchema,
   type: ElementType,

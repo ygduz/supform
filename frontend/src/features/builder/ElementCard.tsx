@@ -48,9 +48,12 @@ export function ElementCard({
   groupingSource,
   onGroupLink,
 }: Props) {
-  const { select, selectToggle, selectRange, update, moveBy, duplicate, remove } =
+  const { select, selectToggle, selectRange, update, moveBy, duplicate, remove, ungroup } =
     useBuilderStore();
+  const collapsed = useBuilderStore((s) => s.collapsedNames.has(element.name));
+  const toggleCollapsed = useBuilderStore((s) => s.toggleCollapsed);
   const container = isContainerType(element.type);
+  const childCount = element.elements?.length ?? 0;
 
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: element.name,
@@ -111,6 +114,22 @@ export function ElementCard({
           ⋮⋮
         </span>
 
+        {container && (
+          <button
+            type="button"
+            className="el-collapse"
+            title={collapsed ? "Expand section" : "Collapse section"}
+            aria-expanded={!collapsed}
+            onClick={(e) => {
+              e.stopPropagation();
+              toggleCollapsed(element.name);
+            }}
+            onPointerDown={(e) => e.stopPropagation()}
+          >
+            {collapsed ? "▸" : "▾"}
+          </button>
+        )}
+
         <button
           type="button"
           className="el-card-body"
@@ -141,6 +160,11 @@ export function ElementCard({
           )}
           <span className="el-type">
             {element.type.replace(/_/g, " ")}
+            {container && (
+              <span className="el-count">
+                {childCount} {childCount === 1 ? "question" : "questions"}
+              </span>
+            )}
             {(element.visibleIf || element.requiredIf || element.enableIf) && (
               <span className="el-logic-badge" title={logicSummary(element)}>
                 ⚡ logic
@@ -169,14 +193,27 @@ export function ElementCard({
           <button type="button" title="Duplicate" onClick={() => duplicate(element.name)}>
             ⧉
           </button>
-          <button
-            type="button"
-            title={multiSelect ? "Group selected questions" : "Group with another question"}
-            className={groupingSource === element.name ? "active" : ""}
-            onClick={handleGroupIconClick}
-          >
-            ⊞
-          </button>
+          {container ? (
+            <button
+              type="button"
+              title="Ungroup — lift questions out of this section"
+              onClick={(e) => {
+                e.stopPropagation();
+                ungroup(element.name);
+              }}
+            >
+              ⊟
+            </button>
+          ) : (
+            <button
+              type="button"
+              title={multiSelect ? "Group selected questions" : "Group with another question"}
+              className={groupingSource === element.name ? "active" : ""}
+              onClick={handleGroupIconClick}
+            >
+              ⊞
+            </button>
+          )}
           <button type="button" title="Delete" onClick={() => remove(element.name)}>
             🗑
           </button>
@@ -197,7 +234,20 @@ export function ElementCard({
         </div>
       )}
 
-      {container && (
+      {container && collapsed && (
+        <button
+          type="button"
+          className="el-collapsed-note"
+          onClick={() => toggleCollapsed(element.name)}
+        >
+          {childCount === 0
+            ? "Empty section"
+            : `${childCount} ${childCount === 1 ? "question" : "questions"} hidden`}{" "}
+          — click to expand
+        </button>
+      )}
+
+      {container && !collapsed && (
         <div className="el-children">
           <CanvasList
             elements={element.elements ?? []}

@@ -1948,3 +1948,43 @@ button:focus-visible {
   text-decoration: underline;
   align-self: auto;
 }
+
+/* Collapsible sections + ungroup */
+.el-collapse {
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 12px;
+  padding: 2px 4px;
+  line-height: 1;
+}
+.el-collapse:hover {
+  color: var(--text);
+}
+.el-count {
+  margin-left: 8px;
+  font-size: 11px;
+  color: var(--muted);
+  background: var(--surface-2, rgba(0, 0, 0, 0.05));
+  border-radius: 999px;
+  padding: 1px 8px;
+  text-transform: none;
+}
+.el-collapsed-note {
+  display: block;
+  width: calc(100% - 38px);
+  margin: 0 10px 10px 28px;
+  padding: 8px 10px;
+  border: 1px dashed var(--border);
+  border-radius: 6px;
+  background: none;
+  color: var(--muted);
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+.el-collapsed-note:hover {
+  color: var(--text);
+  border-color: var(--muted);
+}

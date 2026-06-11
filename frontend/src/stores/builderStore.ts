@@ -31,6 +31,8 @@ interface BuilderState {
   selectedName: string | null;
   /** The full multi-select set. Size > 1 means multi-select mode is active. */
   selectedNames: Set<string>;
+  /** Names of container elements currently collapsed on the canvas (UI-only). */
+  collapsedNames: Set<string>;
   activePage: number;
   status: Status;
   error: string | null;
@@ -76,6 +78,10 @@ interface BuilderState {
   ) => void;
   /** Wrap all selectedNames into a new group in-place. No-op if they span different parents. */
   groupSelected: () => void;
+  /** Dissolve a group/repeat, lifting its children into the parent's list. */
+  ungroup: (name: string) => void;
+  /** Toggle a container card's collapsed state (UI-only; not part of the schema). */
+  toggleCollapsed: (name: string) => void;
   /** Duplicate all selected elements (each after itself). */
   duplicateSelected: () => void;
   /** Delete all selected elements. */
@@ -157,6 +163,7 @@ export const useBuilderStore = create<BuilderState>((rawSet, get) => {
     schema: model.createEmptyForm(),
     selectedName: null,
     selectedNames: new Set<string>(),
+    collapsedNames: new Set<string>(),
     activePage: 0,
     status: "idle",
     error: null,
@@ -406,6 +413,31 @@ export const useBuilderStore = create<BuilderState>((rawSet, get) => {
           dirty: true,
         };
       }),
+
+    ungroup: (name) =>
+      set((s) => {
+        const { schema, childNames } = model.ungroupElement(s.schema, name);
+        if (schema === s.schema) return {};
+        const collapsed = new Set(s.collapsedNames);
+        collapsed.delete(name);
+        return {
+          schema,
+          selectedName: childNames[0] ?? null,
+          selectedNames: new Set(childNames),
+          collapsedNames: collapsed,
+          dirty: true,
+        };
+      }),
+
+    toggleCollapsed: (name) => {
+      const next = new Set(get().collapsedNames);
+      if (next.has(name)) {
+        next.delete(name);
+      } else {
+        next.add(name);
+      }
+      rawSet({ collapsedNames: next });
+    },
 
     duplicateSelected: () =>
       set((s) => {
