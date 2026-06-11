@@ -353,7 +353,7 @@ export function BuilderPage() {
         <div className="builder-body">
           {/* Palette */}
           <aside className="palette">
-            <h3>Add a question</h3>
+            <p className="palette-heading">Add a question</p>
             {ELEMENT_PALETTE.map((item) => (
               <PaletteItem key={item.type} type={item.type} label={item.label} icon={item.icon} />
             ))}

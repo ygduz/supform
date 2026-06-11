@@ -305,25 +305,45 @@ button:focus-visible {
 }
 
 /* Builder */
+/* ── App-shell foundations ─────────────────────────────────────── */
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+/* ── Builder: three-column app-shell ───────────────────────────── */
 .builder {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  height: 100dvh; /* lock to viewport — outer page never scrolls  */
+  overflow: hidden;
+  background: var(--surface);
 }
+
+/* Sticky top toolbar — never scrolls away */
 .builder-toolbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
+  flex-shrink: 0;
+  padding: 10px 20px;
+  background: #fff;
+  border-bottom: 1px solid var(--border);
+  z-index: 10;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
 }
 .title-input {
-  font-size: 22px;
+  font-size: 20px;
   font-weight: 700;
   border: none;
   border-bottom: 2px solid transparent;
   padding: 4px 2px;
   flex: 1;
-  max-width: 520px;
+  max-width: 480px;
+  background: transparent;
 }
 .title-input:focus {
   outline: none;
@@ -332,34 +352,56 @@ button:focus-visible {
 .toolbar-actions {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
+  flex-wrap: nowrap;
+  overflow-x: auto;
 }
-.toolbar-actions button {
-  padding: 8px 14px;
+.toolbar-actions button,
+.toolbar-actions a {
+  padding: 6px 12px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: #fff;
   cursor: pointer;
+  white-space: nowrap;
+  font-size: 13px;
+  text-decoration: none;
+  color: var(--text);
 }
 .toolbar-actions .button {
+  background: var(--primary);
   border-color: var(--primary);
+  color: #fff;
+  font-weight: 600;
+}
+.toolbar-actions .button:hover {
+  background: var(--primary-hover);
 }
 .toolbar-actions button:disabled {
-  opacity: 0.5;
+  opacity: 0.45;
   cursor: default;
 }
 
+/* ── Three-column body: only the canvas column scrolls ────────── */
 .builder-body {
   display: grid;
   grid-template-columns: 220px 1fr 340px;
-  gap: 20px;
-  align-items: start;
+  gap: 0;
+  flex: 1; /* fills remaining height below toolbar */
+  min-height: 0; /* essential: lets the flex child shrink below content size */
+  overflow: hidden;
 }
 
+/* Left column: palette */
 .palette {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  overflow-y: auto;
+  height: 100%;
+  padding: 16px 12px;
+  border-right: 1px solid var(--border);
+  background: #fff;
 }
 .palette-item {
   display: flex;
@@ -379,11 +421,12 @@ button:focus-visible {
   background: var(--surface);
 }
 
+/* Middle column: scrollable canvas */
 .canvas {
   background: var(--surface);
-  border-radius: var(--radius);
-  padding: 16px;
-  min-height: 360px;
+  overflow-y: auto;
+  height: 100%;
+  padding: 20px 24px 80px; /* bottom padding so last card clears the viewport */
 }
 
 /* Page tabs */
@@ -580,15 +623,22 @@ button:focus-visible {
   font-size: 13px;
   color: var(--muted);
   text-align: center;
-  min-height: 4px;
-  margin-top: 4px;
-  transition: all 0.15s ease;
+  /* Tall enough to be a real drag target even with a single card above it */
+  min-height: 80px;
+  margin-top: 8px;
+  transition: border-color 0.15s, background 0.15s;
 }
 .drop-zone.armed,
 .drop-zone.empty {
   border: 1.5px dashed var(--border);
-  padding: 10px;
-  min-height: 0;
+  padding: 20px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.drop-zone.empty {
+  /* Empty canvas: make it obvious you can drop here */
+  min-height: 160px;
 }
 .drop-zone.armed.over {
   border-color: var(--primary);
@@ -1043,18 +1093,14 @@ button:focus-visible {
   cursor: help;
 }
 
+/* Right column: inspector, pinned — part of the app shell */
 .inspector {
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-left: 1px solid var(--border);
   overflow: hidden;
   background: #fff;
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
-  /* Pin the panel so the form map stays visible while the canvas scrolls. */
-  position: sticky;
-  top: 16px;
   display: flex;
   flex-direction: column;
-  max-height: calc(100vh - 96px);
+  height: 100%;
 }
 .inspector > :not(.tabs) {
   overflow-y: auto;
@@ -1063,31 +1109,34 @@ button:focus-visible {
 }
 .tabs {
   display: flex;
-  border-bottom: 1px solid var(--border);
   background: var(--surface);
-  padding: 4px;
+  padding: 6px;
   gap: 2px;
   flex-shrink: 0;
+  border-bottom: 1px solid var(--border);
 }
 .tab {
   flex: 1;
-  padding: 7px 4px;
+  padding: 6px 2px;
   background: transparent;
   border: none;
-  border-radius: 7px;
+  border-radius: 6px;
   cursor: pointer;
   color: var(--muted);
-  font-size: 12.5px;
-  transition: background 0.1s, color 0.1s;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  transition: background 0.12s, color 0.12s;
 }
 .tab:hover {
+  background: rgba(0, 0, 0, 0.04);
   color: var(--text);
 }
 .tab.active {
   background: #fff;
-  color: var(--text);
-  font-weight: 600;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+  color: var(--primary);
+  font-weight: 700;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.1);
 }
 .preview-pane {
   padding: 16px;
@@ -2268,4 +2317,38 @@ button:focus-visible {
 
 .ov-empty-hint {
   font-size: 13px;
+}
+
+/* ── App-shell palette refinements ─────────────────────────────── */
+.palette-heading {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 0 0 8px;
+  padding: 0 2px;
+}
+
+/* ── Canvas heading bar: page tabs stay at the top of the scroll area ──── */
+.canvas .page-bar {
+  position: sticky;
+  top: 0;
+  background: var(--surface);
+  z-index: 5;
+  padding-bottom: 8px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid var(--border);
+}
+
+/* ── Inspector panel: section dividers for readability ─────────── */
+.inspector > .ov-panel,
+.inspector > .props,
+.inspector > .preview-pane {
+  padding-top: 8px;
+}
+
+/* Restore any removed padding in builder-body children (removed gap:20px) */
+.builder-body > .canvas {
+  padding: 20px 28px 80px;
 }
