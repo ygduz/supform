@@ -1,8 +1,10 @@
 import type { Element } from "@/types/form-schema";
 import { useDroppable } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import { Fragment } from "react";
 import type { DropLocation } from "./BuilderCanvas";
 import { ElementCard } from "./ElementCard";
+import { InsertSlot } from "./InsertSlot";
 
 export function CanvasList({
   elements,
@@ -29,22 +31,27 @@ export function CanvasList({
     <SortableContext items={elements.map((e) => e.name)} strategy={verticalListSortingStrategy}>
       <ol className="el-list">
         {elements.map((el, i) => (
-          <ElementCard
-            key={el.name}
-            element={el}
-            index={i}
-            count={elements.length}
-            location={{ pageIndex, parentName, index: i }}
-            selected={el.name === selectedName}
-            inSelection={selectedNames.has(el.name)}
-            multiSelect={selectedNames.size > 1}
-            selectedName={selectedName}
-            selectedNames={selectedNames}
-            activeDragId={activeDragId}
-            overDragId={overDragId}
-            groupingSource={groupingSource}
-            onGroupLink={onGroupLink}
-          />
+          <Fragment key={el.name}>
+            {/* Hover-to-insert gap; hidden while a drag is in flight to keep drops clean. */}
+            {activeDragId === null && (
+              <InsertSlot location={{ pageIndex, parentName, index: i }} />
+            )}
+            <ElementCard
+              element={el}
+              index={i}
+              count={elements.length}
+              location={{ pageIndex, parentName, index: i }}
+              selected={el.name === selectedName}
+              inSelection={selectedNames.has(el.name)}
+              multiSelect={selectedNames.size > 1}
+              selectedName={selectedName}
+              selectedNames={selectedNames}
+              activeDragId={activeDragId}
+              overDragId={overDragId}
+              groupingSource={groupingSource}
+              onGroupLink={onGroupLink}
+            />
+          </Fragment>
         ))}
       </ol>
       <DropZone

@@ -5,6 +5,7 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import type { DropLocation } from "./BuilderCanvas";
 import { CanvasList } from "./CanvasList";
+import { CardPreview } from "./CardPreview";
 import { isContainerType } from "./model";
 
 interface Props {
@@ -38,7 +39,8 @@ export function ElementCard({
   groupingSource,
   onGroupLink,
 }: Props) {
-  const { select, selectToggle, selectRange, moveBy, duplicate, remove } = useBuilderStore();
+  const { select, selectToggle, selectRange, update, moveBy, duplicate, remove } =
+    useBuilderStore();
   const container = isContainerType(element.type);
 
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
@@ -53,8 +55,9 @@ export function ElementCard({
     transition,
   };
 
-  // Is this card a valid target for group-link (not the source itself)?
   const isGroupTarget = groupingSource !== null && groupingSource !== element.name;
+  // Inline editing is on for the focused card outside of multi-select / link modes.
+  const editing = selected && !multiSelect && groupingSource === null;
 
   const cls = [
     "el-card",
@@ -69,9 +72,8 @@ export function ElementCard({
     .filter(Boolean)
     .join(" ");
 
-  function handleBodyClick(e: React.MouseEvent) {
+  function handleCardClick(e: React.MouseEvent) {
     if (groupingSource !== null) {
-      // Group-link mode: clicking any card (except source) links it.
       if (element.name !== groupingSource) onGroupLink(element.name);
       return;
     }
@@ -87,31 +89,50 @@ export function ElementCard({
   function handleGroupIconClick(e: React.MouseEvent) {
     e.stopPropagation();
     if (multiSelect) {
-      // When multiple items are already selected, group them all.
       useBuilderStore.getState().groupSelected();
     } else {
-      // Enter group-link mode for this card.
       onGroupLink(element.name);
     }
   }
 
   return (
     <li ref={setNodeRef} style={style} className={cls}>
-      <div
-        className="el-row"
-        {...(groupingSource ? {} : { ...attributes, ...listeners })}
-      >
+      <div className="el-row" {...(groupingSource ? {} : { ...attributes, ...listeners })}>
         <span className="drag-handle" aria-hidden="true">
           ⋮⋮
         </span>
 
-        <button type="button" className="el-card-body" onClick={handleBodyClick}>
+        <div
+          className="el-card-body"
+          onClick={handleCardClick}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") select(element.name);
+          }}
+        >
           {inSelection && multiSelect && (
-            <span className="el-check" aria-hidden="true">✓</span>
+            <span className="el-check" aria-hidden="true">
+              ✓
+            </span>
           )}
-          <span className="el-label">{localize(element.label) || element.name}</span>
+          {editing ? (
+            <input
+              className="el-label-input"
+              value={localize(element.label)}
+              placeholder="Question text"
+              onChange={(e) => update(element.name, { label: e.target.value })}
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={(e) => e.stopPropagation()}
+            />
+          ) : (
+            <span className="el-label">
+              {localize(element.label) || element.name}
+              {element.required ? <span className="el-required">*</span> : null}
+            </span>
+          )}
           <span className="el-type">{element.type.replace(/_/g, " ")}</span>
-        </button>
+        </div>
 
         <div className="el-actions">
           <button
@@ -146,6 +167,12 @@ export function ElementCard({
           </button>
         </div>
       </div>
+
+      {!container && !isDragging && (
+        <div className="el-preview" onClick={handleCardClick}>
+          <CardPreview element={element} editable={editing} />
+        </div>
+      )}
 
       {container && (
         <div className="el-children">
