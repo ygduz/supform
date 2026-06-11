@@ -76,24 +76,22 @@ export function BuilderPage() {
     const activeId = String(active.id);
     const overId = String(over.id);
 
+    // Zones store their location directly; element cards store it under `location`.
+    const data = over.data.current as
+      | (DropLocation & { location?: DropLocation })
+      | undefined;
+    const loc: DropLocation | undefined = data?.location ?? (data?.pageIndex !== undefined ? data : undefined);
+    if (!loc) return;
+
     if (activeId.startsWith("palette:")) {
       // Palette drag → insert new element at the drop target's position.
       const type = activeId.slice("palette:".length) as ElementType;
-      const loc = over.data.current as DropLocation | undefined;
-      if (loc) store.addAt(type, { pageIndex: loc.pageIndex, parentName: loc.parentName }, loc.index);
+      store.addAt(type, { pageIndex: loc.pageIndex, parentName: loc.parentName }, loc.index);
       return;
     }
 
     if (activeId === overId) return;
-
-    if (overId.startsWith("zone:")) {
-      const loc = over.data.current as DropLocation | undefined;
-      if (loc) store.moveInto(activeId, { pageIndex: loc.pageIndex, parentName: loc.parentName }, loc.index);
-      return;
-    }
-
-    const loc = over.data.current?.location as DropLocation | undefined;
-    if (loc) store.moveInto(activeId, { pageIndex: loc.pageIndex, parentName: loc.parentName }, loc.index);
+    store.moveInto(activeId, { pageIndex: loc.pageIndex, parentName: loc.parentName }, loc.index);
   }
 
   // ---- exports/imports ----
