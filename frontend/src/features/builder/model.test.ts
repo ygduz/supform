@@ -103,7 +103,7 @@ describe("moveElementTo (cross-container drag & drop)", () => {
     expect(m.moveElementTo(s, "q1", { pageIndex: 0, parentName: "q1" }, 0)).toBe(s);
     // nested group inside q1, then try to drop q1 into it
     s = m.addElement(s, "group", { parentName: "q1" }).schema;
-    const nested = m.findElement(s, "q1")!.elements!.find((e) => e.type === "group")!.name;
+    const nested = m.findElement(s, "q1")?.elements?.find((e) => e.type === "group")?.name;
     expect(m.moveElementTo(s, "q1", { pageIndex: 0, parentName: nested }, 0)).toBe(s);
   });
 

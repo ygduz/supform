@@ -111,11 +111,10 @@ export function ElementCard({
           ⋮⋮
         </span>
 
-        <div
+        <button
+          type="button"
           className="el-card-body"
           onClick={handleCardClick}
-          role="button"
-          tabIndex={0}
           onKeyDown={(e) => {
             if (e.key === "Enter" || e.key === " ") select(element.name);
           }}
@@ -148,7 +147,7 @@ export function ElementCard({
               </span>
             )}
           </span>
-        </div>
+        </button>
 
         <div className="el-actions">
           <button
@@ -185,7 +184,15 @@ export function ElementCard({
       </div>
 
       {!container && !isDragging && (
-        <div className="el-preview" onClick={handleCardClick}>
+        <div
+          className="el-preview"
+          onClick={handleCardClick}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ")
+              handleCardClick(e as unknown as React.MouseEvent);
+          }}
+          role="presentation"
+        >
           <CardPreview element={element} editable={editing} />
         </div>
       )}

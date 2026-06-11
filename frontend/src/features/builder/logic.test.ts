@@ -52,7 +52,7 @@ describe("serializeLogic", () => {
     for (const e of exprs) {
       const parsed = parseLogic(e);
       expect(parsed).not.toBeNull();
-      expect(parseLogic(serializeLogic(parsed!))).toEqual(parsed);
+      if (parsed) expect(parseLogic(serializeLogic(parsed))).toEqual(parsed);
     }
   });
 

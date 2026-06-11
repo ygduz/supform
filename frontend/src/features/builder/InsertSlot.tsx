@@ -47,7 +47,11 @@ export function InsertSlot({ location }: { location: DropLocation }) {
               type="button"
               role="menuitem"
               onClick={() => {
-                addAt(item.type, { pageIndex: location.pageIndex, parentName: location.parentName }, location.index);
+                addAt(
+                  item.type,
+                  { pageIndex: location.pageIndex, parentName: location.parentName },
+                  location.index,
+                );
                 setOpen(false);
               }}
             >

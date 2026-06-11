@@ -59,13 +59,21 @@ interface BuilderState {
 
   add: (type: ElementType) => void;
   /** Insert a new element of `type` at an explicit position (palette drag-to-canvas). */
-  addAt: (type: ElementType, target: { pageIndex: number; parentName?: string }, index: number) => void;
+  addAt: (
+    type: ElementType,
+    target: { pageIndex: number; parentName?: string },
+    index: number,
+  ) => void;
   update: (name: string, patch: Partial<Element>) => void;
   remove: (name: string) => void;
   duplicate: (name: string) => void;
   moveBy: (name: string, delta: number) => void;
   moveTo: (name: string, index: number) => void;
-  moveInto: (name: string, target: { pageIndex: number; parentName?: string }, index: number) => void;
+  moveInto: (
+    name: string,
+    target: { pageIndex: number; parentName?: string },
+    index: number,
+  ) => void;
   /** Wrap all selectedNames into a new group in-place. No-op if they span different parents. */
   groupSelected: () => void;
   /** Duplicate all selected elements (each after itself). */

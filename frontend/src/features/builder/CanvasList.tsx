@@ -33,9 +33,7 @@ export function CanvasList({
         {elements.map((el, i) => (
           <Fragment key={el.name}>
             {/* Hover-to-insert gap; hidden while a drag is in flight to keep drops clean. */}
-            {activeDragId === null && (
-              <InsertSlot location={{ pageIndex, parentName, index: i }} />
-            )}
+            {activeDragId === null && <InsertSlot location={{ pageIndex, parentName, index: i }} />}
             <ElementCard
               element={el}
               index={i}

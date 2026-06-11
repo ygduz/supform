@@ -601,7 +601,9 @@ button:focus-visible {
   margin-right: 6px;
   flex-shrink: 0;
 }
-.el-check { display: none; }
+.el-check {
+  display: none;
+}
 
 /* ---- group-link mode ---- */
 .canvas.linking {

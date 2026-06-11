@@ -2,7 +2,7 @@ import { localize } from "@/lib/i18n";
 import { useBuilderStore } from "@/stores/builderStore";
 import type { Element } from "@/types/form-schema";
 import { useState } from "react";
-import { LOGIC_OPS, parseLogic, serializeLogic, type LogicCondition } from "./logic";
+import { LOGIC_OPS, type LogicCondition, parseLogic, serializeLogic } from "./logic";
 import { allElements, isContainerType } from "./model";
 
 const NO_VALUE_TYPES = new Set(["note", "section", "html", "group", "repeat"]);
@@ -38,9 +38,7 @@ export function LogicBuilder({
   );
 
   function commit(conditions: LogicCondition[], connective: "and" | "or") {
-    onChange(
-      conditions.length === 0 ? undefined : serializeLogic({ connective, conditions }),
-    );
+    onChange(conditions.length === 0 ? undefined : serializeLogic({ connective, conditions }));
   }
 
   if (advanced) {
@@ -95,7 +93,7 @@ export function LogicBuilder({
 
       {conditions.map((cond, i) => (
         <ConditionRow
-          key={i}
+          key={`${cond.field}-${i}`}
           cond={cond}
           fields={fields}
           onChange={(next) =>
@@ -218,8 +216,8 @@ function ValueInput({
         }}
       >
         {!known && <option value={String(cond.value)}>{String(cond.value)}</option>}
-        {target.options.map((o, i) => (
-          <option key={i} value={String(o.value)}>
+        {target.options.map((o) => (
+          <option key={String(o.value)} value={String(o.value)}>
             {truncate(localize(o.label) || String(o.value))}
           </option>
         ))}
@@ -246,7 +244,9 @@ function ValueInput({
         aria-label="Value"
         type="number"
         value={typeof cond.value === "number" ? cond.value : ""}
-        onChange={(e) => onChange({ ...cond, value: e.target.value === "" ? 0 : Number(e.target.value) })}
+        onChange={(e) =>
+          onChange({ ...cond, value: e.target.value === "" ? 0 : Number(e.target.value) })
+        }
       />
     );
   }

@@ -3,15 +3,15 @@ import { useBuilderStore } from "@/stores/builderStore";
 import type { ElementType, FormSchema } from "@/types/form-schema";
 import {
   DndContext,
+  type DragEndEvent,
+  type DragOverEvent,
   DragOverlay,
+  type DragStartEvent,
   KeyboardSensor,
   PointerSensor,
   closestCorners,
   useSensor,
   useSensors,
-  type DragEndEvent,
-  type DragOverEvent,
-  type DragStartEvent,
 } from "@dnd-kit/core";
 import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { useEffect, useRef, useState } from "react";
@@ -19,6 +19,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { FormRenderer } from "../renderer/FormRenderer";
 import { saveMyTemplate } from "../templates/myTemplates";
 import { BuilderCanvas, type DropLocation } from "./BuilderCanvas";
+import { PaletteItem } from "./PaletteItem";
 import { PropertiesPanel } from "./PropertiesPanel";
 import { SettingsPanel } from "./SettingsPanel";
 import { ShareDialog } from "./ShareDialog";
@@ -26,7 +27,6 @@ import { ShareLinkDialog } from "./ShareLinkDialog";
 import { ThemePanel } from "./ThemePanel";
 import { WebhooksDialog } from "./WebhooksDialog";
 import { findElement, pageElements } from "./model";
-import { PaletteItem } from "./PaletteItem";
 import { ELEMENT_PALETTE } from "./palette";
 
 type Tab = "properties" | "theme" | "settings" | "preview";
@@ -77,10 +77,9 @@ export function BuilderPage() {
     const overId = String(over.id);
 
     // Zones store their location directly; element cards store it under `location`.
-    const data = over.data.current as
-      | (DropLocation & { location?: DropLocation })
-      | undefined;
-    const loc: DropLocation | undefined = data?.location ?? (data?.pageIndex !== undefined ? data : undefined);
+    const data = over.data.current as (DropLocation & { location?: DropLocation }) | undefined;
+    const loc: DropLocation | undefined =
+      data?.location ?? (data?.pageIndex !== undefined ? data : undefined);
     if (!loc) return;
 
     if (activeId.startsWith("palette:")) {
@@ -217,9 +216,7 @@ export function BuilderPage() {
     ? ELEMENT_PALETTE.find((p) => p.type === activePaletteType)
     : null;
   const activeCanvasElement =
-    activeDragId && !activeDragId.startsWith("palette:")
-      ? findElement(schema, activeDragId)
-      : null;
+    activeDragId && !activeDragId.startsWith("palette:") ? findElement(schema, activeDragId) : null;
 
   return (
     <div className="builder">
@@ -252,17 +249,29 @@ export function BuilderPage() {
             {status === "saving" ? "Saving…" : dirty ? "Unsaved changes" : "Saved ✓"}
           </span>
           {store.formId ? (
-            <button type="button" title="Public link, embed code, and QR" onClick={() => setShareLink(true)}>
+            <button
+              type="button"
+              title="Public link, embed code, and QR"
+              onClick={() => setShareLink(true)}
+            >
               Share link
             </button>
           ) : null}
           {store.projectId ? (
-            <button type="button" title="Manage who can collaborate on this project" onClick={() => setSharing(true)}>
+            <button
+              type="button"
+              title="Manage who can collaborate on this project"
+              onClick={() => setSharing(true)}
+            >
               Share access
             </button>
           ) : null}
           {store.formId ? (
-            <button type="button" title="Send submissions to external URLs" onClick={() => setIntegrations(true)}>
+            <button
+              type="button"
+              title="Send submissions to external URLs"
+              onClick={() => setIntegrations(true)}
+            >
               Integrations
             </button>
           ) : null}
@@ -273,7 +282,11 @@ export function BuilderPage() {
           <button type="button" title="Download this form's JSON schema" onClick={exportJson}>
             Export JSON
           </button>
-          <button type="button" title="Load a form from a JSON file" onClick={() => importRef.current?.click()}>
+          <button
+            type="button"
+            title="Load a form from a JSON file"
+            onClick={() => importRef.current?.click()}
+          >
             Import JSON
           </button>
           <input
@@ -432,14 +445,14 @@ export function BuilderPage() {
           ) : activeCanvasElement ? (
             <div className="el-card drag-ghost">
               <div className="el-row">
-                <span className="drag-handle" aria-hidden="true">⋮⋮</span>
+                <span className="drag-handle" aria-hidden="true">
+                  ⋮⋮
+                </span>
                 <span className="el-card-body">
                   <span className="el-label">
                     {localize(activeCanvasElement.label) || activeCanvasElement.name}
                   </span>
-                  <span className="el-type">
-                    {activeCanvasElement.type.replace(/_/g, " ")}
-                  </span>
+                  <span className="el-type">{activeCanvasElement.type.replace(/_/g, " ")}</span>
                 </span>
                 {activeCanvasElement.elements?.length ? (
                   <span className="drag-count">{activeCanvasElement.elements.length} inside</span>

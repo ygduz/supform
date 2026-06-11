@@ -21,15 +21,17 @@ export function CardPreview({ element, editable }: { element: Element; editable:
     case "date":
       return <div className="pv-input pv-narrow">Select a date 📅</div>;
     case "longtext":
-      return <div className="pv-input pv-tall">{localize(element.placeholder) || "Long answer"}</div>;
+      return (
+        <div className="pv-input pv-tall">{localize(element.placeholder) || "Long answer"}</div>
+      );
     case "single_choice":
     case "multi_choice":
       return editable ? (
         <OptionEditor element={element} />
       ) : (
         <ul className="pv-options">
-          {(element.options ?? []).map((o, i) => (
-            <li key={i}>
+          {(element.options ?? []).map((o) => (
+            <li key={String(o.value)}>
               <span className="pv-mark">{element.type === "single_choice" ? "◯" : "☐"}</span>
               {localize(o.label) || String(o.value)}
             </li>
@@ -54,16 +56,16 @@ export function CardPreview({ element, editable }: { element: Element; editable:
     case "rating":
       return (
         <div className="pv-stars" aria-hidden="true">
-          {(element.options ?? [1, 2, 3, 4, 5]).map((_, i) => (
-            <span key={i}>☆</span>
+          {(element.options ?? [1, 2, 3, 4, 5]).map((o, i) => (
+            <span key={typeof o === "object" ? String(o.value) : i}>☆</span>
           ))}
         </div>
       );
     case "scale":
       return (
         <div className="pv-pills">
-          {(element.options ?? []).map((o, i) => (
-            <span key={i} className="pv-pill pv-pill-sm">
+          {(element.options ?? []).map((o) => (
+            <span key={String(o.value)} className="pv-pill pv-pill-sm">
               {localize(o.label) || String(o.value)}
             </span>
           ))}
@@ -73,7 +75,7 @@ export function CardPreview({ element, editable }: { element: Element; editable:
       return (
         <ul className="pv-options">
           {(element.options ?? []).map((o, i) => (
-            <li key={i}>
+            <li key={String(o.value)}>
               <span className="pv-mark">{i + 1}.</span>
               {localize(o.label) || String(o.value)}
             </li>
@@ -86,17 +88,17 @@ export function CardPreview({ element, editable }: { element: Element; editable:
           <thead>
             <tr>
               <th />
-              {(element.columns ?? []).map((c, i) => (
-                <th key={i}>{localize(c.label) || String(c.value)}</th>
+              {(element.columns ?? []).map((c) => (
+                <th key={String(c.value)}>{localize(c.label) || String(c.value)}</th>
               ))}
             </tr>
           </thead>
           <tbody>
-            {(element.rows ?? []).map((r, i) => (
-              <tr key={i}>
+            {(element.rows ?? []).map((r) => (
+              <tr key={String(r.value)}>
                 <td>{localize(r.label) || String(r.value)}</td>
-                {(element.columns ?? []).map((_, j) => (
-                  <td key={j} className="pv-cell">
+                {(element.columns ?? []).map((c) => (
+                  <td key={String(c.value)} className="pv-cell">
                     ◯
                   </td>
                 ))}
@@ -123,13 +125,12 @@ export function CardPreview({ element, editable }: { element: Element; editable:
 /** In-place editor for the option list of choice questions (shown while selected). */
 function OptionEditor({ element }: { element: Element }) {
   const { updateOption, removeOption, addOption } = useBuilderStore();
-  const mark =
-    element.type === "multi_choice" ? "☐" : element.type === "dropdown" ? "▾" : "◯";
+  const mark = element.type === "multi_choice" ? "☐" : element.type === "dropdown" ? "▾" : "◯";
 
   return (
     <div className="pv-option-editor">
       {(element.options ?? []).map((o, i) => (
-        <div key={i} className="pv-option-row">
+        <div key={String(o.value)} className="pv-option-row">
           <span className="pv-mark">{mark}</span>
           <input
             value={localize(o.label)}

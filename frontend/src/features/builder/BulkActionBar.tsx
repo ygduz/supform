@@ -5,13 +5,8 @@ import { useBuilderStore } from "@/stores/builderStore";
  * All actions operate on the full `selectedNames` set and produce a single undo entry.
  */
 export function BulkActionBar({ count }: { count: number }) {
-  const {
-    groupSelected,
-    duplicateSelected,
-    removeSelected,
-    setRequiredSelected,
-    clearSelection,
-  } = useBuilderStore();
+  const { groupSelected, duplicateSelected, removeSelected, setRequiredSelected, clearSelection } =
+    useBuilderStore();
 
   return (
     <div className="bulk-bar">
@@ -60,7 +55,12 @@ export function BulkActionBar({ count }: { count: number }) {
         </button>
       </div>
 
-      <button type="button" className="bulk-close" title="Clear selection (Esc)" onClick={clearSelection}>
+      <button
+        type="button"
+        className="bulk-close"
+        title="Clear selection (Esc)"
+        onClick={clearSelection}
+      >
         ✕
       </button>
     </div>

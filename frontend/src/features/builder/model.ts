@@ -239,7 +239,7 @@ export function groupElements(
     const group: Element = {
       type: "group",
       name: newGroupName,
-      label: DEFAULT_LABELS["group"] ?? "Section",
+      label: DEFAULT_LABELS.group ?? "Section",
       elements: ordered,
     };
     groupName = newGroupName;
