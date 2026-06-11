@@ -29,6 +29,7 @@ services:
     environment:
       SUPFORM_DATABASE_URL: postgresql+asyncpg://supform:supform@db:5432/supform
       SUPFORM_REDIS_URL: redis://redis:6379/0
+      SUPFORM_CORS_ORIGINS: '["http://localhost:5173","http://localhost:8000"]'
     ports:
       - "8000:8000"
     volumes:
@@ -46,6 +47,7 @@ services:
     environment:
       SUPFORM_DATABASE_URL: postgresql+asyncpg://supform:supform@db:5432/supform
       SUPFORM_REDIS_URL: redis://redis:6379/0
+      SUPFORM_CORS_ORIGINS: '["http://localhost:5173","http://localhost:8000"]'
     volumes:
       - ./backend:/app
     depends_on:
