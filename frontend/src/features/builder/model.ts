@@ -501,3 +501,17 @@ export function removePage(schema: FormSchema, index: number): FormSchema {
 export function renamePage(schema: FormSchema, index: number, title: string): FormSchema {
   return { ...schema, pages: schema.pages.map((p, i) => (i === index ? { ...p, title } : p)) };
 }
+
+/** Set (or clear, when empty) a page's `visibleIf` condition — skips the whole page. */
+export function setPageVisibleIf(
+  schema: FormSchema,
+  index: number,
+  visibleIf: string | undefined,
+): FormSchema {
+  return {
+    ...schema,
+    pages: schema.pages.map((p, i) =>
+      i === index ? { ...p, visibleIf: visibleIf || undefined } : p,
+    ),
+  };
+}

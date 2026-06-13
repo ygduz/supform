@@ -22,6 +22,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { FormRenderer } from "../renderer/FormRenderer";
 import { saveMyTemplate } from "../templates/myTemplates";
 import { BuilderCanvas, type DropLocation } from "./BuilderCanvas";
+import { LogicBuilder } from "./LogicBuilder";
 import { OverviewPanel } from "./OverviewPanel";
 import { PaletteItem } from "./PaletteItem";
 import { PropertiesPanel } from "./PropertiesPanel";
@@ -395,16 +396,24 @@ export function BuilderPage() {
 
             {schema.pages.length > 1 && (
               <div className="page-settings">
-                <input
-                  type="text"
-                  aria-label="Page title"
-                  value={localize(schema.pages[activePage]?.title) || ""}
-                  placeholder={`Page ${activePage + 1}`}
-                  onChange={(e) => store.renamePage(activePage, e.target.value)}
+                <div className="page-settings-row">
+                  <input
+                    type="text"
+                    aria-label="Page title"
+                    value={localize(schema.pages[activePage]?.title) || ""}
+                    placeholder={`Page ${activePage + 1}`}
+                    onChange={(e) => store.renamePage(activePage, e.target.value)}
+                  />
+                  <button type="button" onClick={() => store.removePage(activePage)}>
+                    Delete page
+                  </button>
+                </div>
+                <LogicBuilder
+                  label="Show this page only if…"
+                  value={schema.pages[activePage]?.visibleIf}
+                  excludeName=""
+                  onChange={(v) => store.setPageVisibleIf(activePage, v)}
                 />
-                <button type="button" onClick={() => store.removePage(activePage)}>
-                  Delete page
-                </button>
               </div>
             )}
 

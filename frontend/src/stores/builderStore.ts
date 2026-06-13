@@ -108,6 +108,7 @@ interface BuilderState {
   addPage: () => void;
   removePage: (index: number) => void;
   renamePage: (index: number, title: string) => void;
+  setPageVisibleIf: (index: number, visibleIf: string | undefined) => void;
 
   save: () => Promise<void>;
   publish: () => Promise<void>;
@@ -536,6 +537,9 @@ export const useBuilderStore = create<BuilderState>((rawSet, get) => {
 
     renamePage: (index, title) =>
       set((s) => ({ schema: model.renamePage(s.schema, index, title), dirty: true })),
+
+    setPageVisibleIf: (index, visibleIf) =>
+      set((s) => ({ schema: model.setPageVisibleIf(s.schema, index, visibleIf), dirty: true })),
 
     save: async () => {
       const { formId, schema } = get();
