@@ -3,10 +3,17 @@ import { useBuilderStore } from "@/stores/builderStore";
 import type { Choice, Element, I18nString, Validation } from "@/types/form-schema";
 import { LogicBuilder } from "./LogicBuilder";
 import { hasOptionList } from "./model";
+import { ELEMENT_PALETTE } from "./palette";
 
 const PRESENTATIONAL = new Set(["note", "section", "html"]);
 const NUMERIC = new Set(["number", "integer", "decimal"]);
 const TEXTUAL = new Set(["text", "longtext", "email"]);
+
+/** Icon + human label for a question type, from the palette (falls back gracefully). */
+function typeMeta(type: string): { icon: string; label: string } {
+  const hit = ELEMENT_PALETTE.find((p) => p.type === type);
+  return { icon: hit?.icon ?? "▢", label: hit?.label ?? type.replace(/_/g, " ") };
+}
 
 /** Right-hand inspector for editing the currently-selected question. */
 export function PropertiesPanel({ element }: { element: Element }) {
@@ -23,64 +30,83 @@ export function PropertiesPanel({ element }: { element: Element }) {
   const setValidation = (patch: Partial<Validation>) =>
     update(name, { validation: { ...(element.validation ?? {}), ...patch } });
 
+  const meta = typeMeta(type);
+
   return (
     <div className="props">
-      <h3>Question settings</h3>
+      <header className="props-header">
+        <span className="props-icon" aria-hidden="true">
+          {meta.icon}
+        </span>
+        <div className="props-titles">
+          <span className="props-type">{meta.label}</span>
+          <code className="props-key" title="Field key (used in exports & logic)">
+            {name}
+          </code>
+        </div>
+      </header>
 
-      <I18nProp
-        label="Label"
-        value={element.label}
-        languages={languages}
-        defaultLang={defaultLang}
-        onChange={(v) => update(name, { label: v })}
-      />
-      <I18nProp
-        label="Help text"
-        value={element.hint}
-        languages={languages}
-        defaultLang={defaultLang}
-        placeholder="Optional guidance shown under the question"
-        onChange={(v) => update(name, { hint: v })}
-      />
-
-      {TEXTUAL.has(type) && (
+      <fieldset className="prop-fieldset">
+        <legend>Basics</legend>
         <I18nProp
-          label="Placeholder"
-          value={element.placeholder}
+          label="Label"
+          value={element.label}
           languages={languages}
           defaultLang={defaultLang}
-          onChange={(v) => update(name, { placeholder: v })}
+          onChange={(v) => update(name, { label: v })}
         />
-      )}
+        <I18nProp
+          label="Help text"
+          value={element.hint}
+          languages={languages}
+          defaultLang={defaultLang}
+          placeholder="Optional guidance shown under the question"
+          onChange={(v) => update(name, { hint: v })}
+        />
 
-      {canRequire && (
-        <label className="prop prop-check">
-          <input
-            type="checkbox"
-            checked={Boolean(element.required)}
-            onChange={(e) => update(name, { required: e.target.checked })}
+        {TEXTUAL.has(type) && (
+          <I18nProp
+            label="Placeholder"
+            value={element.placeholder}
+            languages={languages}
+            defaultLang={defaultLang}
+            onChange={(v) => update(name, { placeholder: v })}
           />
-          <span>Required</span>
-        </label>
-      )}
+        )}
+
+        {canRequire && (
+          <label className="prop prop-check">
+            <input
+              type="checkbox"
+              checked={Boolean(element.required)}
+              onChange={(e) => update(name, { required: e.target.checked })}
+            />
+            <span>Required</span>
+          </label>
+        )}
+      </fieldset>
 
       {hasOptionList(type) && (
-        <ListEditor
-          title="Options"
-          items={element.options ?? []}
-          onAdd={() => store.addOption(name)}
-          onUpdate={(i, label) => store.updateOption(name, i, choiceFrom(label))}
-          onRemove={(i) => store.removeOption(name, i)}
-          onScore={
-            store.schema.settings?.quizMode
-              ? (i, score) => store.updateOption(name, i, { score })
-              : undefined
-          }
-        />
+        <fieldset className="prop-fieldset">
+          <legend>Choices</legend>
+          <ListEditor
+            title="Options"
+            items={element.options ?? []}
+            onAdd={() => store.addOption(name)}
+            onUpdate={(i, label) => store.updateOption(name, i, choiceFrom(label))}
+            onRemove={(i) => store.removeOption(name, i)}
+            onScore={
+              store.schema.settings?.quizMode
+                ? (i, score) => store.updateOption(name, i, { score })
+                : undefined
+            }
+          />
+        </fieldset>
       )}
 
       {type === "matrix" && (
-        <>
+        <fieldset className="prop-fieldset">
+          <legend>Matrix</legend>
           <ListEditor
             title="Rows"
             items={element.rows ?? []}
@@ -95,24 +121,29 @@ export function PropertiesPanel({ element }: { element: Element }) {
             onUpdate={(i, label) => store.updateColumn(name, i, choiceFrom(label))}
             onRemove={(i) => store.removeColumn(name, i)}
           />
-        </>
+        </fieldset>
       )}
 
       {type === "repeat" && (
-        <div className="prop-group">
-          <NumberProp
-            label="Min entries"
-            value={element.repeat?.min}
-            onChange={(v) => update(name, { repeat: { ...element.repeat, min: v ?? 0 } })}
-          />
-          <NumberProp
-            label="Max entries"
-            value={element.repeat?.max}
-            onChange={(v) =>
-              update(name, { repeat: { ...element.repeat, min: element.repeat?.min ?? 0, max: v } })
-            }
-          />
-        </div>
+        <fieldset className="prop-fieldset">
+          <legend>Repeat</legend>
+          <div className="prop-group">
+            <NumberProp
+              label="Min entries"
+              value={element.repeat?.min}
+              onChange={(v) => update(name, { repeat: { ...element.repeat, min: v ?? 0 } })}
+            />
+            <NumberProp
+              label="Max entries"
+              value={element.repeat?.max}
+              onChange={(v) =>
+                update(name, {
+                  repeat: { ...element.repeat, min: element.repeat?.min ?? 0, max: v },
+                })
+              }
+            />
+          </div>
+        </fieldset>
       )}
 
       {/* Validation rules */}
