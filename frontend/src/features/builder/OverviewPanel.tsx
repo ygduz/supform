@@ -119,12 +119,14 @@ function OverviewRow({
   element,
   index,
   isSelected,
+  inViewport,
   expanded,
   onToggleExpand,
 }: {
   element: Element;
   index: number;
   isSelected: boolean;
+  inViewport: boolean;
   expanded: boolean;
   onToggleExpand: () => void;
 }) {
@@ -142,12 +144,17 @@ function OverviewRow({
     opacity: isDragging ? 0.35 : 1,
   };
 
+  const cls = [
+    "ov-row",
+    isSelected ? "ov-selected" : "",
+    inViewport ? "ov-in-viewport" : "",
+    container ? "ov-container" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
   return (
-    <li
-      ref={setNodeRef}
-      style={style}
-      className={`ov-row${isSelected ? " ov-selected" : ""}${container ? " ov-container" : ""}`}
-    >
+    <li ref={setNodeRef} style={style} className={cls}>
       <div className="ov-row-head">
         {/* drag handle */}
         <span className="ov-handle" {...attributes} {...listeners} aria-hidden="true">
@@ -206,7 +213,7 @@ function GhostRow({ element }: { element: Element }) {
 // ── main panel ────────────────────────────────────────────────────
 
 export function OverviewPanel() {
-  const { schema, activePage, selectedName } = useBuilderStore();
+  const { schema, activePage, selectedName, viewportName } = useBuilderStore();
   const store = useBuilderStore();
   const elements = schema.pages[activePage]?.elements ?? [];
 
@@ -284,6 +291,7 @@ export function OverviewPanel() {
                 element={el}
                 index={i}
                 isSelected={selectedName === el.name}
+                inViewport={viewportName === el.name}
                 expanded={expandedNames.has(el.name)}
                 onToggleExpand={() => toggleExpand(el.name)}
               />

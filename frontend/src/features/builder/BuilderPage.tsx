@@ -2,6 +2,7 @@ import { localize } from "@/lib/i18n";
 import { useBuilderStore } from "@/stores/builderStore";
 import type { ElementType, FormSchema } from "@/types/form-schema";
 import {
+  type CollisionDetection,
   DndContext,
   type DragEndEvent,
   type DragOverEvent,
@@ -10,15 +11,19 @@ import {
   KeyboardSensor,
   PointerSensor,
   closestCorners,
+  pointerWithin,
+  rectIntersection,
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
 import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import { formToText } from "../import/textForm";
 import { FormRenderer } from "../renderer/FormRenderer";
 import { saveMyTemplate } from "../templates/myTemplates";
 import { BuilderCanvas, type DropLocation } from "./BuilderCanvas";
+import { LogicBuilder } from "./LogicBuilder";
 import { OverviewPanel } from "./OverviewPanel";
 import { PaletteItem } from "./PaletteItem";
 import { PropertiesPanel } from "./PropertiesPanel";
@@ -27,7 +32,7 @@ import { ShareDialog } from "./ShareDialog";
 import { ShareLinkDialog } from "./ShareLinkDialog";
 import { ThemePanel } from "./ThemePanel";
 import { WebhooksDialog } from "./WebhooksDialog";
-import { findElement, pageElements } from "./model";
+import { findElement, groupElements, pageElements } from "./model";
 import { ELEMENT_PALETTE } from "./palette";
 
 type Tab = "overview" | "properties" | "theme" | "settings" | "preview";
@@ -56,6 +61,19 @@ export function BuilderPage() {
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
+
+  // Pointer-first collision detection: what's directly under the cursor wins. This makes
+  // dropping a question *out* of a section (onto the page-level drop zone or another
+  // top-level card) reliable — closestCorners alone tends to snap back to the nested
+  // SortableContext whose rect overlaps the pointer. Falls back to rect-based strategies
+  // when the pointer isn't over any droppable (e.g. fast drags past the edge).
+  const collisionDetection = useCallback<CollisionDetection>((args) => {
+    const byPointer = pointerWithin(args);
+    if (byPointer.length > 0) return byPointer;
+    const byRect = rectIntersection(args);
+    if (byRect.length > 0) return byRect;
+    return closestCorners(args);
+  }, []);
 
   function handleDragStart(e: DragStartEvent) {
     const id = String(e.active.id);
@@ -109,14 +127,22 @@ export function BuilderPage() {
   }
 
   // ---- exports/imports ----
-  function exportJson() {
-    const blob = new Blob([JSON.stringify(schema, null, 2)], { type: "application/json" });
+  function download(content: string, mime: string, ext: string) {
+    const blob = new Blob([content], { type: mime });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${schema.name || "form"}.json`;
+    a.download = `${schema.name || "form"}.${ext}`;
     a.click();
     URL.revokeObjectURL(url);
+  }
+
+  function exportJson() {
+    download(JSON.stringify(schema, null, 2), "application/json", "json");
+  }
+
+  function exportText() {
+    download(formToText(schema), "text/plain", "txt");
   }
 
   async function importJson(file: File) {
@@ -306,6 +332,9 @@ export function BuilderPage() {
           <button type="button" title="Download this form's JSON schema" onClick={exportJson}>
             Export JSON
           </button>
+          <button type="button" title="Download as editable Word/text markers" onClick={exportText}>
+            Export text
+          </button>
           <button
             type="button"
             title="Load a form from a JSON file"
@@ -341,7 +370,7 @@ export function BuilderPage() {
       {/* One DndContext covers both the palette (useDraggable) and the canvas (useSortable). */}
       <DndContext
         sensors={sensors}
-        collisionDetection={closestCorners}
+        collisionDetection={collisionDetection}
         onDragStart={handleDragStart}
         onDragOver={handleDragOver}
         onDragEnd={handleDragEnd}
@@ -379,16 +408,24 @@ export function BuilderPage() {
 
             {schema.pages.length > 1 && (
               <div className="page-settings">
-                <input
-                  type="text"
-                  aria-label="Page title"
-                  value={localize(schema.pages[activePage]?.title) || ""}
-                  placeholder={`Page ${activePage + 1}`}
-                  onChange={(e) => store.renamePage(activePage, e.target.value)}
+                <div className="page-settings-row">
+                  <input
+                    type="text"
+                    aria-label="Page title"
+                    value={localize(schema.pages[activePage]?.title) || ""}
+                    placeholder={`Page ${activePage + 1}`}
+                    onChange={(e) => store.renamePage(activePage, e.target.value)}
+                  />
+                  <button type="button" onClick={() => store.removePage(activePage)}>
+                    Delete page
+                  </button>
+                </div>
+                <LogicBuilder
+                  label="Show this page only if…"
+                  value={schema.pages[activePage]?.visibleIf}
+                  excludeName=""
+                  onChange={(v) => store.setPageVisibleIf(activePage, v)}
                 />
-                <button type="button" onClick={() => store.removePage(activePage)}>
-                  Delete page
-                </button>
               </div>
             )}
 
@@ -408,21 +445,19 @@ export function BuilderPage() {
                     store.select(name);
                   } else if (groupingSource !== name) {
                     // Complete the group.
-                    import("./model").then(({ groupElements }) => {
-                      const s = useBuilderStore.getState();
-                      const { schema: next, groupName } = groupElements(s.schema, [
-                        groupingSource,
-                        name,
-                      ]);
-                      if (groupName) {
-                        useBuilderStore.setState({
-                          schema: next,
-                          selectedName: groupName,
-                          selectedNames: new Set([groupName]),
-                          dirty: true,
-                        });
-                      }
-                    });
+                    const s = useBuilderStore.getState();
+                    const { schema: next, groupName } = groupElements(s.schema, [
+                      groupingSource,
+                      name,
+                    ]);
+                    if (groupName) {
+                      useBuilderStore.setState({
+                        schema: next,
+                        selectedName: groupName,
+                        selectedNames: new Set([groupName]),
+                        dirty: true,
+                      });
+                    }
                     setGroupingSource(null);
                   }
                 }}

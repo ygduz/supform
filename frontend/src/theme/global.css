@@ -95,12 +95,19 @@ button:focus-visible {
 /* Forms */
 .form-renderer {
   max-width: 640px;
+  margin: 0 auto;
+}
+.form-renderer > h1 {
+  font-size: 26px;
+  line-height: 1.25;
+  margin: 0 0 8px;
 }
 .form-renderer .group {
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 12px 16px;
-  margin: 0 0 20px;
+  padding: 16px 18px 4px;
+  margin: 0 0 24px;
+  background: var(--surface);
 }
 .form-renderer .group legend {
   font-weight: 600;
@@ -173,27 +180,76 @@ button:focus-visible {
   font-size: 14px;
 }
 .field {
-  margin-bottom: 20px;
+  margin-bottom: 24px;
 }
-.field label {
+.field label,
+.field-label {
   display: block;
   font-weight: 600;
-  margin-bottom: 6px;
+  font-size: 15px;
+  line-height: 1.4;
+  margin-bottom: 8px;
+  color: var(--text);
 }
 .field input[type="text"],
 .field input[type="email"],
 .field input[type="number"],
-.field textarea {
+.field input[type="date"],
+.field input[type="time"],
+.field input[type="datetime-local"],
+.field textarea,
+.field .select {
   width: 100%;
-  padding: 10px 12px;
+  min-height: 44px; /* comfortable touch target */
+  padding: 11px 13px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   font-size: 15px;
   font-family: inherit;
+  background: #fff;
+  transition: border-color 0.12s ease, box-shadow 0.12s ease;
+}
+.field input[type="text"]:hover,
+.field input[type="email"]:hover,
+.field input[type="number"]:hover,
+.field textarea:hover,
+.field .select:hover {
+  border-color: var(--muted);
+}
+.field input:focus,
+.field textarea:focus,
+.field .select:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
 }
 .choices label {
-  display: block;
-  margin: 6px 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 8px 0;
+  padding: 11px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-size: 15px;
+  transition: border-color 0.12s ease, background 0.12s ease;
+}
+.choices label:hover {
+  border-color: var(--primary);
+  background: rgba(37, 99, 235, 0.03);
+}
+.choices label:has(input:checked) {
+  border-color: var(--primary);
+  background: rgba(37, 99, 235, 0.07);
+  font-weight: 500;
+}
+.choices input[type="radio"],
+.choices input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--primary);
+  flex-shrink: 0;
 }
 .rating .star {
   background: none;
@@ -460,8 +516,17 @@ body,
 }
 .page-settings {
   display: flex;
-  gap: 8px;
+  flex-direction: column;
+  gap: 10px;
   margin-bottom: 12px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: #fff;
+}
+.page-settings-row {
+  display: flex;
+  gap: 8px;
 }
 .page-settings input {
   flex: 1;
@@ -503,6 +568,26 @@ body,
   align-items: center;
   gap: 8px;
   padding: 8px 10px;
+}
+.el-number {
+  flex-shrink: 0;
+  min-width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-variant-numeric: tabular-nums;
+}
+.el-card.selected .el-number {
+  color: var(--primary);
+  border-color: var(--primary);
+  background: rgba(37, 99, 235, 0.08);
 }
 .el-card.selected {
   border-color: var(--primary);
@@ -1142,13 +1227,56 @@ body,
   padding: 16px;
 }
 .props {
-  padding: 16px;
+  padding: 14px;
   display: flex;
   flex-direction: column;
   gap: 14px;
 }
 .props h3 {
   margin: 0;
+}
+.props-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.props-icon {
+  font-size: 20px;
+  line-height: 1;
+}
+.props-titles {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.props-type {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  text-transform: capitalize;
+}
+.props-key {
+  font-size: 11px;
+  color: var(--muted);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.prop-caption {
+  margin: 0;
+  font-size: 11.5px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+.prop-caption code {
+  font-size: 11px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1px 4px;
 }
 .prop {
   display: flex;
@@ -1729,6 +1857,39 @@ body,
 .quiz-score {
   font-size: 18px;
 }
+/* Thank-you / confirmation screen */
+.confirmation {
+  max-width: 520px;
+  margin: 48px auto;
+  text-align: center;
+  padding: 40px 32px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 4px 24px rgba(15, 23, 42, 0.06);
+  animation: stepIn 0.3s ease;
+}
+.confirmation::before {
+  content: "✓";
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 16px;
+  border-radius: 50%;
+  background: rgba(37, 99, 235, 0.12);
+  color: var(--primary);
+  font-size: 28px;
+  font-weight: 700;
+}
+.confirmation p {
+  font-size: 17px;
+  margin: 0 0 8px;
+}
+.confirmation .quiz-score {
+  color: var(--muted);
+}
 .analytics {
   display: flex;
   flex-direction: column;
@@ -1871,8 +2032,8 @@ body,
 /* Stepped renderer: progress, page transitions, navigation */
 .form-progress {
   width: 100%;
-  height: 6px;
-  margin: 4px 0 20px;
+  height: 8px;
+  margin: 8px 0 24px;
   appearance: none;
   border: none;
   border-radius: 999px;
@@ -1954,10 +2115,19 @@ body,
   justify-content: center;
   margin-top: 16px;
 }
+.sort-select {
+  font-size: 14px;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: #fff;
+  color: var(--text);
+  cursor: pointer;
+}
 .forms-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
 }
 .form-card {
   border: 1px solid var(--border);
@@ -1966,25 +2136,60 @@ body,
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  transition: box-shadow 0.15s ease;
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
 }
 .form-card:hover {
-  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.08);
+  box-shadow: 0 6px 24px rgba(15, 23, 42, 0.1);
+  transform: translateY(-2px);
 }
 .form-card-main {
   text-align: left;
   background: none;
   border: none;
-  padding: 18px 18px 10px;
+  padding: 0;
   cursor: pointer;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 0;
   flex: 1;
 }
-.form-card-main h2 {
+.form-card-thumb {
+  height: 90px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.form-card-initials {
+  font-size: 28px;
+  font-weight: 700;
+  color: rgba(255,255,255,0.9);
+  letter-spacing: -0.5px;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.15);
+}
+.form-card-body {
+  padding: 14px 16px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.form-card-body h2 {
   margin: 0;
-  font-size: 17px;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.form-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--muted);
+  margin: 0;
+}
+.form-card-responses strong {
   color: var(--text);
 }
 .status-badge {
@@ -2006,9 +2211,9 @@ body,
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
-  padding: 10px 18px 14px;
+  padding: 10px 16px 12px;
   border-top: 1px solid var(--border);
-  font-size: 14px;
+  font-size: 13px;
 }
 .form-card-actions .link-button {
   align-self: auto;
@@ -2124,10 +2329,28 @@ body,
 }
 
 .ov-row {
+  position: relative;
   border-radius: 8px;
   border: 1px solid transparent;
   background: transparent;
   transition: background 0.1s, border-color 0.1s;
+}
+
+/* Scroll-spy "you are here": a left accent bar on the row whose canvas card
+   is currently at the top of the viewport. Subtle so it doesn't fight selection. */
+.ov-row.ov-in-viewport::before {
+  content: "";
+  position: absolute;
+  left: 2px;
+  top: 6px;
+  bottom: 6px;
+  width: 3px;
+  border-radius: 3px;
+  background: var(--primary);
+  opacity: 0.55;
+}
+.ov-row.ov-in-viewport:not(.ov-selected) {
+  background: rgba(37, 99, 235, 0.04);
 }
 
 .ov-row:hover {
@@ -2351,4 +2574,80 @@ body,
 /* Restore any removed padding in builder-body children (removed gap:20px) */
 .builder-body > .canvas {
   padding: 20px 28px 80px;
+}
+
+/* Calculated (read-only computed) field */
+.calc-field {
+  display: inline-block;
+  min-height: 44px;
+  padding: 11px 13px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Word / plain-text importer ────────────────────────────────── */
+.import-divider {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 28px 0;
+}
+.text-import h2 {
+  margin: 0 0 6px;
+  font-size: 18px;
+}
+.text-import-tools {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 12px 0 8px;
+  flex-wrap: wrap;
+}
+.text-import-area {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 13.5px;
+  line-height: 1.6;
+  resize: vertical;
+  background: var(--surface);
+}
+.text-import-area:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+  background: #fff;
+}
+.text-import-preview {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 14px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.text-import code {
+  font-size: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1px 5px;
+}
+
+.text-import-sniff {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--muted);
+  cursor: pointer;
 }

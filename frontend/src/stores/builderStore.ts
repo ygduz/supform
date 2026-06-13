@@ -33,6 +33,8 @@ interface BuilderState {
   selectedNames: Set<string>;
   /** Names of container elements currently collapsed on the canvas (UI-only). */
   collapsedNames: Set<string>;
+  /** Name of the top-most question currently in the canvas viewport (scroll-spy, UI-only). */
+  viewportName: string | null;
   activePage: number;
   status: Status;
   error: string | null;
@@ -82,6 +84,8 @@ interface BuilderState {
   ungroup: (name: string) => void;
   /** Toggle a container card's collapsed state (UI-only; not part of the schema). */
   toggleCollapsed: (name: string) => void;
+  /** Report the question currently scrolled into the canvas viewport (scroll-spy). */
+  setViewportName: (name: string | null) => void;
   /** Duplicate all selected elements (each after itself). */
   duplicateSelected: () => void;
   /** Delete all selected elements. */
@@ -104,6 +108,7 @@ interface BuilderState {
   addPage: () => void;
   removePage: (index: number) => void;
   renamePage: (index: number, title: string) => void;
+  setPageVisibleIf: (index: number, visibleIf: string | undefined) => void;
 
   save: () => Promise<void>;
   publish: () => Promise<void>;
@@ -164,6 +169,7 @@ export const useBuilderStore = create<BuilderState>((rawSet, get) => {
     selectedName: null,
     selectedNames: new Set<string>(),
     collapsedNames: new Set<string>(),
+    viewportName: null,
     activePage: 0,
     status: "idle",
     error: null,
@@ -439,6 +445,10 @@ export const useBuilderStore = create<BuilderState>((rawSet, get) => {
       rawSet({ collapsedNames: next });
     },
 
+    setViewportName: (name) => {
+      if (get().viewportName !== name) rawSet({ viewportName: name });
+    },
+
     duplicateSelected: () =>
       set((s) => {
         if (s.selectedNames.size === 0) return {};
@@ -527,6 +537,9 @@ export const useBuilderStore = create<BuilderState>((rawSet, get) => {
 
     renamePage: (index, title) =>
       set((s) => ({ schema: model.renamePage(s.schema, index, title), dirty: true })),
+
+    setPageVisibleIf: (index, visibleIf) =>
+      set((s) => ({ schema: model.setPageVisibleIf(s.schema, index, visibleIf), dirty: true })),
 
     save: async () => {
       const { formId, schema } = get();

@@ -7,8 +7,8 @@
 import { type MediaRef, api } from "@/api/client";
 import { LanguageContext, localize } from "@/lib/i18n";
 import type { Choice, Element } from "@/types/form-schema";
-import { useContext, useState } from "react";
-import { evaluateBool } from "../expressions";
+import { useContext, useEffect, useState } from "react";
+import { evaluateBool, evaluateValue } from "../expressions";
 
 type FieldProps = {
   element: Element;
@@ -383,6 +383,19 @@ const Geopoint: Renderer = ({ value, onChange }) => {
 };
 
 /** type -> renderer. Unknown types fall back to a text input. */
+/** Read-only field showing a live-computed value from `element.calculate`. */
+const Calculated: Renderer = ({ element, value, onChange, scope }) => {
+  const computed = evaluateValue(element.calculate, scope ?? {});
+  // Keep the answer in sync so the value is submitted (server recomputes authoritatively).
+  // biome-ignore lint/correctness/useExhaustiveDependencies: write only when the result changes
+  useEffect(() => {
+    if (computed !== value) onChange(computed);
+  }, [computed]);
+  return (
+    <output className="calc-field">{computed == null || computed === "" ? "—" : computed}</output>
+  );
+};
+
 const REGISTRY: Record<string, Renderer> = {
   text: TextField,
   email: TextField,
@@ -403,6 +416,7 @@ const REGISTRY: Record<string, Renderer> = {
   file: FileField,
   image: FileField,
   geopoint: Geopoint,
+  calculated: Calculated,
   // TODO(M2): ranking, signature, …
 };
 
