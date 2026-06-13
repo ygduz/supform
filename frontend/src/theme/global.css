@@ -2531,3 +2531,17 @@ body,
 .builder-body > .canvas {
   padding: 20px 28px 80px;
 }
+
+/* Calculated (read-only computed) field */
+.calc-field {
+  display: inline-block;
+  min-height: 44px;
+  padding: 11px 13px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}

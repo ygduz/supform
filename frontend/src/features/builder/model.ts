@@ -25,6 +25,7 @@ export const DEFAULT_LABELS: Partial<Record<ElementType, string>> = {
   boolean: "Yes / no question",
   matrix: "Matrix question",
   file: "File upload",
+  calculated: "Calculated value",
   group: "Section",
   repeat: "Repeating group",
 };

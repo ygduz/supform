@@ -230,12 +230,18 @@ export function PropertiesPanel({ element }: { element: Element }) {
           />
         )}
         {type === "calculated" && (
-          <LogicProp
-            label="Calculate value"
-            value={element.calculate}
-            placeholder="e.g. price * quantity"
-            onChange={(v) => update(name, { calculate: v })}
-          />
+          <>
+            <LogicProp
+              label="Calculate value"
+              value={element.calculate}
+              placeholder="e.g. price * quantity"
+              onChange={(v) => update(name, { calculate: v })}
+            />
+            <p className="prop-caption">
+              Reference other questions by their field key. Supports <code>+ − * /</code> and
+              parentheses — e.g. <code>{"qty * unit_price"}</code>.
+            </p>
+          </>
         )}
       </fieldset>
     </div>

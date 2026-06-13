@@ -30,3 +30,32 @@ function toJs(expr: string): string {
     .replace(/([^=!<>])=([^=])/g, "$1==$2")
     .replace(/\bNone\b/g, "null");
 }
+
+/**
+ * Evaluate an arithmetic `calculate` expression (e.g. `qty * unit_price`) against the
+ * current answers. Referenced fields that aren't answered yet default to 0 so partial
+ * forms still compute. Interactivity only — the server recomputes authoritatively.
+ */
+export function evaluateValue(
+  expression: string | undefined,
+  context: Record<string, unknown>,
+): number | string | undefined {
+  if (!expression) return undefined;
+  try {
+    // Every identifier the expression mentions must be a defined argument, or the
+    // Function throws ReferenceError. Seed unknown/blank refs with 0 (numeric default).
+    const idents = new Set(expression.match(/[A-Za-z_]\w*/g) ?? []);
+    const scope: Record<string, unknown> = {};
+    for (const id of idents) {
+      const v = context[id];
+      const n = typeof v === "string" && v.trim() !== "" ? Number(v) : v;
+      scope[id] = typeof n === "number" && !Number.isNaN(n) ? n : (v ?? 0);
+    }
+    const fn = new Function(...Object.keys(scope), `return (${expression});`);
+    const out = fn(...Object.values(scope));
+    if (typeof out === "number") return Number.isFinite(out) ? out : undefined;
+    return out;
+  } catch {
+    return undefined;
+  }
+}
