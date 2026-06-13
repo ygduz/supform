@@ -79,7 +79,14 @@ describe("parseTextForm", () => {
     ]);
   });
 
-  it("sniffs types from wording when none is given", () => {
+  it("does not sniff types by default (deterministic, language-neutral)", () => {
+    const schema = parseTextForm(
+      ["- What is your email address?", "- How many guests?"].join("\n"),
+    );
+    expect(schema.pages[0].elements.map((e) => e.type)).toEqual(["text", "text"]);
+  });
+
+  it("sniffs types from wording when opted in", () => {
     const schema = parseTextForm(
       [
         "- What is your email address?",
@@ -88,6 +95,7 @@ describe("parseTextForm", () => {
         "- Your phone number",
         "- Plain question",
       ].join("\n"),
+      { sniff: true },
     );
     expect(schema.pages[0].elements.map((e) => e.type)).toEqual([
       "email",
@@ -101,6 +109,7 @@ describe("parseTextForm", () => {
   it("lets an explicit type or choices win over sniffing", () => {
     const schema = parseTextForm(
       ["- Email me a number (text)", "- Pick a date", "  • Mon", "  • Tue"].join("\n"),
+      { sniff: true },
     );
     expect(schema.pages[0].elements[0].type).toBe("text"); // explicit overrides sniff
     expect(schema.pages[0].elements[1].type).toBe("single_choice"); // choices override date-sniff

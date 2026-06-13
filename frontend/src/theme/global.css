@@ -2598,3 +2598,12 @@ body,
   border-radius: 4px;
   padding: 1px 5px;
 }
+
+.text-import-sniff {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--muted);
+  cursor: pointer;
+}

@@ -35,9 +35,10 @@ function TextFormImport() {
   const navigate = useNavigate();
   const loadTemplate = useBuilderStore((s) => s.loadTemplate);
   const [text, setText] = useState("");
+  const [sniff, setSniff] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const schema = useMemo(() => parseTextForm(text), [text]);
+  const schema = useMemo(() => parseTextForm(text, { sniff }), [text, sniff]);
   const counts = summarize(schema);
   const hasContent = counts.questions > 0 || counts.sections > 0;
 
@@ -65,10 +66,11 @@ function TextFormImport() {
         with <code>*</code> to make it required.
       </p>
       <p className="muted">
-        Types are auto-detected from the wording (e.g. "email", "how many", "describe…"). To be
-        explicit, add a word like <code>(email)</code> / <code>(paragraph)</code> or a one-letter
-        code: <code>(@)</code> email, <code>(#)</code> number, <code>(=)</code> paragraph,{" "}
-        <code>(d)</code> date, <code>(m)</code> multi-select, <code>(l)</code> dropdown.
+        Set a type with a one-letter code in parentheses — language-independent and exact:{" "}
+        <code>(@)</code> email, <code>(#)</code> number, <code>(=)</code> paragraph,{" "}
+        <code>(d)</code> date, <code>(m)</code> multi-select, <code>(l)</code> dropdown,{" "}
+        <code>(y)</code> yes/no. Full words like <code>(email)</code> work too. No code and a{" "}
+        <code>•</code> list ⇒ single choice; otherwise short text.
       </p>
 
       <div className="text-import-tools">
@@ -83,6 +85,13 @@ function TextFormImport() {
         <button type="button" className="link-button" onClick={() => setText(SAMPLE)}>
           Paste a sample
         </button>
+        <label
+          className="text-import-sniff"
+          title="English keyword guess — leaves types as text when unsure"
+        >
+          <input type="checkbox" checked={sniff} onChange={(e) => setSniff(e.target.checked)} />
+          Guess types from wording
+        </label>
       </div>
 
       <textarea

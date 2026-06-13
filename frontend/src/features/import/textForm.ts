@@ -153,11 +153,23 @@ function lineKind(line: string): {
   return { kind: "blank", rest: "" };
 }
 
+export interface ParseOptions {
+  /** Title to use when the text declares none. */
+  fallbackTitle?: string;
+  /**
+   * Guess a question's type from its wording when no explicit type/choices are given.
+   * Off by default: it's English-keyword based, so the deterministic, language-neutral
+   * character codes are the primary way to set types. Opt in for convenience.
+   */
+  sniff?: boolean;
+}
+
 /**
  * Parse the marker-based text format into a FormSchema. Always returns a usable schema
  * (an empty one if nothing parsed) so the caller can open it in the builder directly.
  */
-export function parseTextForm(text: string, fallbackTitle = "Imported form"): FormSchema {
+export function parseTextForm(text: string, opts: ParseOptions = {}): FormSchema {
+  const { fallbackTitle = "Imported form", sniff = false } = opts;
   const taken = new Set<string>();
   const topLevel: Element[] = [];
   let currentSection: Element | null = null;
@@ -195,9 +207,9 @@ export function parseTextForm(text: string, fallbackTitle = "Imported form"): Fo
 
     if (kind === "question") {
       const { label, type, required } = parseQuestionLine(rest);
-      // Fall back to a wording-based guess when no type was specified; a later choice
-      // list can still override a (non-explicit) guess by promoting to single_choice.
-      const resolved = type ?? sniffType(label);
+      // Fall back to a wording-based guess only when opted in; a later choice list can
+      // still override a (non-explicit) guess by promoting to single_choice.
+      const resolved = type ?? (sniff ? sniffType(label) : null);
       const el: Element = {
         type: resolved ?? "text",
         name: slugify(label, taken),
