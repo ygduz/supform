@@ -305,25 +305,45 @@ button:focus-visible {
 }
 
 /* Builder */
+/* ── App-shell foundations ─────────────────────────────────────── */
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+/* ── Builder: three-column app-shell ───────────────────────────── */
 .builder {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  height: 100dvh; /* lock to viewport — outer page never scrolls  */
+  overflow: hidden;
+  background: var(--surface);
 }
+
+/* Sticky top toolbar — never scrolls away */
 .builder-toolbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
+  flex-shrink: 0;
+  padding: 10px 20px;
+  background: #fff;
+  border-bottom: 1px solid var(--border);
+  z-index: 10;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
 }
 .title-input {
-  font-size: 22px;
+  font-size: 20px;
   font-weight: 700;
   border: none;
   border-bottom: 2px solid transparent;
   padding: 4px 2px;
   flex: 1;
-  max-width: 520px;
+  max-width: 480px;
+  background: transparent;
 }
 .title-input:focus {
   outline: none;
@@ -332,34 +352,56 @@ button:focus-visible {
 .toolbar-actions {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
+  flex-wrap: nowrap;
+  overflow-x: auto;
 }
-.toolbar-actions button {
-  padding: 8px 14px;
+.toolbar-actions button,
+.toolbar-actions a {
+  padding: 6px 12px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: #fff;
   cursor: pointer;
+  white-space: nowrap;
+  font-size: 13px;
+  text-decoration: none;
+  color: var(--text);
 }
 .toolbar-actions .button {
+  background: var(--primary);
   border-color: var(--primary);
+  color: #fff;
+  font-weight: 600;
+}
+.toolbar-actions .button:hover {
+  background: var(--primary-hover);
 }
 .toolbar-actions button:disabled {
-  opacity: 0.5;
+  opacity: 0.45;
   cursor: default;
 }
 
+/* ── Three-column body: only the canvas column scrolls ────────── */
 .builder-body {
   display: grid;
   grid-template-columns: 220px 1fr 340px;
-  gap: 20px;
-  align-items: start;
+  gap: 0;
+  flex: 1; /* fills remaining height below toolbar */
+  min-height: 0; /* essential: lets the flex child shrink below content size */
+  overflow: hidden;
 }
 
+/* Left column: palette */
 .palette {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  overflow-y: auto;
+  height: 100%;
+  padding: 16px 12px;
+  border-right: 1px solid var(--border);
+  background: #fff;
 }
 .palette-item {
   display: flex;
@@ -379,11 +421,12 @@ button:focus-visible {
   background: var(--surface);
 }
 
+/* Middle column: scrollable canvas */
 .canvas {
   background: var(--surface);
-  border-radius: var(--radius);
-  padding: 16px;
-  min-height: 360px;
+  overflow-y: auto;
+  height: 100%;
+  padding: 20px 24px 80px; /* bottom padding so last card clears the viewport */
 }
 
 /* Page tabs */
@@ -478,6 +521,19 @@ button:focus-visible {
   cursor: grab;
   color: var(--muted);
   user-select: none;
+  touch-action: none;
+  /* Big hit area: this is the drag activator (pointer drags from the card-body
+     button are ignored by dnd-kit). */
+  padding: 10px 6px;
+  margin: -6px 0;
+  border-radius: 6px;
+}
+.drag-handle:hover {
+  background: rgba(0, 0, 0, 0.05);
+  color: var(--text);
+}
+.el-preview {
+  touch-action: none;
 }
 .el-card-body {
   flex: 1;
@@ -519,27 +575,568 @@ button:focus-visible {
   cursor: default;
 }
 
-.inspector {
+/* ---- builder drag & drop (dnd-kit) ---- */
+.el-card {
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.el-card:hover {
+  border-color: #c7d2fe;
+}
+.el-row:active .drag-handle,
+.drag-handle:active {
+  cursor: grabbing;
+}
+.el-card.dragging {
+  opacity: 0.35;
+  border-style: dashed;
+}
+.el-card.drop-target {
+  position: relative;
+}
+/* Bold insertion line above the hovered card: "your drop lands HERE". */
+.el-card.drop-target::before {
+  content: "";
+  position: absolute;
+  top: -6px;
+  left: 0;
+  right: 0;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--primary);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+}
+.el-card.drag-ghost {
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.18);
+  border-color: var(--primary);
+  cursor: grabbing;
+  background: #fff;
+}
+.drag-count {
+  font-size: 12px;
+  color: var(--muted);
+  background: var(--surface);
+  border-radius: 999px;
+  padding: 2px 8px;
+}
+.drop-zone {
+  border-radius: var(--radius);
+  font-size: 13px;
+  color: var(--muted);
+  text-align: center;
+  /* Tall enough to be a real drag target even with a single card above it */
+  min-height: 80px;
+  margin-top: 8px;
+  transition: border-color 0.15s, background 0.15s;
+}
+.drop-zone.armed,
+.drop-zone.empty {
+  border: 1.5px dashed var(--border);
+  padding: 20px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.drop-zone.empty {
+  /* Empty canvas: make it obvious you can drop here */
+  min-height: 160px;
+}
+.drop-zone.armed.over {
+  border-color: var(--primary);
+  background: rgba(37, 99, 235, 0.06);
+  color: var(--primary);
+}
+
+/* ---- multi-select ---- */
+.el-card.in-selection {
+  border-color: #818cf8;
+  background: #f0f3ff;
+}
+.el-card.in-selection .el-check {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  background: var(--primary);
+  color: #fff;
+  font-size: 11px;
+  margin-right: 6px;
+  flex-shrink: 0;
+}
+.el-check {
+  display: none;
+}
+
+/* ---- group-link mode ---- */
+.canvas.linking {
+  outline: 2px solid #f59e0b;
+  outline-offset: -2px;
+  border-radius: var(--radius);
+}
+.el-card.group-target {
+  cursor: pointer;
+  border-color: #f59e0b;
+  box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.25);
+}
+.el-card.group-target:hover {
+  border-color: #d97706;
+  background: #fffbeb;
+}
+.group-link-hint {
+  background: #fffbeb;
+  border: 1px solid #f59e0b;
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  font-size: 13px;
+  color: #92400e;
+  margin-bottom: 12px;
+}
+.group-link-hint kbd {
+  background: #fef3c7;
+  border: 1px solid #f59e0b;
+  border-radius: 4px;
+  padding: 1px 5px;
+  font-family: monospace;
+  font-size: 12px;
+}
+.el-actions button.active {
+  color: var(--primary);
+  background: rgba(37, 99, 235, 0.1);
+}
+
+/* ---- palette item drag affordance ---- */
+.palette-item.dragging {
+  opacity: 0.4;
+}
+.palette-item.drag-ghost {
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.15);
+  border-color: var(--primary);
+  cursor: grabbing;
+  background: #fff;
+  border-radius: var(--radius);
+  pointer-events: none;
+}
+
+/* ---- bulk action bar ---- */
+.canvas-inner {
+  position: relative;
+}
+.bulk-bar {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #1e293b;
+  color: #f8fafc;
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  margin-top: 12px;
+  box-shadow: 0 -4px 16px rgba(15, 23, 42, 0.15);
+  z-index: 10;
+}
+.bulk-count {
+  font-size: 13px;
+  font-weight: 600;
+  color: #94a3b8;
+  white-space: nowrap;
+}
+.bulk-actions {
+  display: flex;
+  gap: 4px;
+  flex: 1;
+  flex-wrap: wrap;
+}
+.bulk-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  background: #334155;
+  color: #f8fafc;
+  cursor: pointer;
+  font-size: 13px;
+  transition: background 0.1s;
+}
+.bulk-btn:hover {
+  background: #475569;
+  border-color: #475569;
+}
+.bulk-btn-danger:hover {
+  background: #7f1d1d;
+  border-color: #7f1d1d;
+}
+.bulk-close {
+  background: none;
+  border: none;
+  color: #64748b;
+  cursor: pointer;
+  font-size: 16px;
+  padding: 4px 6px;
+  border-radius: 4px;
+  line-height: 1;
+}
+.bulk-close:hover {
+  color: #f8fafc;
+}
+
+/* ---- insert-between slot ---- */
+.insert-slot {
+  position: relative;
+  height: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.insert-btn {
+  opacity: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1px solid var(--primary);
+  background: #fff;
+  color: var(--primary);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  transition: opacity 0.12s ease, transform 0.12s ease;
+  z-index: 5;
+}
+.insert-slot:hover .insert-btn,
+.insert-slot.open .insert-btn {
+  opacity: 1;
+  transform: scale(1.1);
+}
+.insert-slot:hover::before,
+.insert-slot.open::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 2px;
+  background: rgba(37, 99, 235, 0.35);
+}
+.insert-pop {
+  position: absolute;
+  top: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 30;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(140px, 1fr));
+  gap: 2px;
+  background: #fff;
   border: 1px solid var(--border);
   border-radius: var(--radius);
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.18);
+  padding: 6px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+.insert-pop button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  cursor: pointer;
+  font-size: 13px;
+  text-align: left;
+  white-space: nowrap;
+}
+.insert-pop button:hover {
+  background: var(--surface);
+  color: var(--primary);
+}
+
+/* ---- in-card question preview ---- */
+.el-preview {
+  padding: 2px 12px 12px 34px;
+  cursor: pointer;
+}
+.pv-input {
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 13px;
+  padding: 8px 10px;
+  max-width: 420px;
+}
+.pv-narrow {
+  max-width: 200px;
+}
+.pv-tall {
+  min-height: 56px;
+}
+.pv-caret {
+  float: right;
+}
+.pv-options {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--text);
+}
+.pv-mark {
+  color: var(--muted);
+  margin-right: 8px;
+}
+.pv-pills {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.pv-pill {
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 5px 14px;
+  font-size: 13px;
+  color: var(--text);
+  background: #fff;
+}
+.pv-pill-sm {
+  padding: 3px 10px;
+  font-size: 12px;
+}
+.pv-stars {
+  font-size: 20px;
+  color: #f59e0b;
+  letter-spacing: 3px;
+}
+.pv-matrix {
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.pv-matrix th,
+.pv-matrix td {
+  padding: 4px 10px;
+  text-align: center;
+  color: var(--muted);
+}
+.pv-matrix td:first-child {
+  text-align: left;
+  color: var(--text);
+}
+.pv-cell {
+  color: var(--border);
+}
+.pv-upload {
+  border: 1.5px dashed var(--border);
+  border-radius: 7px;
+  padding: 14px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--muted);
+  max-width: 420px;
+}
+.pv-note {
+  font-size: 13px;
+  color: var(--muted);
+  font-style: italic;
+}
+
+/* ---- inline editing ---- */
+.el-label-input {
+  width: 100%;
+  border: none;
+  border-bottom: 1.5px solid var(--primary);
+  background: transparent;
+  font: inherit;
+  font-weight: 600;
+  padding: 0 0 2px;
+  outline: none;
+}
+.el-required {
+  color: #dc2626;
+  margin-left: 3px;
+}
+.pv-option-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-width: 420px;
+}
+.pv-option-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.pv-option-row input {
+  flex: 1;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  font-size: 13px;
+  padding: 5px 8px;
+  background: transparent;
+}
+.pv-option-row input:hover {
+  border-color: var(--border);
+}
+.pv-option-row input:focus {
+  border-color: var(--primary);
+  background: #fff;
+  outline: none;
+}
+.pv-option-row button {
+  border: none;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 12px;
+  padding: 4px 6px;
+  border-radius: 4px;
+}
+.pv-option-row button:hover:not(:disabled) {
+  color: #dc2626;
+  background: var(--surface);
+}
+.pv-option-row button:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+.pv-add-option {
+  align-self: flex-start;
+  border: none;
+  background: none;
+  color: var(--primary);
+  cursor: pointer;
+  font-size: 13px;
+  padding: 5px 8px;
+  border-radius: 6px;
+}
+.pv-add-option:hover {
+  background: rgba(37, 99, 235, 0.08);
+}
+
+/* ---- visual logic builder ---- */
+.logic-rule {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 0;
+}
+.logic-rule + .logic-rule {
+  border-top: 1px dashed var(--border);
+}
+.logic-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+  color: var(--text);
+  font-weight: 500;
+}
+.logic-head .link-button {
+  font-size: 12px;
+}
+.logic-conn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.logic-conn select {
+  font-size: 12px;
+  padding: 3px 6px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+.logic-cond {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr auto;
+  gap: 4px;
+  align-items: center;
+}
+.logic-cond select,
+.logic-cond input {
+  width: 100%;
+  min-width: 0;
+  font-size: 12px;
+  padding: 6px 6px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: #fff;
+}
+.logic-cond button {
+  border: none;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  font-size: 12px;
+}
+.logic-cond button:hover {
+  color: #dc2626;
+  background: var(--surface);
+}
+.el-logic-badge {
+  margin-left: 8px;
+  font-size: 11px;
+  color: #b45309;
+  background: #fef3c7;
+  border-radius: 999px;
+  padding: 1px 7px;
+  text-transform: none;
+  cursor: help;
+}
+
+/* Right column: inspector, pinned — part of the app shell */
+.inspector {
+  border-left: 1px solid var(--border);
   overflow: hidden;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+.inspector > :not(.tabs) {
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
 }
 .tabs {
   display: flex;
+  background: var(--surface);
+  padding: 6px;
+  gap: 2px;
+  flex-shrink: 0;
   border-bottom: 1px solid var(--border);
 }
 .tab {
   flex: 1;
-  padding: 10px;
-  background: var(--surface);
+  padding: 6px 2px;
+  background: transparent;
   border: none;
+  border-radius: 6px;
   cursor: pointer;
   color: var(--muted);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  transition: background 0.12s, color 0.12s;
+}
+.tab:hover {
+  background: rgba(0, 0, 0, 0.04);
+  color: var(--text);
 }
 .tab.active {
   background: #fff;
-  color: var(--text);
-  font-weight: 600;
+  color: var(--primary);
+  font-weight: 700;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.1);
 }
 .preview-pane {
   padding: 16px;
@@ -1436,4 +2033,322 @@ button:focus-visible {
   color: #92400e;
   text-decoration: underline;
   align-self: auto;
+}
+
+/* Collapsible sections + ungroup */
+.el-collapse {
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 12px;
+  padding: 2px 4px;
+  line-height: 1;
+}
+.el-collapse:hover {
+  color: var(--text);
+}
+.el-count {
+  margin-left: 8px;
+  font-size: 11px;
+  color: var(--muted);
+  background: var(--surface-2, rgba(0, 0, 0, 0.05));
+  border-radius: 999px;
+  padding: 1px 8px;
+  text-transform: none;
+}
+.el-collapsed-note {
+  display: block;
+  width: calc(100% - 38px);
+  margin: 0 10px 10px 28px;
+  padding: 8px 10px;
+  border: 1px dashed var(--border);
+  border-radius: 6px;
+  background: none;
+  color: var(--muted);
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+.el-collapsed-note:hover {
+  color: var(--text);
+  border-color: var(--muted);
+}
+
+/* ================================================================
+   Overview / Minimap panel
+   ================================================================ */
+
+.ov-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+.ov-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px 8px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.ov-total {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.ov-page-tag {
+  font-size: 11px;
+  background: var(--primary);
+  color: #fff;
+  border-radius: 999px;
+  padding: 2px 8px;
+}
+
+.ov-list {
+  list-style: none;
+  margin: 0;
+  padding: 6px;
+  overflow-y: auto;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.ov-row {
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  transition: background 0.1s, border-color 0.1s;
+}
+
+.ov-row:hover {
+  background: var(--surface);
+  border-color: var(--border);
+}
+
+.ov-row.ov-selected {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+}
+
+.ov-row.ov-container {
+  border-color: var(--border);
+  background: var(--surface);
+}
+
+.ov-row.ov-container.ov-selected {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+}
+
+.ov-row-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  min-height: 36px;
+}
+
+.ov-handle {
+  cursor: grab;
+  color: var(--muted);
+  user-select: none;
+  font-size: 12px;
+  opacity: 0.5;
+  flex-shrink: 0;
+}
+
+.ov-handle:hover {
+  opacity: 1;
+}
+
+.ov-row-head:active .ov-handle {
+  cursor: grabbing;
+}
+
+.ov-index {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--muted);
+  min-width: 16px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.ov-chip {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 5px;
+  border-radius: 5px;
+  flex-shrink: 0;
+  letter-spacing: 0;
+  font-variant-numeric: tabular-nums;
+  min-width: 22px;
+  text-align: center;
+}
+
+.ov-label {
+  flex: 1;
+  text-align: left;
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 13px;
+  color: var(--text);
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.3;
+}
+
+.ov-label:hover {
+  color: var(--primary);
+}
+
+.ov-expand {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.ov-expand:hover {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.ov-count {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  background: rgba(0, 0, 0, 0.07);
+  border-radius: 999px;
+  padding: 1px 6px;
+  min-width: 20px;
+  text-align: center;
+}
+
+.ov-chevron {
+  font-size: 10px;
+  color: var(--muted);
+}
+
+/* nested child rows */
+.ov-children {
+  padding: 0 8px 6px 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ov-child-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 6px;
+  border-radius: 5px;
+}
+
+.ov-child-row:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.ov-child-label {
+  font-size: 12px;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ov-child-empty {
+  padding: 4px 6px 6px 40px;
+  font-size: 12px;
+  color: var(--muted);
+  font-style: italic;
+}
+
+/* drag ghost */
+.ov-ghost {
+  background: white;
+  border: 1px solid #bfdbfe;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14);
+  border-radius: 8px;
+  opacity: 1 !important;
+}
+
+.ov-label-ghost {
+  flex: 1;
+  font-size: 13px;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ov-count-ghost {
+  background: rgba(0, 0, 0, 0.07);
+}
+
+/* empty state */
+.ov-empty {
+  padding: 32px 16px;
+  text-align: center;
+  color: var(--muted);
+}
+
+.ov-empty p {
+  margin: 0 0 6px;
+}
+
+.ov-empty-hint {
+  font-size: 13px;
+}
+
+/* ── App-shell palette refinements ─────────────────────────────── */
+.palette-heading {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 0 0 8px;
+  padding: 0 2px;
+}
+
+/* ── Canvas heading bar: page tabs stay at the top of the scroll area ──── */
+.canvas .page-bar {
+  position: sticky;
+  top: 0;
+  background: var(--surface);
+  z-index: 5;
+  padding-bottom: 8px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid var(--border);
+}
+
+/* ── Inspector panel: section dividers for readability ─────────── */
+.inspector > .ov-panel,
+.inspector > .props,
+.inspector > .preview-pane {
+  padding-top: 8px;
+}
+
+/* Restore any removed padding in builder-body children (removed gap:20px) */
+.builder-body > .canvas {
+  padding: 20px 28px 80px;
 }

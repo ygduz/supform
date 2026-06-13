@@ -1,6 +1,7 @@
 import { localize } from "@/lib/i18n";
 import { useBuilderStore } from "@/stores/builderStore";
 import type { Choice, Element, I18nString, Validation } from "@/types/form-schema";
+import { LogicBuilder } from "./LogicBuilder";
 import { hasOptionList } from "./model";
 
 const PRESENTATIONAL = new Set(["note", "section", "html"]);
@@ -179,17 +180,17 @@ export function PropertiesPanel({ element }: { element: Element }) {
       {/* Logic */}
       <fieldset className="prop-fieldset">
         <legend>Logic</legend>
-        <LogicProp
+        <LogicBuilder
           label="Show this question only if…"
           value={element.visibleIf}
-          placeholder="e.g. age >= 18"
+          excludeName={name}
           onChange={(v) => update(name, { visibleIf: v })}
         />
         {canRequire && (
-          <LogicProp
+          <LogicBuilder
             label="Required only if…"
             value={element.requiredIf}
-            placeholder="e.g. has_account == true"
+            excludeName={name}
             onChange={(v) => update(name, { requiredIf: v })}
           />
         )}
