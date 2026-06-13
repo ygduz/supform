@@ -2162,9 +2162,9 @@ body,
 .form-card-initials {
   font-size: 28px;
   font-weight: 700;
-  color: rgba(255,255,255,0.9);
+  color: rgba(255, 255, 255, 0.9);
   letter-spacing: -0.5px;
-  text-shadow: 0 1px 4px rgba(0,0,0,0.15);
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
 }
 .form-card-body {
   padding: 14px 16px 12px;
