@@ -122,16 +122,21 @@ export function ElementCard({
   }
 
   return (
-    <li ref={setRefs} style={style} className={cls}>
+    <li ref={setRefs} style={style} className={cls} data-el-name={element.name}>
       <div className="el-row">
         {/* Explicit drag activator: pointer drags from interactive children (the card-body
             button, inputs) are ignored by dnd-kit, so the handle carries the listeners. */}
         <span
           className="drag-handle"
+          title="Drag to reorder"
           aria-hidden="true"
           {...(groupingSource ? {} : { ...attributes, ...listeners })}
         >
           ⋮⋮
+        </span>
+
+        <span className="el-number" aria-hidden="true">
+          {index + 1}
         </span>
 
         {container && (

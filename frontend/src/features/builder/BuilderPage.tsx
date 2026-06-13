@@ -2,6 +2,7 @@ import { localize } from "@/lib/i18n";
 import { useBuilderStore } from "@/stores/builderStore";
 import type { ElementType, FormSchema } from "@/types/form-schema";
 import {
+  type CollisionDetection,
   DndContext,
   type DragEndEvent,
   type DragOverEvent,
@@ -10,11 +11,13 @@ import {
   KeyboardSensor,
   PointerSensor,
   closestCorners,
+  pointerWithin,
+  rectIntersection,
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
 import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { FormRenderer } from "../renderer/FormRenderer";
 import { saveMyTemplate } from "../templates/myTemplates";
@@ -56,6 +59,19 @@ export function BuilderPage() {
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
+
+  // Pointer-first collision detection: what's directly under the cursor wins. This makes
+  // dropping a question *out* of a section (onto the page-level drop zone or another
+  // top-level card) reliable — closestCorners alone tends to snap back to the nested
+  // SortableContext whose rect overlaps the pointer. Falls back to rect-based strategies
+  // when the pointer isn't over any droppable (e.g. fast drags past the edge).
+  const collisionDetection = useCallback<CollisionDetection>((args) => {
+    const byPointer = pointerWithin(args);
+    if (byPointer.length > 0) return byPointer;
+    const byRect = rectIntersection(args);
+    if (byRect.length > 0) return byRect;
+    return closestCorners(args);
+  }, []);
 
   function handleDragStart(e: DragStartEvent) {
     const id = String(e.active.id);
@@ -341,7 +357,7 @@ export function BuilderPage() {
       {/* One DndContext covers both the palette (useDraggable) and the canvas (useSortable). */}
       <DndContext
         sensors={sensors}
-        collisionDetection={closestCorners}
+        collisionDetection={collisionDetection}
         onDragStart={handleDragStart}
         onDragOver={handleDragOver}
         onDragEnd={handleDragEnd}
