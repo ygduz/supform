@@ -31,7 +31,7 @@ import { ShareDialog } from "./ShareDialog";
 import { ShareLinkDialog } from "./ShareLinkDialog";
 import { ThemePanel } from "./ThemePanel";
 import { WebhooksDialog } from "./WebhooksDialog";
-import { findElement, pageElements } from "./model";
+import { findElement, groupElements, pageElements } from "./model";
 import { ELEMENT_PALETTE } from "./palette";
 
 type Tab = "overview" | "properties" | "theme" | "settings" | "preview";
@@ -433,21 +433,19 @@ export function BuilderPage() {
                     store.select(name);
                   } else if (groupingSource !== name) {
                     // Complete the group.
-                    import("./model").then(({ groupElements }) => {
-                      const s = useBuilderStore.getState();
-                      const { schema: next, groupName } = groupElements(s.schema, [
-                        groupingSource,
-                        name,
-                      ]);
-                      if (groupName) {
-                        useBuilderStore.setState({
-                          schema: next,
-                          selectedName: groupName,
-                          selectedNames: new Set([groupName]),
-                          dirty: true,
-                        });
-                      }
-                    });
+                    const s = useBuilderStore.getState();
+                    const { schema: next, groupName } = groupElements(s.schema, [
+                      groupingSource,
+                      name,
+                    ]);
+                    if (groupName) {
+                      useBuilderStore.setState({
+                        schema: next,
+                        selectedName: groupName,
+                        selectedNames: new Set([groupName]),
+                        dirty: true,
+                      });
+                    }
                     setGroupingSource(null);
                   }
                 }}
