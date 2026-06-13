@@ -6,6 +6,7 @@ import type { JSX } from "react";
 import { useEffect, useState } from "react";
 import { evaluateBool } from "./expressions";
 import { renderField } from "./fields/registry";
+import { elementIndex, pipe } from "./piping";
 import { themeToStyle } from "./theme";
 import { type FieldErrors, validateAnswers, validateElements } from "./validation";
 
@@ -100,6 +101,11 @@ export function FormRenderer({ schema, formId }: { schema: FormSchema; formId: s
   const languages = formLanguages(schema.languages, schema.defaultLanguage);
   const [lang, setLang] = useState(languages[0] ?? schema.defaultLanguage ?? "en");
   const L = (value: Parameters<typeof localize>[0]) => localize(value, lang);
+  // Answer piping: localize, then substitute {field} tokens. `scope` lets repeat
+  // instances pipe their own row's values; defaults to the top-level answers.
+  const pIndex = elementIndex(schema);
+  const P = (value: Parameters<typeof localize>[0], scope: Answers = answers) =>
+    pipe(localize(value, lang), pIndex, scope, lang);
 
   const setValue = (name: string, value: unknown) => {
     setAnswers((prev) => ({ ...prev, [name]: value }));
@@ -175,7 +181,7 @@ export function FormRenderer({ schema, formId }: { schema: FormSchema; formId: s
                     <div className="field" key={child.name}>
                       {child.label && (
                         <span className="field-label">
-                          {L(child.label)}
+                          {P(child.label, scope)}
                           {child.required && " *"}
                         </span>
                       )}
@@ -210,7 +216,7 @@ export function FormRenderer({ schema, formId }: { schema: FormSchema; formId: s
     if (PRESENTATIONAL.has(el.type)) {
       return (
         <div className="field" key={el.name}>
-          {el.label && <p className="presentational">{L(el.label)}</p>}
+          {el.label && <p className="presentational">{P(el.label)}</p>}
         </div>
       );
     }
@@ -219,12 +225,12 @@ export function FormRenderer({ schema, formId }: { schema: FormSchema; formId: s
       <div className="field" key={el.name}>
         {el.label && (
           <label htmlFor={el.name}>
-            {L(el.label)}
+            {P(el.label)}
             {el.required && " *"}
           </label>
         )}
         {renderField(el, answers[el.name], (v) => setValue(el.name, v), formId, answers)}
-        {el.hint && <small className="hint">{L(el.hint)}</small>}
+        {el.hint && <small className="hint">{P(el.hint)}</small>}
         {errors[el.name] && <small className="error field-error">{errors[el.name]}</small>}
       </div>
     );

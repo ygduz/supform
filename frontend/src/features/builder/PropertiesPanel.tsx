@@ -55,6 +55,10 @@ export function PropertiesPanel({ element }: { element: Element }) {
           defaultLang={defaultLang}
           onChange={(v) => update(name, { label: v })}
         />
+        <p className="prop-caption">
+          Tip: insert a previous answer with <code>{"{field_key}"}</code> — e.g.{" "}
+          <code>{"Hi {first_name}!"}</code>
+        </p>
         <I18nProp
           label="Help text"
           value={element.hint}
