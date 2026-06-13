@@ -61,9 +61,14 @@ function TextFormImport() {
       <h2>Author in Word or plain text</h2>
       <p className="muted">
         Write your form in Word or any text editor, then bring it in. Start a question with{" "}
-        <code>-</code>, a choice with <code>•</code>, and a section with <code>*</code>. Add a type
-        like <code>(email)</code> or <code>(paragraph)</code>, and end a line with <code>*</code> to
-        make it required.
+        <code>-</code>, a choice with <code>•</code>, and a section with <code>*</code>. End a line
+        with <code>*</code> to make it required.
+      </p>
+      <p className="muted">
+        Types are auto-detected from the wording (e.g. "email", "how many", "describe…"). To be
+        explicit, add a word like <code>(email)</code> / <code>(paragraph)</code> or a one-letter
+        code: <code>(@)</code> email, <code>(#)</code> number, <code>(=)</code> paragraph,{" "}
+        <code>(d)</code> date, <code>(m)</code> multi-select, <code>(l)</code> dropdown.
       </p>
 
       <div className="text-import-tools">

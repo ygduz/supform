@@ -19,6 +19,7 @@ import {
 import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import { formToText } from "../import/textForm";
 import { FormRenderer } from "../renderer/FormRenderer";
 import { saveMyTemplate } from "../templates/myTemplates";
 import { BuilderCanvas, type DropLocation } from "./BuilderCanvas";
@@ -126,14 +127,22 @@ export function BuilderPage() {
   }
 
   // ---- exports/imports ----
-  function exportJson() {
-    const blob = new Blob([JSON.stringify(schema, null, 2)], { type: "application/json" });
+  function download(content: string, mime: string, ext: string) {
+    const blob = new Blob([content], { type: mime });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${schema.name || "form"}.json`;
+    a.download = `${schema.name || "form"}.${ext}`;
     a.click();
     URL.revokeObjectURL(url);
+  }
+
+  function exportJson() {
+    download(JSON.stringify(schema, null, 2), "application/json", "json");
+  }
+
+  function exportText() {
+    download(formToText(schema), "text/plain", "txt");
   }
 
   async function importJson(file: File) {
@@ -322,6 +331,9 @@ export function BuilderPage() {
           </button>
           <button type="button" title="Download this form's JSON schema" onClick={exportJson}>
             Export JSON
+          </button>
+          <button type="button" title="Download as editable Word/text markers" onClick={exportText}>
+            Export text
           </button>
           <button
             type="button"

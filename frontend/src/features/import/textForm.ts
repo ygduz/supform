@@ -1,3 +1,4 @@
+import { localize } from "@/lib/i18n";
 import type { Choice, Element, ElementType, FormSchema } from "@/types/form-schema";
 
 /**
@@ -15,6 +16,7 @@ import type { Choice, Element, ElementType, FormSchema } from "@/types/form-sche
  */
 
 const TYPE_ALIASES: Record<string, ElementType> = {
+  // words
   text: "text",
   short: "text",
   long: "longtext",
@@ -42,6 +44,22 @@ const TYPE_ALIASES: Record<string, ElementType> = {
   yesno: "boolean",
   yn: "boolean",
   boolean: "boolean",
+  // single-character codes (mnemonic) — usable as e.g. (@) or (e)
+  t: "text",
+  p: "longtext",
+  "=": "longtext",
+  e: "email",
+  "@": "email",
+  u: "url",
+  n: "number",
+  "#": "number",
+  d: "date",
+  c: "single_choice",
+  m: "multi_choice",
+  l: "dropdown",
+  r: "rating",
+  s: "scale",
+  y: "boolean",
 };
 
 const CHOICE_BULLETS = ["•", "·", "‣", "◦", "▪"];
@@ -62,6 +80,32 @@ function slugify(label: string, taken: Set<string>): string {
   while (taken.has(name)) name = `${base}_${i++}`;
   taken.add(name);
   return name;
+}
+
+/**
+ * Best-effort type guess from a question's wording, used only when the author gave no
+ * explicit `(type)` and no choices. Conservative — leaves it as text when unsure.
+ */
+const SNIFF_RULES: { type: ElementType; re: RegExp }[] = [
+  { type: "email", re: /\be-?mail\b/i },
+  { type: "phone", re: /\b(phone|mobile|telephone|cell|whatsapp)\b/i },
+  { type: "url", re: /\b(url|website|web site|link|homepage)\b/i },
+  { type: "date", re: /\b(date|birthday|birth date|dob|deadline|arrival|departure)\b/i },
+  {
+    type: "number",
+    re: /\b(age|how many|how much|number of|quantity|qty|amount|count|price|cost|budget|year|salary|weight|height)\b/i,
+  },
+  {
+    type: "longtext",
+    re: /\b(describe|description|explain|comment|comments|details|feedback|message|why|reason|tell us|elaborate|notes?)\b/i,
+  },
+];
+
+function sniffType(label: string): ElementType | null {
+  for (const { type, re } of SNIFF_RULES) {
+    if (re.test(label)) return type;
+  }
+  return null;
 }
 
 interface ParsedQuestion {
@@ -151,13 +195,16 @@ export function parseTextForm(text: string, fallbackTitle = "Imported form"): Fo
 
     if (kind === "question") {
       const { label, type, required } = parseQuestionLine(rest);
+      // Fall back to a wording-based guess when no type was specified; a later choice
+      // list can still override a (non-explicit) guess by promoting to single_choice.
+      const resolved = type ?? sniffType(label);
       const el: Element = {
-        type: type ?? "text",
+        type: resolved ?? "text",
         name: slugify(label, taken),
         label: label || "Untitled question",
       };
       if (required) el.required = true;
-      if (type && CHOICE_TYPES.has(type)) el.options = [];
+      if (resolved && CHOICE_TYPES.has(resolved)) el.options = [];
       addElement(el);
       current = { el, explicitType: type !== null };
       continue;
@@ -187,6 +234,61 @@ export function parseTextForm(text: string, fallbackTitle = "Imported form"): Fo
     title: title || fallbackTitle,
     pages,
   };
+}
+
+/** The `(type)` word to emit on export, or "" when the type needs no annotation. */
+const TYPE_WORD: Partial<Record<ElementType, string>> = {
+  longtext: "paragraph",
+  email: "email",
+  url: "url",
+  phone: "phone",
+  number: "number",
+  integer: "integer",
+  decimal: "decimal",
+  date: "date",
+  time: "time",
+  multi_choice: "multi",
+  dropdown: "dropdown",
+  rating: "rating",
+  scale: "scale",
+  boolean: "yesno",
+};
+
+/**
+ * Serialize a form back to the marker text format — the inverse of parseTextForm, so a
+ * form can be round-tripped through Word/text. `text` and `single_choice` need no `(type)`
+ * (a bullet list implies single choice); `group`/`repeat` become `*` sections.
+ */
+export function formToText(schema: FormSchema): string {
+  const out: string[] = [];
+  const title = localize(schema.title);
+  if (title) out.push(`# ${title}`, "");
+
+  const writeQuestion = (el: Element, indent: string) => {
+    const word = TYPE_WORD[el.type];
+    const typeSuffix = word ? ` (${word})` : "";
+    const req = el.required ? " *" : "";
+    out.push(`${indent}- ${localize(el.label) || el.name}${typeSuffix}${req}`);
+    const hint = localize(el.hint);
+    if (hint) out.push(`${indent}  > ${hint}`);
+    for (const opt of el.options ?? []) {
+      out.push(`${indent}  • ${localize(opt.label) || String(opt.value)}`);
+    }
+  };
+
+  const walk = (els: Element[], topLevel: boolean) => {
+    for (const el of els) {
+      if (el.type === "group" || el.type === "repeat") {
+        out.push("", `* ${localize(el.label) || el.name}`);
+        walk(el.elements ?? [], false);
+      } else {
+        writeQuestion(el, topLevel ? "" : "  ");
+      }
+    }
+  };
+
+  for (const page of schema.pages) walk(page.elements, true);
+  return `${out.join("\n").trim()}\n`;
 }
 
 /** Count questions/sections so the UI can preview what an import will produce. */

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseTextForm, summarize } from "./textForm";
+import { formToText, parseTextForm, summarize } from "./textForm";
 
 describe("parseTextForm", () => {
   it("reads a title, a plain question, and a choice question", () => {
@@ -65,5 +65,67 @@ describe("parseTextForm", () => {
   it("summarize counts sections and questions", () => {
     const schema = parseTextForm(["* S", "- a", "- b", "- c"].join("\n"));
     expect(summarize(schema)).toEqual({ sections: 1, questions: 3 });
+  });
+
+  it("accepts single-character type codes", () => {
+    const schema = parseTextForm(
+      ["- Mail (@)", "- Story (=)", "- Count (#)", "- When (d)"].join("\n"),
+    );
+    expect(schema.pages[0].elements.map((e) => e.type)).toEqual([
+      "email",
+      "longtext",
+      "number",
+      "date",
+    ]);
+  });
+
+  it("sniffs types from wording when none is given", () => {
+    const schema = parseTextForm(
+      [
+        "- What is your email address?",
+        "- How many guests?",
+        "- Please describe the issue",
+        "- Your phone number",
+        "- Plain question",
+      ].join("\n"),
+    );
+    expect(schema.pages[0].elements.map((e) => e.type)).toEqual([
+      "email",
+      "number",
+      "longtext",
+      "phone",
+      "text",
+    ]);
+  });
+
+  it("lets an explicit type or choices win over sniffing", () => {
+    const schema = parseTextForm(
+      ["- Email me a number (text)", "- Pick a date", "  • Mon", "  • Tue"].join("\n"),
+    );
+    expect(schema.pages[0].elements[0].type).toBe("text"); // explicit overrides sniff
+    expect(schema.pages[0].elements[1].type).toBe("single_choice"); // choices override date-sniff
+  });
+});
+
+describe("formToText (round-trip)", () => {
+  it("re-parses to an equivalent form", () => {
+    const source = [
+      "# Survey",
+      "",
+      "* About you",
+      "  - Your name *",
+      "  - Email (email) *",
+      "",
+      "* Feedback",
+      "  - How did we do?",
+      "    • Great",
+      "    • Poor",
+      "  - Anything else? (paragraph)",
+      "    > Optional",
+    ].join("\n");
+    const first = parseTextForm(source);
+    const second = parseTextForm(formToText(first));
+    expect(second.title).toBe("Survey");
+    expect(second.pages[0].elements).toEqual(first.pages[0].elements);
   });
 });
