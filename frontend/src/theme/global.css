@@ -2115,10 +2115,19 @@ body,
   justify-content: center;
   margin-top: 16px;
 }
+.sort-select {
+  font-size: 14px;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: #fff;
+  color: var(--text);
+  cursor: pointer;
+}
 .forms-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
 }
 .form-card {
   border: 1px solid var(--border);
@@ -2127,25 +2136,60 @@ body,
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  transition: box-shadow 0.15s ease;
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
 }
 .form-card:hover {
-  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.08);
+  box-shadow: 0 6px 24px rgba(15, 23, 42, 0.1);
+  transform: translateY(-2px);
 }
 .form-card-main {
   text-align: left;
   background: none;
   border: none;
-  padding: 18px 18px 10px;
+  padding: 0;
   cursor: pointer;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 0;
   flex: 1;
 }
-.form-card-main h2 {
+.form-card-thumb {
+  height: 90px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.form-card-initials {
+  font-size: 28px;
+  font-weight: 700;
+  color: rgba(255,255,255,0.9);
+  letter-spacing: -0.5px;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.15);
+}
+.form-card-body {
+  padding: 14px 16px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.form-card-body h2 {
   margin: 0;
-  font-size: 17px;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.form-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--muted);
+  margin: 0;
+}
+.form-card-responses strong {
   color: var(--text);
 }
 .status-badge {
@@ -2167,9 +2211,9 @@ body,
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
-  padding: 10px 18px 14px;
+  padding: 10px 16px 12px;
   border-top: 1px solid var(--border);
-  font-size: 14px;
+  font-size: 13px;
 }
 .form-card-actions .link-button {
   align-self: auto;
