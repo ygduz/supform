@@ -51,7 +51,15 @@ class ElementType(StrEnum):
     IMAGE = "image"
     SIGNATURE = "signature"
     GEOPOINT = "geopoint"
+    GEOTRACE = "geotrace"
+    GEOSHAPE = "geoshape"
     BARCODE = "barcode"
+    # metadata auto-capture (invisible to respondents, filled server-side)
+    START = "start"
+    END = "end"
+    TODAY = "today"
+    DEVICEID = "deviceid"
+    USERNAME = "username"
     # derived / layout
     CALCULATED = "calculated"
     HIDDEN = "hidden"

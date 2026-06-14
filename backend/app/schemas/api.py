@@ -152,6 +152,10 @@ class ValidationUpdate(BaseModel):
     status: str | None = None
 
 
+class SubmissionAnswersUpdate(BaseModel):
+    answers: dict[str, Any]
+
+
 # ---- webhooks ----
 class WebhookCreate(BaseModel):
     url: str

@@ -2887,3 +2887,133 @@ body,
   color: var(--muted);
   cursor: pointer;
 }
+
+/* ── Barcode field ─────────────────────────────────────────────── */
+.barcode-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.barcode-input-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.barcode-input-row input {
+  flex: 1;
+}
+
+/* ── Geotrace / Geoshape field ────────────────────────────────── */
+.geotrace-field {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.geotrace-points {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.geotrace-point-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 8px;
+  background: var(--surface);
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  font-size: 13px;
+}
+.geotrace-index {
+  min-width: 20px;
+  font-weight: 600;
+  color: var(--primary);
+  font-size: 12px;
+}
+.geotrace-coords {
+  flex: 1;
+  font-family: monospace;
+  color: var(--muted);
+}
+.geotrace-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* ── Metadata auto-capture field ──────────────────────────────── */
+.meta-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--surface);
+  border: 1px dashed var(--border);
+  border-radius: 6px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.meta-field-badge {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #fff;
+  background: var(--primary);
+  border-radius: 4px;
+  padding: 1px 6px;
+}
+
+/* ── Submission edit modal ────────────────────────────────────── */
+.edit-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+}
+.edit-modal {
+  background: #fff;
+  border-radius: 12px;
+  padding: 28px 32px;
+  width: min(640px, 92vw);
+  max-height: 90vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+}
+.edit-modal h2 {
+  margin: 0;
+  font-size: 18px;
+}
+.edit-json {
+  font-family: monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+  resize: vertical;
+  background: var(--surface);
+  width: 100%;
+  box-sizing: border-box;
+}
+.edit-json:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+.edit-footer {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+.row-actions {
+  display: flex;
+  gap: 8px;
+  white-space: nowrap;
+}

@@ -382,6 +382,179 @@ const Geopoint: Renderer = ({ value, onChange }) => {
   );
 };
 
+// ── Barcode / QR ─────────────────────────────────────────────────
+
+const BarcodeField: Renderer = ({ element, value, onChange }) => {
+  const [scanning, setScanning] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const lang = useContext(LanguageContext);
+
+  async function startScan() {
+    if (!("BarcodeDetector" in window)) {
+      setError("Barcode scanning is not supported in this browser. Enter value manually.");
+      return;
+    }
+    try {
+      setScanning(true);
+      setError(null);
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "environment" },
+      });
+      // biome-ignore lint/suspicious/noExplicitAny: BarcodeDetector is not in TS lib yet
+      const detector = new (window as any).BarcodeDetector();
+      const track = stream.getVideoTracks()[0];
+      // Grab a single frame via ImageCapture if available
+      if ("ImageCapture" in window) {
+        // biome-ignore lint/suspicious/noExplicitAny: ImageCapture not in TS lib
+        const capture = new (window as any).ImageCapture(track);
+        const bitmap = await capture.grabFrame();
+        const codes = await detector.detect(bitmap);
+        for (const t of stream.getTracks()) t.stop();
+        if (codes.length > 0) {
+          onChange(codes[0].rawValue);
+        } else {
+          setError("No barcode detected. Try again or enter manually.");
+        }
+      } else {
+        for (const t of stream.getTracks()) t.stop();
+        setError("ImageCapture not available. Enter value manually.");
+      }
+    } catch (err) {
+      setError((err as Error).message || "Camera error.");
+    } finally {
+      setScanning(false);
+    }
+  }
+
+  return (
+    <div className="barcode-field">
+      <div className="barcode-input-row">
+        <input
+          id={element.name}
+          type="text"
+          placeholder={localize(element.placeholder, lang) || "Scan or type a barcode…"}
+          value={(value as string) ?? ""}
+          onChange={(e) => onChange(e.target.value)}
+        />
+        <button type="button" className="button secondary" onClick={startScan} disabled={scanning}>
+          {scanning ? "Scanning…" : "▥ Scan"}
+        </button>
+      </div>
+      {error && <small className="error">{error}</small>}
+    </div>
+  );
+};
+
+// ── Geotrace / Geoshape ───────────────────────────────────────────
+
+/** Collects a sequence of lat/lng points (geotrace = line, geoshape = closed polygon). */
+function makeGeoTraceField(closed: boolean): Renderer {
+  return ({ value, onChange }) => {
+    type GeoPoint = { lat: number; lng: number };
+    const points = (value ?? []) as GeoPoint[];
+    const [busy, setBusy] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+
+    function addCurrentLocation() {
+      if (!navigator.geolocation) {
+        setError("Geolocation isn't available in this browser.");
+        return;
+      }
+      setBusy(true);
+      setError(null);
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const pt: GeoPoint = {
+            lat: Number(pos.coords.latitude.toFixed(6)),
+            lng: Number(pos.coords.longitude.toFixed(6)),
+          };
+          const next = [...points, pt];
+          // geoshape auto-closes: last point mirrors first
+          onChange(closed && next.length >= 3 ? [...next, next[0]] : next);
+          setBusy(false);
+        },
+        (err) => {
+          setError(err.message || "Couldn't get location.");
+          setBusy(false);
+        },
+        { enableHighAccuracy: true, timeout: 10000 },
+      );
+    }
+
+    function removePoint(idx: number) {
+      const next = points.filter((_, i) => {
+        if (closed && i === points.length - 1) return false; // remove auto-close tail
+        return i !== idx;
+      });
+      onChange(closed && next.length >= 3 ? [...next, next[0]] : next);
+    }
+
+    const displayPoints = closed && points.length > 0 ? points.slice(0, -1) : points;
+
+    return (
+      <div className="geotrace-field">
+        <div className="geotrace-points">
+          {displayPoints.length === 0 && (
+            <p className="hint">
+              No points yet. Add at least {closed ? 3 : 2} to form a {closed ? "polygon" : "line"}.
+            </p>
+          )}
+          {displayPoints.map((pt, i) => (
+            <div key={`${i}-${pt.lat}`} className="geotrace-point-row">
+              <span className="geotrace-index">{i + 1}</span>
+              <span className="geotrace-coords">
+                {pt.lat}, {pt.lng}
+              </span>
+              <button type="button" className="link-button danger" onClick={() => removePoint(i)}>
+                ✕
+              </button>
+            </div>
+          ))}
+        </div>
+        <div className="geotrace-actions">
+          <button
+            type="button"
+            className="button secondary"
+            onClick={addCurrentLocation}
+            disabled={busy}
+          >
+            {busy ? "Locating…" : `📍 Add point (${displayPoints.length})`}
+          </button>
+          {displayPoints.length > 0 && (
+            <button type="button" className="link-button danger" onClick={() => onChange([])}>
+              Clear all
+            </button>
+          )}
+        </div>
+        {error && <small className="error">{error}</small>}
+      </div>
+    );
+  };
+}
+
+const Geotrace = makeGeoTraceField(false);
+const Geoshape = makeGeoTraceField(true);
+
+// ── Metadata auto-capture (hidden, filled server-side) ────────────
+
+/** Displayed as a read-only preview in the builder; invisible in the live renderer. */
+const MetaField: Renderer = ({ element }) => (
+  <div className="meta-field">
+    <span className="meta-field-badge">auto</span>
+    <span className="meta-field-desc">
+      {(
+        {
+          start: "Captured when the form is opened",
+          end: "Captured when the form is submitted",
+          today: "Today's date",
+          deviceid: "Browser fingerprint",
+          username: "Signed-in user's email",
+        } as Record<string, string>
+      )[element.type] ?? "Automatic value"}
+    </span>
+  </div>
+);
+
 /** type -> renderer. Unknown types fall back to a text input. */
 /** Read-only field showing a live-computed value from `element.calculate`. */
 const Calculated: Renderer = ({ element, value, onChange, scope }) => {
@@ -416,6 +589,14 @@ const REGISTRY: Record<string, Renderer> = {
   file: FileField,
   image: FileField,
   geopoint: Geopoint,
+  geotrace: Geotrace,
+  geoshape: Geoshape,
+  barcode: BarcodeField,
+  start: MetaField,
+  end: MetaField,
+  today: MetaField,
+  deviceid: MetaField,
+  username: MetaField,
   calculated: Calculated,
   // TODO(M2): ranking, signature, …
 };

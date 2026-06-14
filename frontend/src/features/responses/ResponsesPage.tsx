@@ -1,6 +1,6 @@
 import { type SubmissionRow, type ValidationStatus, api, isAuthenticated } from "@/api/client";
 import type { FormSchema } from "@/types/form-schema";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { AnalyticsPanel } from "./AnalyticsPanel";
 import { MapPanel } from "./MapPanel";
@@ -10,6 +10,13 @@ type Status = "loading" | "ready" | "unauth" | "error";
 type Format = "csv" | "xlsx" | "json";
 type View = "analytics" | "table" | "map";
 type StatusFilter = "all" | ValidationStatus;
+
+interface EditState {
+  row: SubmissionRow;
+  draft: string; // JSON text edited in the textarea
+  saving: boolean;
+  error: string | null;
+}
 
 const STATUS_LABELS: Record<ValidationStatus, string> = {
   approved: "Approved",
@@ -32,6 +39,8 @@ export function ResponsesPage() {
   const [error, setError] = useState<string | null>(null);
   const [view, setView] = useState<View>("analytics");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [editState, setEditState] = useState<EditState | null>(null);
+  const editRef = useRef<HTMLTextAreaElement>(null);
 
   async function onSetStatus(row: SubmissionRow, next: ValidationStatus | null) {
     if (!formId) return;
@@ -41,6 +50,34 @@ export function ResponsesPage() {
       setRows((prev) => prev.map((r) => (r.id === row.id ? { ...r, validation_status: next } : r)));
     } catch (err) {
       setError((err as Error).message);
+    }
+  }
+
+  function openEdit(row: SubmissionRow) {
+    setEditState({
+      row,
+      draft: JSON.stringify(row.answers, null, 2),
+      saving: false,
+      error: null,
+    });
+  }
+
+  async function saveEdit() {
+    if (!formId || !editState) return;
+    let parsed: Record<string, unknown>;
+    try {
+      parsed = JSON.parse(editState.draft);
+    } catch {
+      setEditState((s) => s && { ...s, error: "Invalid JSON — please fix before saving." });
+      return;
+    }
+    setEditState((s) => s && { ...s, saving: true, error: null });
+    try {
+      const updated = await api.editSubmission(formId, editState.row.id, parsed);
+      setRows((prev) => prev.map((r) => (r.id === updated.id ? updated : r)));
+      setEditState(null);
+    } catch (err) {
+      setEditState((s) => s && { ...s, saving: false, error: (err as Error).message });
     }
   }
 
@@ -89,7 +126,13 @@ export function ResponsesPage() {
       !!schema &&
       schema.pages.some(function check(p): boolean {
         const walk = (els: typeof p.elements): boolean =>
-          els.some((el) => el.type === "geopoint" || (el.elements ? walk(el.elements) : false));
+          els.some(
+            (el) =>
+              el.type === "geopoint" ||
+              el.type === "geotrace" ||
+              el.type === "geoshape" ||
+              (el.elements ? walk(el.elements) : false),
+          );
         return walk(p.elements);
       }),
     [schema],
@@ -249,7 +292,14 @@ export function ResponsesPage() {
                         {columns.map((col) => (
                           <td key={col.key}>{col.value(row.answers)}</td>
                         ))}
-                        <td>
+                        <td className="row-actions">
+                          <button
+                            type="button"
+                            className="link-button"
+                            onClick={() => openEdit(row)}
+                          >
+                            Edit
+                          </button>
                           <button
                             type="button"
                             className="link-button danger"
@@ -266,6 +316,45 @@ export function ResponsesPage() {
             </>
           )}
         </>
+      )}
+      {editState && (
+        // biome-ignore lint/a11y/useKeyWithClickEvents: overlay backdrop dismiss
+        <div className="edit-overlay" onClick={() => !editState.saving && setEditState(null)}>
+          {/* biome-ignore lint/a11y/useKeyWithClickEvents: stopPropagation only */}
+          <div className="edit-modal" onClick={(e) => e.stopPropagation()}>
+            <h2>Edit response</h2>
+            <p className="muted">Submitted {new Date(editState.row.created_at).toLocaleString()}</p>
+            <textarea
+              ref={editRef}
+              className="edit-json"
+              value={editState.draft}
+              onChange={(e) =>
+                setEditState((s) => s && { ...s, draft: e.target.value, error: null })
+              }
+              rows={20}
+              spellCheck={false}
+            />
+            {editState.error && <p className="error">{editState.error}</p>}
+            <div className="edit-footer">
+              <button
+                type="button"
+                className="button"
+                onClick={saveEdit}
+                disabled={editState.saving}
+              >
+                {editState.saving ? "Saving…" : "Save changes"}
+              </button>
+              <button
+                type="button"
+                className="link-button"
+                onClick={() => setEditState(null)}
+                disabled={editState.saving}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </section>
   );

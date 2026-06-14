@@ -250,6 +250,12 @@ export const api = {
       body: JSON.stringify({ status }),
     }),
 
+  editSubmission: (formId: string, submissionId: string, answers: Record<string, unknown>) =>
+    request<SubmissionRow>(`/api/v1/forms/${formId}/submissions/${submissionId}`, {
+      method: "PATCH",
+      body: JSON.stringify({ answers }),
+    }),
+
   deleteSubmission: (formId: string, submissionId: string) =>
     request<void>(`/api/v1/forms/${formId}/submissions/${submissionId}`, { method: "DELETE" }),
 
