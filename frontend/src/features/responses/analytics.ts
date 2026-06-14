@@ -74,6 +74,129 @@ export function numericStats(
   return stats;
 }
 
+const TEXT_TYPES = new Set(["text", "longtext", "email", "url", "phone"]);
+
+// Common English words filtered out of the word-frequency cloud so it surfaces signal.
+const STOP_WORDS = new Set([
+  "the",
+  "and",
+  "for",
+  "are",
+  "but",
+  "not",
+  "you",
+  "all",
+  "any",
+  "can",
+  "her",
+  "was",
+  "one",
+  "our",
+  "out",
+  "his",
+  "has",
+  "had",
+  "him",
+  "she",
+  "its",
+  "who",
+  "did",
+  "yes",
+  "this",
+  "that",
+  "with",
+  "have",
+  "from",
+  "they",
+  "will",
+  "your",
+  "would",
+  "there",
+  "their",
+  "what",
+  "about",
+  "which",
+  "when",
+  "make",
+  "like",
+  "time",
+  "just",
+  "them",
+  "than",
+  "then",
+  "some",
+  "very",
+  "into",
+  "more",
+  "also",
+  "been",
+  "were",
+  "being",
+  "could",
+  "should",
+  "really",
+  "much",
+]);
+
+export interface TextResponses {
+  name: string;
+  label: string;
+  /** Number of non-empty text answers. */
+  count: number;
+  /** The raw answers, most recent first, for reading. */
+  answers: string[];
+  /** Most frequent meaningful words across all answers. */
+  topWords: Array<{ word: string; count: number }>;
+}
+
+/** Per free-text field: the answers themselves plus a top-words frequency. */
+export function textResponses(
+  schema: FormSchema,
+  rows: Array<{ answers: Record<string, unknown> }>,
+): TextResponses[] {
+  const out: TextResponses[] = [];
+
+  const walk = (elements: Element[]) => {
+    for (const el of elements) {
+      if (el.type === "group") {
+        walk(el.elements ?? []);
+        continue;
+      }
+      if (!TEXT_TYPES.has(el.type)) continue;
+
+      const answers: string[] = [];
+      const words = new Map<string, number>();
+      // Walk rows newest-last (as stored); collect non-empty strings and tally words.
+      for (const row of rows) {
+        const value = row.answers[el.name];
+        if (typeof value !== "string" || value.trim() === "") continue;
+        answers.push(value.trim());
+        for (const w of value.toLowerCase().match(/[a-z][a-z']{2,}/g) ?? []) {
+          if (STOP_WORDS.has(w)) continue;
+          words.set(w, (words.get(w) ?? 0) + 1);
+        }
+      }
+      if (answers.length === 0) continue;
+
+      const topWords = [...words.entries()]
+        .map(([word, count]) => ({ word, count }))
+        .sort((a, b) => b.count - a.count || a.word.localeCompare(b.word))
+        .slice(0, 12);
+
+      out.push({
+        name: el.name,
+        label: elementLabel(el),
+        count: answers.length,
+        answers: answers.reverse(), // most recent first
+        topWords,
+      });
+    }
+  };
+
+  walk(schema.pages.flatMap((p) => p.elements));
+  return out;
+}
+
 export interface DayCount {
   date: string; // YYYY-MM-DD
   count: number;
