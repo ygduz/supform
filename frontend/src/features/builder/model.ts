@@ -9,7 +9,14 @@
  * recurse through the whole tree, so they work the same at the top level or inside a
  * group/repeat. Users edit `label`; `name` is auto-managed.
  */
-import type { Choice, Element, ElementType, FormSchema, Page } from "@/types/form-schema";
+import type {
+  Choice,
+  Element,
+  ElementType,
+  FormSchema,
+  I18nString,
+  Page,
+} from "@/types/form-schema";
 
 export const DEFAULT_LABELS: Partial<Record<ElementType, string>> = {
   text: "Short text question",
@@ -514,5 +521,68 @@ export function setPageVisibleIf(
     pages: schema.pages.map((p, i) =>
       i === index ? { ...p, visibleIf: visibleIf || undefined } : p,
     ),
+  };
+}
+
+// ── i18n migration ──────────────────────────────────────────────
+
+function upgradeI18n(value: I18nString | undefined, lang: string): I18nString | undefined {
+  if (value == null || value === "") return value;
+  if (typeof value !== "string") return value; // already an object
+  return { [lang]: value };
+}
+
+function migrateElement(el: Element, lang: string): Element {
+  const updated: Element = {
+    ...el,
+    label: upgradeI18n(el.label, lang),
+    hint: upgradeI18n(el.hint, lang),
+    placeholder: upgradeI18n(el.placeholder, lang),
+  };
+  if (el.repeat) {
+    updated.repeat = {
+      ...el.repeat,
+      entryLabel: upgradeI18n(el.repeat.entryLabel, lang),
+      addButtonText: upgradeI18n(el.repeat.addButtonText, lang),
+    };
+  }
+  if (el.options) {
+    updated.options = el.options.map((o) => ({ ...o, label: upgradeI18n(o.label, lang) }));
+  }
+  if (el.rows) {
+    updated.rows = el.rows.map((r) => ({ ...r, label: upgradeI18n(r.label, lang) }));
+  }
+  if (el.columns) {
+    updated.columns = el.columns.map((c) => ({ ...c, label: upgradeI18n(c.label, lang) }));
+  }
+  if (el.elements) {
+    updated.elements = el.elements.map((child) => migrateElement(child, lang));
+  }
+  return updated;
+}
+
+/** Convert all plain-string i18n values to `{lang: text}` objects.
+ * Called when the form gains its first translation language so translators
+ * have a source string to work from in every field. */
+export function migrateStringsToI18n(schema: FormSchema, defaultLang: string): FormSchema {
+  const s = schema.settings;
+  return {
+    ...schema,
+    title: upgradeI18n(schema.title, defaultLang) ?? "",
+    description: upgradeI18n(schema.description, defaultLang),
+    settings: s
+      ? {
+          ...s,
+          submitButtonText: upgradeI18n(s.submitButtonText, defaultLang),
+          confirmationMessage: upgradeI18n(s.confirmationMessage, defaultLang),
+          welcomeTitle: upgradeI18n(s.welcomeTitle, defaultLang),
+          welcomeMessage: upgradeI18n(s.welcomeMessage, defaultLang),
+        }
+      : s,
+    pages: schema.pages.map((p) => ({
+      ...p,
+      title: upgradeI18n(p.title, defaultLang) ?? "",
+      elements: p.elements.map((el) => migrateElement(el, defaultLang)),
+    })),
   };
 }

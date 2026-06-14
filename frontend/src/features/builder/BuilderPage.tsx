@@ -1,4 +1,4 @@
-import { localize } from "@/lib/i18n";
+import { languageLabel, localize } from "@/lib/i18n";
 import { useBuilderStore } from "@/stores/builderStore";
 import type { ElementType, FormSchema } from "@/types/form-schema";
 import {
@@ -32,11 +32,12 @@ import { SettingsPanel } from "./SettingsPanel";
 import { ShareDialog } from "./ShareDialog";
 import { ShareLinkDialog } from "./ShareLinkDialog";
 import { ThemePanel } from "./ThemePanel";
+import { TranslatePanel } from "./TranslatePanel";
 import { WebhooksDialog } from "./WebhooksDialog";
 import { findElement, groupElements, pageElements } from "./model";
 import { ELEMENT_PALETTE } from "./palette";
 
-type Tab = "overview" | "properties" | "theme" | "settings" | "preview";
+type Tab = "overview" | "properties" | "theme" | "settings" | "translate" | "preview";
 
 export function BuilderPage() {
   const { formId = "new" } = useParams();
@@ -49,7 +50,9 @@ export function BuilderPage() {
   const [shareLink, setShareLink] = useState(false);
   const [integrations, setIntegrations] = useState(false);
   const [showLibrary, setShowLibrary] = useState(false);
+  const [previewLang, setPreviewLang] = useState("");
   const importRef = useRef<HTMLInputElement>(null);
+  const isMultilingual = (schema.languages?.length ?? 0) >= 2;
 
   // ---- drag state (shared across palette + canvas) ----
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
@@ -497,17 +500,47 @@ export function BuilderPage() {
           {/* Inspector */}
           <aside className="inspector">
             <div className="tabs">
-              {(["overview", "properties", "theme", "settings", "preview"] as Tab[]).map((t) => (
+              {(
+                [
+                  "overview",
+                  "properties",
+                  "theme",
+                  "settings",
+                  ...(isMultilingual ? (["translate"] as Tab[]) : []),
+                  "preview",
+                ] as Tab[]
+              ).map((t) => (
                 <button
                   key={t}
                   type="button"
                   className={tab === t ? "tab active" : "tab"}
                   onClick={() => setTab(t)}
                 >
-                  {t === "overview" ? "Map" : t.charAt(0).toUpperCase() + t.slice(1)}
+                  {t === "overview"
+                    ? "Map"
+                    : t === "translate"
+                      ? "🌐"
+                      : t.charAt(0).toUpperCase() + t.slice(1)}
                 </button>
               ))}
             </div>
+
+            {isMultilingual && (
+              <div className="preview-lang-bar">
+                <span className="muted">Preview in:</span>
+                <select
+                  className="select select-sm"
+                  value={previewLang}
+                  onChange={(e) => setPreviewLang(e.target.value)}
+                >
+                  {(schema.languages ?? []).map((l) => (
+                    <option key={l} value={l}>
+                      {languageLabel(l)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
 
             {tab === "overview" && <OverviewPanel />}
             {tab === "properties" &&
@@ -518,6 +551,7 @@ export function BuilderPage() {
               ))}
             {tab === "theme" && <ThemePanel />}
             {tab === "settings" && <SettingsPanel />}
+            {tab === "translate" && <TranslatePanel />}
             {tab === "preview" && (
               <div className="preview-pane">
                 <FormRenderer schema={schema} formId="preview" />

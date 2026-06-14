@@ -7,6 +7,7 @@ import type {
   ElementType,
   FormSchema,
   FormSettings,
+  I18nString,
   Theme,
 } from "@/types/form-schema";
 import { create } from "zustand";
@@ -57,7 +58,8 @@ interface BuilderState {
   /** Extend selection from the last focused element to `name` (Shift+click). */
   selectRange: (name: string) => void;
   clearSelection: () => void;
-  setTitle: (title: string) => void;
+  setTitle: (title: I18nString) => void;
+  setPageTitle: (index: number, title: I18nString) => void;
   setTheme: (patch: Partial<Theme>) => void;
   setSettings: (patch: Partial<FormSettings>) => void;
   setLanguages: (languages: string[], defaultLanguage?: string) => void;
@@ -343,11 +345,23 @@ export const useBuilderStore = create<BuilderState>((rawSet, get) => {
     setTitle: (title) => set((s) => ({ schema: { ...s.schema, title }, dirty: true })),
 
     setLanguages: (languages, defaultLanguage) =>
+      set((s) => {
+        const prevCount = s.schema.languages?.length ?? 0;
+        const defLang = defaultLanguage ?? s.schema.defaultLanguage ?? languages[0] ?? "en";
+        // When gaining the first translation language, upgrade all plain strings to i18n objects.
+        const needsMigration = prevCount < 2 && languages.length >= 1;
+        const base = needsMigration ? model.migrateStringsToI18n(s.schema, defLang) : s.schema;
+        return {
+          schema: { ...base, languages, defaultLanguage: defLang },
+          dirty: true,
+        };
+      }),
+
+    setPageTitle: (index, title) =>
       set((s) => ({
         schema: {
           ...s.schema,
-          languages,
-          defaultLanguage: defaultLanguage ?? s.schema.defaultLanguage ?? languages[0] ?? "en",
+          pages: s.schema.pages.map((p, i) => (i === index ? { ...p, title } : p)),
         },
         dirty: true,
       })),

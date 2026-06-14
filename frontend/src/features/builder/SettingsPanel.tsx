@@ -3,6 +3,33 @@ import { useBuilderStore } from "@/stores/builderStore";
 import type { Outcome } from "@/types/form-schema";
 import { useState } from "react";
 
+const COMMON_LANGUAGES = [
+  { code: "en", label: "English" },
+  { code: "fr", label: "French" },
+  { code: "es", label: "Spanish" },
+  { code: "ar", label: "Arabic" },
+  { code: "zh", label: "Chinese (Simplified)" },
+  { code: "de", label: "German" },
+  { code: "pt", label: "Portuguese" },
+  { code: "ru", label: "Russian" },
+  { code: "sw", label: "Swahili" },
+  { code: "tr", label: "Turkish" },
+  { code: "hi", label: "Hindi" },
+  { code: "fr-CA", label: "French (Canada)" },
+  { code: "so", label: "Somali" },
+  { code: "am", label: "Amharic" },
+  { code: "uk", label: "Ukrainian" },
+  { code: "fa", label: "Farsi / Persian" },
+  { code: "it", label: "Italian" },
+  { code: "nl", label: "Dutch" },
+  { code: "pl", label: "Polish" },
+  { code: "ja", label: "Japanese" },
+  { code: "ko", label: "Korean" },
+  { code: "ha", label: "Hausa" },
+  { code: "yo", label: "Yoruba" },
+  { code: "bn", label: "Bengali" },
+];
+
 /** Form-level collection settings. Enforced server-side on the public submit endpoint. */
 export function SettingsPanel() {
   const { schema, setSettings, setLanguages } = useBuilderStore();
@@ -65,19 +92,35 @@ export function SettingsPanel() {
           </ul>
         )}
         <div className="lang-add">
-          <input
-            type="text"
-            value={newLang}
-            placeholder="Language code"
-            onChange={(e) => setNewLang(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                e.preventDefault();
-                addLanguage();
-              }
-            }}
-          />
-          <button type="button" onClick={addLanguage} disabled={!newLang.trim()}>
+          <select className="select" value={newLang} onChange={(e) => setNewLang(e.target.value)}>
+            <option value="">— pick a language —</option>
+            {COMMON_LANGUAGES.filter((l) => !languages.includes(l.code)).map((l) => (
+              <option key={l.code} value={l.code}>
+                {l.label} ({l.code})
+              </option>
+            ))}
+            <option value="__other__">Other (enter code below)</option>
+          </select>
+          {newLang === "__other__" && (
+            <input
+              className="prop-input"
+              type="text"
+              placeholder="e.g. zu, ps, ky"
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  setNewLang((e.target as HTMLInputElement).value.trim().toLowerCase());
+                  addLanguage();
+                }
+              }}
+              onBlur={(e) => setNewLang(e.target.value.trim().toLowerCase() || "__other__")}
+            />
+          )}
+          <button
+            type="button"
+            onClick={addLanguage}
+            disabled={!newLang.trim() || newLang === "__other__"}
+          >
             Add language
           </button>
         </div>
