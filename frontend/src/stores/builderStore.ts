@@ -1,4 +1,5 @@
 import { api, isAuthenticated } from "@/api/client";
+import { buildConnectorExpression } from "@/features/builder/connectors";
 import * as model from "@/features/builder/model";
 import type {
   Choice,
@@ -110,7 +111,7 @@ interface BuilderState {
   startConnect: (name: string) => void;
   cancelConnect: () => void;
   requestConnect: (toName: string) => void;
-  confirmConnect: (condition: string, op: "==" | "!=") => void;
+  confirmConnect: (value: string | number | boolean, op: "==" | "!=") => void;
 
   setActivePage: (index: number) => void;
   addPage: () => void;
@@ -469,10 +470,10 @@ export const useBuilderStore = create<BuilderState>((rawSet, get) => {
       }
       rawSet({ connectingFrom: null, pendingConnection: { from: connectingFrom, to: toName } });
     },
-    confirmConnect: (condition, op) => {
+    confirmConnect: (value, op) => {
       const { pendingConnection } = get();
       if (!pendingConnection) return;
-      const expr = `${pendingConnection.from} ${op} "${condition}"`;
+      const expr = buildConnectorExpression(pendingConnection.from, op, value);
       set((s) => ({
         schema: model.updateElement(s.schema, pendingConnection.to, { visibleIf: expr }),
         dirty: true,

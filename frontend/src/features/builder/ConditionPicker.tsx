@@ -20,13 +20,15 @@ export function ConditionPicker() {
   const tgtLabel = localize(tgt.label) || tgt.name;
 
   const isBoolean = src.type === "boolean";
-  const choiceOptions = isBoolean
+  // Values keep their real type (boolean/number/string) so the generated condition
+  // compares correctly against the stored answer at runtime.
+  const choiceOptions: { value: string | number | boolean; label: string }[] = isBoolean
     ? [
-        { value: "true", label: "Yes" },
-        { value: "false", label: "No" },
+        { value: true, label: "Yes" },
+        { value: false, label: "No" },
       ]
     : (src.options ?? []).map((o) => ({
-        value: String(o.value),
+        value: o.value,
         label: localize(o.label) || String(o.value),
       }));
   const hasChoices = choiceOptions.length > 0;
@@ -44,7 +46,7 @@ export function ConditionPicker() {
           <div className="condition-options">
             {choiceOptions.map((opt) => (
               <button
-                key={opt.value}
+                key={String(opt.value)}
                 type="button"
                 className="button"
                 onClick={() => confirmConnect(opt.value, "==")}

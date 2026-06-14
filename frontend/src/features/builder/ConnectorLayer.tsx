@@ -1,30 +1,6 @@
 import { useBuilderStore } from "@/stores/builderStore";
-import type { Element } from "@/types/form-schema";
 import { useEffect, useState } from "react";
-
-interface ConnPath {
-  fromName: string;
-  toName: string;
-  condition: string;
-  op: "==" | "!=";
-}
-
-const CONN_RE = /^(\w+)\s*(==|!=)\s*["'](.*)["']$/;
-
-function parseVisibleIf(toName: string, visibleIf: string | undefined): ConnPath | null {
-  if (!visibleIf) return null;
-  const m = visibleIf.match(CONN_RE);
-  if (!m) return null;
-  return { fromName: m[1], toName, condition: m[3], op: m[2] as "==" | "!=" };
-}
-
-function walkElements(els: Element[], out: ConnPath[]) {
-  for (const el of els) {
-    const conn = parseVisibleIf(el.name, el.visibleIf);
-    if (conn) out.push(conn);
-    if (el.elements) walkElements(el.elements, out);
-  }
-}
+import { collectConnectors } from "./connectors";
 
 export function ConnectorLayer({
   containerRef,
@@ -62,8 +38,7 @@ export function ConnectorLayer({
     };
   }
 
-  const paths: ConnPath[] = [];
-  for (const page of schema.pages) walkElements(page.elements, paths);
+  const paths = collectConnectors(schema);
 
   if (paths.length === 0) return null;
 
@@ -90,7 +65,7 @@ export function ConnectorLayer({
         const isNe = conn.op === "!=";
         const color = isNe ? "#f59e0b" : "#6366f1";
         const marker = isNe ? "url(#arr-ne)" : "url(#arr-eq)";
-        const label = `${isNe ? "≠" : "="} ${conn.condition}`;
+        const label = `${isNe ? "≠" : "="} ${conn.display}`;
 
         const removeConn = () => update(conn.toName, { visibleIf: undefined });
 
