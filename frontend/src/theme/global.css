@@ -3255,3 +3255,47 @@ body,
   outline: none;
   border-color: var(--primary);
 }
+
+/* ── Repeat group polish ──────────────────────────────────────── */
+.repeat-instance-label {
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--text);
+}
+.link-button.danger {
+  color: #ef4444;
+}
+.link-button.danger:hover {
+  color: #b91c1c;
+}
+.repeat-empty {
+  font-size: 13px;
+  color: var(--muted);
+  font-style: italic;
+  margin: 4px 0 8px;
+}
+.repeat-add {
+  margin-top: 4px;
+  font-weight: 500;
+}
+.repeat-count {
+  display: block;
+  font-size: 11px;
+  margin-top: 4px;
+}
+
+/* ── Calculated field display ─────────────────────────────────── */
+.calculated-field {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+  border-radius: var(--radius);
+}
+.calculated-value {
+  font-weight: 600;
+  font-size: 15px;
+  color: #0284c7;
+}

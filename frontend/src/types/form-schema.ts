@@ -87,6 +87,7 @@ export interface RepeatSettings {
   min?: number;
   max?: number;
   addButtonText?: I18nString;
+  entryLabel?: I18nString;
 }
 
 export interface Element {

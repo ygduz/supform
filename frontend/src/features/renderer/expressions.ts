@@ -36,6 +36,8 @@ function toJs(expr: string): string {
  * current answers. Referenced fields that aren't answered yet default to 0 so partial
  * forms still compute. Interactivity only — the server recomputes authoritatively.
  */
+export const evaluate = evaluateValue;
+
 export function evaluateValue(
   expression: string | undefined,
   context: Record<string, unknown>,

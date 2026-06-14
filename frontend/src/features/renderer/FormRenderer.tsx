@@ -4,7 +4,7 @@ import { isNetworkError, queueSubmission } from "@/lib/offline";
 import type { Element, FormSchema, I18nString } from "@/types/form-schema";
 import type { JSX } from "react";
 import { useEffect, useState } from "react";
-import { evaluateBool } from "./expressions";
+import { evaluate, evaluateBool } from "./expressions";
 import { renderField } from "./fields/registry";
 import { elementIndex, pipe } from "./piping";
 import { themeToStyle } from "./theme";
@@ -73,6 +73,10 @@ function buildInitialAnswers(schema: FormSchema, search: string): Answers {
         answers[el.name] = coercePrefill(el.type, params.get(el.name) as string);
       } else if (el.type === "hidden" && el.defaultValue !== undefined) {
         answers[el.name] = el.defaultValue;
+      } else if (el.type === "repeat") {
+        // Pre-populate the minimum required number of blank instances.
+        const min = el.repeat?.min ?? 0;
+        if (min > 0) answers[el.name] = Array.from({ length: min }, () => ({}));
       }
       if (el.elements) walk(el.elements);
     }
@@ -154,19 +158,28 @@ export function FormRenderer({ schema, formId }: { schema: FormSchema; formId: s
           instances.filter((_, idx) => idx !== i),
         );
 
+      const entryLabel = el.repeat?.entryLabel ? L(el.repeat.entryLabel) : null;
+      const addLabel = el.repeat?.addButtonText
+        ? L(el.repeat.addButtonText)
+        : `+ Add ${entryLabel ?? "entry"}`;
+
       return (
         <fieldset className="repeat" key={el.name}>
           {el.label && <legend>{L(el.label)}</legend>}
-          {instances.length === 0 && <p className="muted">No entries yet.</p>}
+          {instances.length === 0 && (
+            <p className="repeat-empty">No {entryLabel?.toLowerCase() ?? "entries"} yet.</p>
+          )}
           {instances.map((inst, i) => {
             const scope = { ...answers, ...inst };
             return (
               <div className="repeat-instance" key={`${el.name}-${i}`}>
                 <div className="repeat-instance-head">
-                  <span className="muted">Entry {i + 1}</span>
+                  <span className="repeat-instance-label">
+                    {entryLabel ? `${entryLabel} ${i + 1}` : `Entry ${i + 1}`}
+                  </span>
                   <button
                     type="button"
-                    className="link-button"
+                    className="link-button danger"
                     onClick={() => removeInstance(i)}
                     disabled={instances.length <= min}
                   >
@@ -203,13 +216,34 @@ export function FormRenderer({ schema, formId }: { schema: FormSchema; formId: s
           })}
           <button
             type="button"
-            className="link-button"
+            className="link-button repeat-add"
             onClick={addInstance}
             disabled={max != null && instances.length >= max}
           >
-            + Add entry
+            {addLabel}
           </button>
+          {max != null && (
+            <small className="repeat-count muted">
+              {instances.length} / {max}
+            </small>
+          )}
         </fieldset>
+      );
+    }
+
+    if (el.type === "calculated") {
+      const computed = el.calculate ? evaluate(el.calculate, answers) : undefined;
+      // Keep the computed value in sync with answers so downstream fields can reference it.
+      if (computed !== undefined && answers[el.name] !== computed) {
+        // Schedule outside render to avoid setState-during-render.
+        setTimeout(() => setValue(el.name, computed), 0);
+      }
+      if (!el.label) return null;
+      return (
+        <div className="field calculated-field" key={el.name}>
+          <span className="field-label">{P(el.label)}</span>
+          <span className="calculated-value">{computed ?? "—"}</span>
+        </div>
       );
     }
 

@@ -100,3 +100,27 @@ def Calculated(name: str, *, calculate: str, **kw: Any) -> Element:
 
 def Note(name: str, *, label: str, **kw: Any) -> Element:
     return _base("note", name, label=label, **kw)
+
+
+def Group(name: str, *, elements: list[Element], **kw: Any) -> Element:
+    return _base("group", name, elements=elements, **kw)
+
+
+def Repeat(
+    name: str,
+    *,
+    elements: list[Element],
+    min: int = 0,
+    max: int | None = None,
+    entry_label: str | None = None,
+    add_button_text: str | None = None,
+    **kw: Any,
+) -> Element:
+    repeat: dict[str, Any] = {"min": min}
+    if max is not None:
+        repeat["max"] = max
+    if entry_label is not None:
+        repeat["entryLabel"] = entry_label
+    if add_button_text is not None:
+        repeat["addButtonText"] = add_button_text
+    return _base("repeat", name, elements=elements, repeat=repeat, **kw)

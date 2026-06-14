@@ -107,6 +107,7 @@ class RepeatSettings(BaseModel):
     min: int = 0
     max: int | None = None
     add_button_text: I18nString | None = Field(default=None, alias="addButtonText")
+    entry_label: I18nString | None = Field(default=None, alias="entryLabel")
 
 
 class Element(BaseModel):

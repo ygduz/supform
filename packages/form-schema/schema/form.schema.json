@@ -187,7 +187,8 @@
           "properties": {
             "min": { "type": "integer", "minimum": 0 },
             "max": { "type": "integer", "minimum": 1 },
-            "addButtonText": { "$ref": "#/$defs/i18nString" }
+            "addButtonText": { "$ref": "#/$defs/i18nString" },
+            "entryLabel": { "$ref": "#/$defs/i18nString" }
           }
         },
         "meta": {
