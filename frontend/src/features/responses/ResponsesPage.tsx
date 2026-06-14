@@ -7,7 +7,7 @@ import { MapPanel } from "./MapPanel";
 import { buildColumns } from "./columns";
 
 type Status = "loading" | "ready" | "unauth" | "error";
-type Format = "csv" | "xlsx" | "json";
+type Format = "csv" | "xlsx" | "json" | "geojson" | "spss";
 type View = "analytics" | "table" | "map";
 type StatusFilter = "all" | ValidationStatus;
 
@@ -203,6 +203,14 @@ export function ResponsesPage() {
           </button>
           <button type="button" onClick={() => download("json")} disabled={rows.length === 0}>
             JSON
+          </button>
+          {hasGeo && (
+            <button type="button" onClick={() => download("geojson")} disabled={rows.length === 0}>
+              GeoJSON
+            </button>
+          )}
+          <button type="button" onClick={() => download("spss")} disabled={rows.length === 0}>
+            SPSS
           </button>
         </div>
       </header>

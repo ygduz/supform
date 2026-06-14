@@ -13,7 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import get_current_user
 from app.core.exceptions import ValidationError
 from app.db.session import get_db
-from app.exporters import export_csv, export_json, export_xlsx
+from app.exporters import export_csv, export_geojson, export_json, export_spss, export_xlsx
 from app.models.submission import Submission
 from app.models.user import User
 from app.schemas.api import ExportJobOut
@@ -33,10 +33,13 @@ def _job_out(job: object) -> ExportJobOut:
 # Map each format to its exporter, MIME type, and file extension in one place so adding a
 # format is a single-line change and Content-Type never drifts from the body.
 _XLSX_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+_SPSS_MIME = "application/x-spss-sav"
 _FORMATS = {
     "csv": (export_csv, "text/csv", "csv"),
     "xlsx": (export_xlsx, _XLSX_MIME, "xlsx"),
     "json": (export_json, "application/json", "json"),
+    "geojson": (export_geojson, "application/geo+json", "geojson"),
+    "spss": (export_spss, _SPSS_MIME, "sav"),
 }
 
 

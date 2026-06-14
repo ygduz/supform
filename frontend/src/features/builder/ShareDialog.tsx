@@ -3,14 +3,21 @@ import { useCallback, useEffect, useState } from "react";
 
 const ROLE_LABELS: Record<string, string> = {
   owner: "Owner",
+  admin: "Admin",
   editor: "Editor",
   viewer: "Viewer",
 };
 
+const ROLE_DESCRIPTIONS: Record<string, string> = {
+  viewer: "Can view responses",
+  editor: "Can build, publish, and manage responses",
+  admin: "Editor + can invite and remove members",
+};
+
 /**
- * Manage who can collaborate on the form's project. Owners add people by email and pick
- * a role (Editor can build/publish, Viewer can only see responses); the owner row is
- * fixed. Mirrors the backend role model (viewer < editor < owner).
+ * Manage who can collaborate on the form's project. Owners/admins add people by email
+ * and pick a role; the owner row is fixed.
+ * Role hierarchy: viewer < editor < admin < owner.
  */
 export function ShareDialog({ projectId, onClose }: { projectId: string; onClose: () => void }) {
   const [members, setMembers] = useState<Member[]>([]);
@@ -103,11 +110,13 @@ export function ShareDialog({ projectId, onClose }: { projectId: string; onClose
           <select value={role} onChange={(e) => setRole(e.target.value)} aria-label="Role">
             <option value="viewer">Viewer</option>
             <option value="editor">Editor</option>
+            <option value="admin">Admin</option>
           </select>
           <button type="submit" className="button" disabled={busy || !email.trim()}>
             {busy ? "Adding…" : "Add"}
           </button>
         </form>
+        {ROLE_DESCRIPTIONS[role] && <p className="role-hint muted">{ROLE_DESCRIPTIONS[role]}</p>}
 
         {error && <p className="error">{error}</p>}
 
@@ -126,6 +135,7 @@ export function ShareDialog({ projectId, onClose }: { projectId: string; onClose
                   >
                     <option value="viewer">Viewer</option>
                     <option value="editor">Editor</option>
+                    <option value="admin">Admin</option>
                   </select>
                   <button type="button" className="link-button" onClick={() => onRemove(m.user_id)}>
                     Remove

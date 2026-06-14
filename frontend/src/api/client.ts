@@ -307,7 +307,7 @@ export const api = {
   /** Fetch an export with auth and return the blob + server-suggested filename. */
   exportSubmissions: async (
     formId: string,
-    format: "csv" | "xlsx" | "json",
+    format: "csv" | "xlsx" | "json" | "geojson" | "spss",
   ): Promise<{ blob: Blob; filename: string }> => {
     const res = await fetch(`${BASE}/api/v1/forms/${formId}/export?format=${format}`, {
       headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},

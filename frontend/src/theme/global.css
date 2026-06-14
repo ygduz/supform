@@ -3017,3 +3017,9 @@ body,
   gap: 8px;
   white-space: nowrap;
 }
+
+/* ── Share dialog role hint ───────────────────────────────────── */
+.role-hint {
+  font-size: 12px;
+  margin: -4px 0 8px;
+}

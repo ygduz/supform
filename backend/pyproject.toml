@@ -32,6 +32,9 @@ dev = [
 s3 = [
     "boto3>=1.34",                      # only needed when storage_backend = "s3"
 ]
+spss = [
+    "pyreadstat>=1.2",                  # SPSS .sav export; requires libsav (bundled in wheel)
+]
 monitoring = [
     "sentry-sdk[fastapi]>=2.0",         # error tracking; enabled by SUPFORM_SENTRY_DSN
 ]
