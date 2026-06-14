@@ -27,6 +27,7 @@ import { LogicBuilder } from "./LogicBuilder";
 import { OverviewPanel } from "./OverviewPanel";
 import { PaletteItem } from "./PaletteItem";
 import { PropertiesPanel } from "./PropertiesPanel";
+import { QuestionLibraryPanel } from "./QuestionLibraryPanel";
 import { SettingsPanel } from "./SettingsPanel";
 import { ShareDialog } from "./ShareDialog";
 import { ShareLinkDialog } from "./ShareLinkDialog";
@@ -47,6 +48,7 @@ export function BuilderPage() {
   const [sharing, setSharing] = useState(false);
   const [shareLink, setShareLink] = useState(false);
   const [integrations, setIntegrations] = useState(false);
+  const [showLibrary, setShowLibrary] = useState(false);
   const importRef = useRef<HTMLInputElement>(null);
 
   // ---- drag state (shared across palette + canvas) ----
@@ -382,10 +384,37 @@ export function BuilderPage() {
         <div className="builder-body">
           {/* Palette */}
           <aside className="palette">
-            <p className="palette-heading">Add a question</p>
-            {ELEMENT_PALETTE.map((item) => (
-              <PaletteItem key={item.type} type={item.type} label={item.label} icon={item.icon} />
-            ))}
+            <div className="palette-tabs">
+              <button
+                type="button"
+                className={!showLibrary ? "palette-tab active" : "palette-tab"}
+                onClick={() => setShowLibrary(false)}
+              >
+                Fields
+              </button>
+              <button
+                type="button"
+                className={showLibrary ? "palette-tab active" : "palette-tab"}
+                onClick={() => setShowLibrary(true)}
+              >
+                Library
+              </button>
+            </div>
+            {showLibrary ? (
+              <QuestionLibraryPanel onClose={() => setShowLibrary(false)} />
+            ) : (
+              <>
+                <p className="palette-heading">Add a question</p>
+                {ELEMENT_PALETTE.map((item) => (
+                  <PaletteItem
+                    key={item.type}
+                    type={item.type}
+                    label={item.label}
+                    icon={item.icon}
+                  />
+                ))}
+              </>
+            )}
           </aside>
 
           {/* Canvas */}

@@ -40,6 +40,7 @@ export function ResponsesPage() {
   const [view, setView] = useState<View>("analytics");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [editState, setEditState] = useState<EditState | null>(null);
+  const [search, setSearch] = useState("");
   const editRef = useRef<HTMLTextAreaElement>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkBusy, setBulkBusy] = useState(false);
@@ -205,11 +206,21 @@ export function ResponsesPage() {
       }),
     [schema],
   );
-  const tableRows = useMemo(
-    () =>
-      statusFilter === "all" ? rows : rows.filter((r) => r.validation_status === statusFilter),
-    [rows, statusFilter],
-  );
+  const tableRows = useMemo(() => {
+    let filtered =
+      statusFilter === "all" ? rows : rows.filter((r) => r.validation_status === statusFilter);
+    if (search.trim()) {
+      const q = search.trim().toLowerCase();
+      filtered = filtered.filter((r) =>
+        Object.values(r.answers).some((v) =>
+          String(v ?? "")
+            .toLowerCase()
+            .includes(q),
+        ),
+      );
+    }
+    return filtered;
+  }, [rows, statusFilter, search]);
 
   const download = useCallback(
     async (format: Format) => {
@@ -347,6 +358,15 @@ export function ResponsesPage() {
 
           {view === "table" && (
             <>
+              <div className="responses-search">
+                <input
+                  type="search"
+                  placeholder="Search responses…"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="responses-search-input"
+                />
+              </div>
               <div className="filter-chips">
                 {STATUS_FILTERS.map((f) => (
                   <button

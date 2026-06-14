@@ -90,7 +90,7 @@ function freshName(taken: Set<string>): string {
   return `q${i}`;
 }
 
-function nextName(schema: FormSchema): string {
+export function nextName(schema: FormSchema): string {
   return freshName(new Set(allElements(schema).map((e) => e.name)));
 }
 

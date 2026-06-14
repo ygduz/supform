@@ -63,6 +63,8 @@ interface BuilderState {
   setLanguages: (languages: string[], defaultLanguage?: string) => void;
 
   add: (type: ElementType) => void;
+  /** Insert a fully-formed element (e.g. from the question library) onto the active page. */
+  insertElement: (el: Element) => void;
   /** Insert a new element of `type` at an explicit position (palette drag-to-canvas). */
   addAt: (
     type: ElementType,
@@ -384,6 +386,21 @@ export const useBuilderStore = create<BuilderState>((rawSet, get) => {
           parentName,
         });
         return { schema, selectedName: name, selectedNames: new Set([name]), dirty: true };
+      }),
+
+    insertElement: (el) =>
+      set((s) => {
+        const name = model.nextName(s.schema);
+        const stamped = { ...el, name };
+        const pages = s.schema.pages.map((p, i) =>
+          i === s.activePage ? { ...p, elements: [...p.elements, stamped] } : p,
+        );
+        return {
+          schema: { ...s.schema, pages },
+          selectedName: name,
+          selectedNames: new Set([name]),
+          dirty: true,
+        };
       }),
 
     addAt: (type, target, index) =>

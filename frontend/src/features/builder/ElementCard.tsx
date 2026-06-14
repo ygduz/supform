@@ -1,3 +1,4 @@
+import { api } from "@/api/client";
 import { localize } from "@/lib/i18n";
 import { useBuilderStore } from "@/stores/builderStore";
 import type { Element } from "@/types/form-schema";
@@ -231,6 +232,24 @@ export function ElementCard({
           </button>
           <button type="button" title="Duplicate" onClick={() => duplicate(element.name)}>
             ⧉
+          </button>
+          <button
+            type="button"
+            title="Save to question library"
+            onClick={async () => {
+              const label = localize(element.label) || element.name;
+              try {
+                await api.createQuestionTemplate(
+                  label,
+                  element as unknown as Record<string, unknown>,
+                );
+                alert(`"${label}" saved to your question library.`);
+              } catch {
+                alert("Failed to save to library.");
+              }
+            }}
+          >
+            ☆
           </button>
           {container ? (
             <button

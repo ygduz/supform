@@ -3141,3 +3141,117 @@ body,
 .html-field p {
   margin: 0 0 8px;
 }
+
+/* ── Question Library panel ──────────────────────────────────── */
+.palette-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+.palette-tab {
+  flex: 1;
+  padding: 6px;
+  font-size: 13px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: #fff;
+  cursor: pointer;
+  color: var(--muted);
+}
+.palette-tab.active {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
+}
+.ql-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.ql-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+.ql-header h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+.ql-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.ql-item {
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+}
+.ql-insert {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: #fff;
+  cursor: pointer;
+  text-align: left;
+}
+.ql-insert:hover {
+  border-color: var(--primary);
+  background: var(--surface);
+}
+.ql-label {
+  font-size: 13px;
+  font-weight: 500;
+}
+.ql-type {
+  font-size: 11px;
+  color: var(--muted);
+  text-transform: capitalize;
+}
+.ql-delete {
+  padding: 4px 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: #fff;
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--muted);
+}
+.ql-delete:hover {
+  border-color: #ef4444;
+  color: #ef4444;
+}
+.ql-msg {
+  font-size: 13px;
+  color: var(--muted);
+  padding: 8px 0;
+}
+.ql-error {
+  color: #ef4444;
+}
+
+/* ── Response search bar ──────────────────────────────────────── */
+.responses-search {
+  margin-bottom: 8px;
+}
+.responses-search-input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 14px;
+  background: #fff;
+}
+.responses-search-input:focus {
+  outline: none;
+  border-color: var(--primary);
+}

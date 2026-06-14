@@ -117,6 +117,12 @@ export interface Webhook {
   created_at: string;
 }
 
+export interface QuestionTemplate {
+  id: string;
+  label: string;
+  element: Record<string, unknown>;
+}
+
 export const api = {
   // auth
   signup: (email: string, password: string, fullName?: string) =>
@@ -324,6 +330,21 @@ export const api = {
     }
     return res.json();
   },
+
+  /** Question library */
+  listQuestionTemplates: (): Promise<QuestionTemplate[]> => request("/api/v1/question-library"),
+
+  createQuestionTemplate: (
+    label: string,
+    element: Record<string, unknown>,
+  ): Promise<QuestionTemplate> =>
+    request("/api/v1/question-library", {
+      method: "POST",
+      body: JSON.stringify({ label, element }),
+    }),
+
+  deleteQuestionTemplate: (id: string): Promise<void> =>
+    request(`/api/v1/question-library/${id}`, { method: "DELETE" }),
 
   /** Fetch an export with auth and return the blob + server-suggested filename. */
   exportSubmissions: async (
