@@ -13,7 +13,8 @@ import {
 import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useState } from "react";
-import { isContainerType } from "./model";
+import { collectConnectors } from "./connectors";
+import { findElement, isContainerType } from "./model";
 
 // ── type metadata ────────────────────────────────────────────────
 
@@ -210,6 +211,53 @@ function GhostRow({ element }: { element: Element }) {
   );
 }
 
+// ── logic overview: every connector in the form at a glance ───────
+
+function LogicOverview() {
+  const { schema, update, select } = useBuilderStore();
+  const connectors = collectConnectors(schema);
+  if (connectors.length === 0) return null;
+
+  const labelOf = (name: string): string => {
+    const el = findElement(schema, name);
+    return el ? localize(el.label) || el.name : name;
+  };
+
+  return (
+    <div className="ov-logic">
+      <div className="ov-logic-head">
+        Logic <span className="ov-logic-count">{connectors.length}</span>
+      </div>
+      <ul className="ov-logic-list">
+        {connectors.map((conn) => (
+          <li key={`${conn.fromName}->${conn.toName}`} className="ov-logic-row">
+            <button
+              type="button"
+              className="ov-logic-link"
+              onClick={() => select(conn.toName)}
+              title="Select the dependent question"
+            >
+              <span className="ov-logic-target">{labelOf(conn.toName)}</span>
+              <span className="ov-logic-rule">
+                when <strong>{labelOf(conn.fromName)}</strong> {conn.op === "!=" ? "≠" : "="}{" "}
+                {conn.display}
+              </span>
+            </button>
+            <button
+              type="button"
+              className="ov-logic-remove"
+              title="Remove this rule"
+              onClick={() => update(conn.toName, { visibleIf: undefined })}
+            >
+              ✕
+            </button>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 // ── main panel ────────────────────────────────────────────────────
 
 export function OverviewPanel() {
@@ -298,6 +346,8 @@ export function OverviewPanel() {
             ))}
           </ul>
         </SortableContext>
+
+        <LogicOverview />
       </div>
 
       <DragOverlay dropAnimation={{ duration: 150, easing: "ease" }}>

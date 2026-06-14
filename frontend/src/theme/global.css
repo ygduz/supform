@@ -2350,6 +2350,114 @@ body,
   text-align: right;
 }
 
+/* is / is not toggle in the condition picker */
+.condition-op {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  margin: 0 0 16px;
+  padding: 0;
+  min-inline-size: auto;
+}
+.op-btn {
+  border: none;
+  background: #fff;
+  padding: 6px 14px;
+  font-size: 13px;
+  cursor: pointer;
+  color: var(--muted);
+}
+.op-btn + .op-btn {
+  border-left: 1px solid var(--border);
+}
+.op-btn.active {
+  background: var(--primary);
+  color: #fff;
+}
+
+/* Logic overview in the Map/Overview panel */
+.ov-logic {
+  border-top: 1px solid var(--border);
+  margin-top: 12px;
+  padding-top: 12px;
+}
+.ov-logic-head {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.ov-logic-count {
+  background: #6366f1;
+  color: #fff;
+  border-radius: 999px;
+  padding: 0 7px;
+  font-size: 11px;
+  line-height: 18px;
+}
+.ov-logic-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.ov-logic-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.ov-logic-link {
+  flex: 1;
+  text-align: left;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 6px 8px;
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.ov-logic-link:hover {
+  background: var(--surface);
+}
+.ov-logic-target {
+  font-size: 13px;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ov-logic-rule {
+  font-size: 12px;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ov-logic-remove {
+  border: none;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 12px;
+  padding: 4px 6px;
+  border-radius: 6px;
+}
+.ov-logic-remove:hover {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
 /* Offline banner */
 .offline-banner {
   display: flex;
