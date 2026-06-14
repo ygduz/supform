@@ -104,6 +104,14 @@ interface BuilderState {
   updateColumn: (name: string, index: number, patch: Partial<Choice>) => void;
   removeColumn: (name: string, index: number) => void;
 
+  /** UI state for drawing connectors between question cards. */
+  connectingFrom: string | null;
+  pendingConnection: { from: string; to: string } | null;
+  startConnect: (name: string) => void;
+  cancelConnect: () => void;
+  requestConnect: (toName: string) => void;
+  confirmConnect: (condition: string, op: "==" | "!=") => void;
+
   setActivePage: (index: number) => void;
   addPage: () => void;
   removePage: (index: number) => void;
@@ -170,6 +178,8 @@ export const useBuilderStore = create<BuilderState>((rawSet, get) => {
     selectedNames: new Set<string>(),
     collapsedNames: new Set<string>(),
     viewportName: null,
+    connectingFrom: null,
+    pendingConnection: null,
     activePage: 0,
     status: "idle",
     error: null,
@@ -447,6 +457,27 @@ export const useBuilderStore = create<BuilderState>((rawSet, get) => {
 
     setViewportName: (name) => {
       if (get().viewportName !== name) rawSet({ viewportName: name });
+    },
+
+    startConnect: (name) => rawSet({ connectingFrom: name }),
+    cancelConnect: () => rawSet({ connectingFrom: null, pendingConnection: null }),
+    requestConnect: (toName) => {
+      const { connectingFrom } = get();
+      if (!connectingFrom || connectingFrom === toName) {
+        rawSet({ connectingFrom: null });
+        return;
+      }
+      rawSet({ connectingFrom: null, pendingConnection: { from: connectingFrom, to: toName } });
+    },
+    confirmConnect: (condition, op) => {
+      const { pendingConnection } = get();
+      if (!pendingConnection) return;
+      const expr = `${pendingConnection.from} ${op} "${condition}"`;
+      set((s) => ({
+        schema: model.updateElement(s.schema, pendingConnection.to, { visibleIf: expr }),
+        dirty: true,
+      }));
+      rawSet({ pendingConnection: null });
     },
 
     duplicateSelected: () =>

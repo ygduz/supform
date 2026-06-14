@@ -2222,6 +2222,92 @@ body,
   color: #b91c1c;
 }
 
+/* Connector layer */
+.connector-layer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  overflow: visible;
+  z-index: 5;
+}
+
+/* Port — right-edge connector handle on each question card */
+.el-port {
+  position: absolute;
+  right: -10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #6366f1;
+  border: 2px solid #fff;
+  cursor: crosshair;
+  opacity: 0;
+  transition: opacity 0.15s;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 9px;
+  padding: 0;
+  line-height: 1;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.2);
+}
+.el-card:hover .el-port,
+.el-port.active {
+  opacity: 1;
+}
+
+/* Connecting mode: highlight eligible targets */
+.canvas-inner.connecting .el-card:not([data-connecting]) {
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.35);
+  cursor: crosshair;
+}
+
+/* Condition picker overlay */
+.condition-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+}
+.condition-picker {
+  background: #fff;
+  border-radius: 12px;
+  padding: 20px 22px;
+  max-width: 360px;
+  width: 100%;
+  box-shadow: 0 8px 32px rgba(15, 23, 42, 0.18);
+}
+.condition-picker-heading {
+  margin: 0 0 16px;
+  font-size: 15px;
+  line-height: 1.5;
+}
+.condition-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.condition-custom {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.condition-picker-footer {
+  border-top: 1px solid var(--border);
+  padding-top: 12px;
+  text-align: right;
+}
+
 /* Offline banner */
 .offline-banner {
   display: flex;
