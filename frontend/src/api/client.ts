@@ -250,6 +250,24 @@ export const api = {
       body: JSON.stringify({ status }),
     }),
 
+  exportMediaZip: async (formId: string): Promise<{ blob: Blob; filename: string }> => {
+    const res = await fetch(`${BASE}/api/v1/forms/${formId}/export/media`, {
+      headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new ApiError(
+        body?.error?.message ?? `Export failed: ${res.status}`,
+        res.status,
+        body?.error?.details,
+      );
+    }
+    const blob = await res.blob();
+    const cd = res.headers.get("Content-Disposition") ?? "";
+    const match = cd.match(/filename="([^"]+)"/);
+    return { blob, filename: match?.[1] ?? "media.zip" };
+  },
+
   editSubmission: (formId: string, submissionId: string, answers: Record<string, unknown>) =>
     request<SubmissionRow>(`/api/v1/forms/${formId}/submissions/${submissionId}`, {
       method: "PATCH",

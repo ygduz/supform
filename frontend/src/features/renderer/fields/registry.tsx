@@ -7,7 +7,7 @@
 import { type MediaRef, api } from "@/api/client";
 import { LanguageContext, localize } from "@/lib/i18n";
 import type { Choice, Element } from "@/types/form-schema";
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import { evaluateBool, evaluateValue } from "../expressions";
 
 type FieldProps = {
@@ -569,6 +569,151 @@ const Calculated: Renderer = ({ element, value, onChange, scope }) => {
   );
 };
 
+// ── Ranking ───────────────────────────────────────────────────────
+
+const RankingField: Renderer = ({ element, value, onChange }) => {
+  const lang = useContext(LanguageContext);
+  const opts = element.options ?? [];
+  const order: Array<string | number | boolean> = Array.isArray(value)
+    ? (value as Array<string | number | boolean>)
+    : opts.map((o) => o.value);
+
+  const [dragging, setDragging] = useState<number | null>(null);
+  const [over, setOver] = useState<number | null>(null);
+
+  const labelOf = (v: string | number | boolean) => {
+    const opt = opts.find((o) => o.value === v);
+    return opt ? localize(opt.label, lang) || String(opt.value) : String(v);
+  };
+
+  function move(from: number, to: number) {
+    if (from === to) return;
+    const next = [...order];
+    const [item] = next.splice(from, 1);
+    next.splice(to, 0, item);
+    onChange(next);
+  }
+
+  return (
+    <ol className="ranking-list">
+      {order.map((v, i) => (
+        <li
+          key={String(v)}
+          className={[
+            "ranking-item",
+            dragging === i ? "ranking-dragging" : "",
+            over === i && dragging !== i ? "ranking-over" : "",
+          ]
+            .filter(Boolean)
+            .join(" ")}
+          draggable
+          onDragStart={() => setDragging(i)}
+          onDragEnd={() => {
+            if (dragging !== null && over !== null) move(dragging, over);
+            setDragging(null);
+            setOver(null);
+          }}
+          onDragOver={(e) => {
+            e.preventDefault();
+            setOver(i);
+          }}
+          onDragLeave={() => setOver(null)}
+        >
+          <span className="ranking-handle" aria-hidden="true">
+            ⠿
+          </span>
+          <span className="ranking-index">{i + 1}</span>
+          <span className="ranking-label">{labelOf(v)}</span>
+        </li>
+      ))}
+    </ol>
+  );
+};
+
+// ── Signature pad ─────────────────────────────────────────────────
+
+const SignatureField: Renderer = ({ value, onChange }) => {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const drawing = useRef(false);
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: restore saved signature only on mount
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.fillStyle = "#fff";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    if (typeof value === "string" && value.startsWith("data:")) {
+      const img = new Image();
+      img.onload = () => ctx.drawImage(img, 0, 0);
+      img.src = value;
+    }
+  }, []);
+
+  function getPos(e: React.PointerEvent<HTMLCanvasElement>) {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const scaleX = e.currentTarget.width / rect.width;
+    const scaleY = e.currentTarget.height / rect.height;
+    return { x: (e.clientX - rect.left) * scaleX, y: (e.clientY - rect.top) * scaleY };
+  }
+
+  function onPointerDown(e: React.PointerEvent<HTMLCanvasElement>) {
+    e.currentTarget.setPointerCapture(e.pointerId);
+    drawing.current = true;
+    const ctx = canvasRef.current?.getContext("2d");
+    if (!ctx) return;
+    const { x, y } = getPos(e);
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+  }
+
+  function onPointerMove(e: React.PointerEvent<HTMLCanvasElement>) {
+    if (!drawing.current) return;
+    const ctx = canvasRef.current?.getContext("2d");
+    if (!ctx) return;
+    const { x, y } = getPos(e);
+    ctx.lineWidth = 2;
+    ctx.lineCap = "round";
+    ctx.strokeStyle = "#1e293b";
+    ctx.lineTo(x, y);
+    ctx.stroke();
+  }
+
+  function onPointerUp() {
+    drawing.current = false;
+    onChange(canvasRef.current?.toDataURL("image/png") ?? "");
+  }
+
+  function clear() {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.fillStyle = "#fff";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    onChange("");
+  }
+
+  return (
+    <div className="signature-field">
+      <canvas
+        ref={canvasRef}
+        className="signature-canvas"
+        width={480}
+        height={180}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        aria-label="Signature pad — draw your signature here"
+      />
+      <button type="button" className="link-button" onClick={clear}>
+        Clear
+      </button>
+    </div>
+  );
+};
+
 const REGISTRY: Record<string, Renderer> = {
   text: TextField,
   email: TextField,
@@ -598,7 +743,8 @@ const REGISTRY: Record<string, Renderer> = {
   deviceid: MetaField,
   username: MetaField,
   calculated: Calculated,
-  // TODO(M2): ranking, signature, …
+  ranking: RankingField,
+  signature: SignatureField,
 };
 
 export function renderField(

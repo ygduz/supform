@@ -121,6 +121,22 @@ export function ResponsesPage() {
   }, [formId]);
 
   const columns = useMemo(() => (schema ? buildColumns(schema) : []), [schema]);
+  const hasMedia = useMemo(
+    () =>
+      !!schema &&
+      schema.pages.some((p) => {
+        const walk = (els: typeof p.elements): boolean =>
+          els.some(
+            (el) =>
+              el.type === "file" ||
+              el.type === "image" ||
+              el.type === "signature" ||
+              (el.elements ? walk(el.elements) : false),
+          );
+        return walk(p.elements);
+      }),
+    [schema],
+  );
   const hasGeo = useMemo(
     () =>
       !!schema &&
@@ -212,6 +228,28 @@ export function ResponsesPage() {
           <button type="button" onClick={() => download("spss")} disabled={rows.length === 0}>
             SPSS
           </button>
+          {hasMedia && (
+            <button
+              type="button"
+              onClick={async () => {
+                if (!formId) return;
+                try {
+                  const { blob, filename } = await api.exportMediaZip(formId);
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement("a");
+                  a.href = url;
+                  a.download = filename;
+                  a.click();
+                  URL.revokeObjectURL(url);
+                } catch (err) {
+                  setError((err as Error).message);
+                }
+              }}
+              disabled={rows.length === 0}
+            >
+              Media ZIP
+            </button>
+          )}
         </div>
       </header>
 
