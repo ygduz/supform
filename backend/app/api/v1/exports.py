@@ -16,7 +16,14 @@ from app.api.deps import get_current_user
 from app.core.exceptions import ValidationError
 from app.core.storage import get_storage
 from app.db.session import get_db
-from app.exporters import export_csv, export_geojson, export_json, export_spss, export_xlsx
+from app.exporters import (
+    export_csv,
+    export_geojson,
+    export_json,
+    export_kml,
+    export_spss,
+    export_xlsx,
+)
 from app.models.media import MediaFile
 from app.models.submission import Submission
 from app.models.user import User
@@ -43,6 +50,7 @@ _FORMATS = {
     "xlsx": (export_xlsx, _XLSX_MIME, "xlsx"),
     "json": (export_json, "application/json", "json"),
     "geojson": (export_geojson, "application/geo+json", "geojson"),
+    "kml": (export_kml, "application/vnd.google-earth.kml+xml", "kml"),
     "spss": (export_spss, _SPSS_MIME, "sav"),
 }
 

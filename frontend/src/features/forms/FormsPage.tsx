@@ -64,6 +64,17 @@ export function FormsPage() {
     });
   }, [forms, query, sort]);
 
+  async function onDuplicate(form: FormListItem) {
+    setError(null);
+    try {
+      const copy = await api.duplicateForm(form.id);
+      // Navigate straight to the builder for the new copy.
+      window.location.href = `/builder/${copy.id}`;
+    } catch (err) {
+      setError((err as Error).message);
+    }
+  }
+
   async function onDelete(form: FormListItem) {
     const ok = window.confirm(
       `Delete "${form.title}" and all of its responses? This cannot be undone.`,
@@ -191,6 +202,9 @@ export function FormsPage() {
                     Copy link
                   </button>
                 )}
+                <button type="button" className="link-button" onClick={() => onDuplicate(form)}>
+                  Duplicate
+                </button>
                 <button type="button" className="link-button danger" onClick={() => onDelete(form)}>
                   Delete
                 </button>

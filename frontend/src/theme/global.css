@@ -3093,3 +3093,51 @@ body,
   outline: 2px solid var(--primary);
   outline-offset: 2px;
 }
+
+/* ── Bulk action bar ──────────────────────────────────────────── */
+.bulk-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: rgba(37, 99, 235, 0.06);
+  border: 1px solid rgba(37, 99, 235, 0.2);
+  border-radius: 8px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+.bulk-count {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--primary);
+  margin-right: 6px;
+}
+
+/* ── Table row selection ──────────────────────────────────────── */
+.th-check,
+.td-check {
+  width: 36px;
+  padding: 0 8px;
+  text-align: center;
+}
+.row-selected td {
+  background: rgba(37, 99, 235, 0.04);
+}
+
+/* ── Note / HTML display fields ───────────────────────────────── */
+.note-field {
+  padding: 10px 14px;
+  background: #f8fafc;
+  border-left: 3px solid var(--primary);
+  border-radius: 4px;
+  font-size: 14px;
+  color: var(--muted);
+  font-style: italic;
+}
+.html-field {
+  font-size: 14px;
+  line-height: 1.6;
+}
+.html-field p {
+  margin: 0 0 8px;
+}

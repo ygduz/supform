@@ -35,7 +35,15 @@ const TextField: Renderer = ({ element, value, onChange }) => {
   return (
     <input
       id={element.name}
-      type={element.type === "email" ? "email" : "text"}
+      type={
+        element.type === "email"
+          ? "email"
+          : element.type === "url"
+            ? "url"
+            : element.type === "phone"
+              ? "tel"
+              : "text"
+      }
       placeholder={localize(element.placeholder, lang)}
       value={(value as string) ?? ""}
       onChange={(e) => onChange(e.target.value)}
@@ -569,6 +577,25 @@ const Calculated: Renderer = ({ element, value, onChange, scope }) => {
   );
 };
 
+// ── Note / HTML display fields ────────────────────────────────────
+
+const NoteField: Renderer = ({ element }) => {
+  const lang = useContext(LanguageContext);
+  const text = localize(element.label, lang) || "";
+  return <div className="note-field">{text}</div>;
+};
+
+const HtmlField: Renderer = ({ element }) => {
+  // biome-ignore lint/security/noDangerouslySetInnerHtml: intentional rich content
+  return (
+    <div
+      className="html-field"
+      // biome-ignore lint/security/noDangerouslySetInnerHtml: form author is trusted
+      dangerouslySetInnerHTML={{ __html: (element as { html?: string }).html ?? "" }}
+    />
+  );
+};
+
 // ── Ranking ───────────────────────────────────────────────────────
 
 const RankingField: Renderer = ({ element, value, onChange }) => {
@@ -742,6 +769,10 @@ const REGISTRY: Record<string, Renderer> = {
   today: MetaField,
   deviceid: MetaField,
   username: MetaField,
+  phone: TextField,
+  url: TextField,
+  note: NoteField,
+  html: HtmlField,
   calculated: Calculated,
   ranking: RankingField,
   signature: SignatureField,

@@ -65,6 +65,18 @@ async def update_form(
     return await forms_service.update_draft(db, form_id, payload.content, user.id)
 
 
+@router.post("/{form_id}/duplicate", response_model=FormOut, status_code=201)
+async def duplicate_form(
+    form_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Clone the form's draft into the same project. Returns the new form. Editor+."""
+    form = await forms_service.duplicate_form(db, form_id, user.id)
+    await db.commit()
+    return form
+
+
 @router.delete("/{form_id}", status_code=204)
 async def delete_form(
     form_id: uuid.UUID,

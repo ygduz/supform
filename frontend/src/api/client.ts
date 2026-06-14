@@ -188,6 +188,9 @@ export const api = {
   // forms
   listForms: () => request<FormListItem[]>("/api/v1/forms"),
 
+  duplicateForm: (formId: string) =>
+    request<{ id: string }>(`/api/v1/forms/${formId}/duplicate`, { method: "POST" }),
+
   deleteForm: (formId: string) => request<void>(`/api/v1/forms/${formId}`, { method: "DELETE" }),
 
   getPublishedSchema: (formId: string) => request<FormSchema>(`/api/v1/forms/${formId}/schema`),
@@ -325,7 +328,7 @@ export const api = {
   /** Fetch an export with auth and return the blob + server-suggested filename. */
   exportSubmissions: async (
     formId: string,
-    format: "csv" | "xlsx" | "json" | "geojson" | "spss",
+    format: "csv" | "xlsx" | "json" | "geojson" | "kml" | "spss",
   ): Promise<{ blob: Blob; filename: string }> => {
     const res = await fetch(`${BASE}/api/v1/forms/${formId}/export?format=${format}`, {
       headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},

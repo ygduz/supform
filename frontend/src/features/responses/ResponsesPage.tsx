@@ -7,7 +7,7 @@ import { MapPanel } from "./MapPanel";
 import { buildColumns } from "./columns";
 
 type Status = "loading" | "ready" | "unauth" | "error";
-type Format = "csv" | "xlsx" | "json" | "geojson" | "spss";
+type Format = "csv" | "xlsx" | "json" | "geojson" | "kml" | "spss";
 type View = "analytics" | "table" | "map";
 type StatusFilter = "all" | ValidationStatus;
 
@@ -41,6 +41,58 @@ export function ResponsesPage() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [editState, setEditState] = useState<EditState | null>(null);
   const editRef = useRef<HTMLTextAreaElement>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkBusy, setBulkBusy] = useState(false);
+
+  function toggleSelect(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleSelectAll() {
+    if (selected.size === tableRows.length) {
+      setSelected(new Set());
+    } else {
+      setSelected(new Set(tableRows.map((r) => r.id)));
+    }
+  }
+
+  async function bulkSetStatus(status: ValidationStatus | null) {
+    if (!formId || selected.size === 0) return;
+    setBulkBusy(true);
+    setError(null);
+    try {
+      await Promise.all([...selected].map((id) => api.setValidationStatus(formId, id, status)));
+      setRows((prev) =>
+        prev.map((r) => (selected.has(r.id) ? { ...r, validation_status: status } : r)),
+      );
+      setSelected(new Set());
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setBulkBusy(false);
+    }
+  }
+
+  async function bulkDelete() {
+    if (!formId || selected.size === 0) return;
+    if (!window.confirm(`Delete ${selected.size} response(s)? This cannot be undone.`)) return;
+    setBulkBusy(true);
+    setError(null);
+    try {
+      await Promise.all([...selected].map((id) => api.deleteSubmission(formId, id)));
+      setRows((prev) => prev.filter((r) => !selected.has(r.id)));
+      setSelected(new Set());
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setBulkBusy(false);
+    }
+  }
 
   async function onSetStatus(row: SubmissionRow, next: ValidationStatus | null) {
     if (!formId) return;
@@ -225,6 +277,11 @@ export function ResponsesPage() {
               GeoJSON
             </button>
           )}
+          {hasGeo && (
+            <button type="button" onClick={() => download("kml")} disabled={rows.length === 0}>
+              KML
+            </button>
+          )}
           <button type="button" onClick={() => download("spss")} disabled={rows.length === 0}>
             SPSS
           </button>
@@ -302,10 +359,62 @@ export function ResponsesPage() {
                   </button>
                 ))}
               </div>
+              {selected.size > 0 && (
+                <div className="bulk-bar">
+                  <span className="bulk-count">{selected.size} selected</span>
+                  <button
+                    type="button"
+                    className="button secondary"
+                    onClick={() => bulkSetStatus("approved")}
+                    disabled={bulkBusy}
+                  >
+                    Approve
+                  </button>
+                  <button
+                    type="button"
+                    className="button secondary"
+                    onClick={() => bulkSetStatus("on_hold")}
+                    disabled={bulkBusy}
+                  >
+                    On hold
+                  </button>
+                  <button
+                    type="button"
+                    className="button secondary"
+                    onClick={() => bulkSetStatus(null)}
+                    disabled={bulkBusy}
+                  >
+                    Clear status
+                  </button>
+                  <button
+                    type="button"
+                    className="link-button danger"
+                    onClick={bulkDelete}
+                    disabled={bulkBusy}
+                  >
+                    Delete
+                  </button>
+                  <button
+                    type="button"
+                    className="link-button"
+                    onClick={() => setSelected(new Set())}
+                  >
+                    Deselect all
+                  </button>
+                </div>
+              )}
               <div className="table-scroll">
                 <table className="responses-table">
                   <thead>
                     <tr>
+                      <th className="th-check">
+                        <input
+                          type="checkbox"
+                          checked={selected.size === tableRows.length && tableRows.length > 0}
+                          onChange={toggleSelectAll}
+                          aria-label="Select all"
+                        />
+                      </th>
                       <th>Status</th>
                       <th>Submitted</th>
                       {columns.map((col) => (
@@ -316,7 +425,15 @@ export function ResponsesPage() {
                   </thead>
                   <tbody>
                     {tableRows.map((row) => (
-                      <tr key={row.id}>
+                      <tr key={row.id} className={selected.has(row.id) ? "row-selected" : ""}>
+                        <td className="td-check">
+                          <input
+                            type="checkbox"
+                            checked={selected.has(row.id)}
+                            onChange={() => toggleSelect(row.id)}
+                            aria-label="Select row"
+                          />
+                        </td>
                         <td>
                           <select
                             className={`status-select ${row.validation_status ?? "none"}`}
