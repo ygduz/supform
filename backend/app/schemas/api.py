@@ -156,6 +156,7 @@ class SubmissionOut(BaseModel):
     created_at: datetime
     read_at: datetime | None = None
     validation_status: str | None = None
+    workflow_step: str | None = None
     score: float | None = None
     quality_flags: list[str] = []
     started_at: str | None = None

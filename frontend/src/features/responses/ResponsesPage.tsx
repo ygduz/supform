@@ -4,11 +4,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { AnalyticsPanel } from "./AnalyticsPanel";
 import { MapPanel } from "./MapPanel";
+import { WorkflowBoard } from "./WorkflowBoard";
 import { buildColumns } from "./columns";
 
 type Status = "loading" | "ready" | "unauth" | "error";
 type Format = "csv" | "xlsx" | "json" | "geojson" | "kml" | "spss" | "xlsform";
-type View = "analytics" | "table" | "map";
+type View = "analytics" | "table" | "map" | "workflow";
 type StatusFilter = "all" | ValidationStatus;
 
 interface EditState {
@@ -365,10 +366,26 @@ export function ResponsesPage() {
                 Map
               </button>
             )}
+            <button
+              type="button"
+              className={view === "workflow" ? "tab active" : "tab"}
+              onClick={() => setView("workflow")}
+            >
+              Workflow
+            </button>
           </div>
 
           {view === "analytics" && schema && <AnalyticsPanel schema={schema} rows={rows} />}
           {view === "map" && schema && <MapPanel schema={schema} rows={rows} />}
+          {view === "workflow" && schema && (
+            <WorkflowBoard
+              schema={schema}
+              submissions={rows}
+              onUpdate={(updated) =>
+                setRows((prev) => prev.map((r) => (r.id === updated.id ? updated : r)))
+              }
+            />
+          )}
 
           {view === "table" && (
             <>

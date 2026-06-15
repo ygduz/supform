@@ -155,6 +155,7 @@ export interface FormSettings {
   quizMode?: boolean;
   outcomes?: Outcome[];
   qualityChecks?: QualityChecks;
+  workflowSteps?: string[];
 }
 
 export interface QualityChecks {

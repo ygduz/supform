@@ -11,6 +11,17 @@ export function SettingsPanel() {
   const languages = schema.languages ?? [];
   const defaultLanguage = schema.defaultLanguage ?? "en";
   const [newLang, setNewLang] = useState("");
+  const [newStep, setNewStep] = useState("");
+
+  const workflowSteps = settings.workflowSteps ?? [];
+  const addStep = () => {
+    const s = newStep.trim();
+    if (!s || workflowSteps.includes(s)) return;
+    setSettings({ workflowSteps: [...workflowSteps, s] });
+    setNewStep("");
+  };
+  const removeStep = (s: string) =>
+    setSettings({ workflowSteps: workflowSteps.filter((x) => x !== s) });
 
   const qc = settings.qualityChecks ?? {};
   const setQC = (patch: Partial<QualityChecks>) =>
@@ -298,6 +309,44 @@ export function SettingsPanel() {
           <small className="hint">
             Flag geopoints outside [minLat, minLng, maxLat, maxLng]. Leave blank to skip.
           </small>
+        </div>
+      </fieldset>
+
+      <fieldset className="prop-fieldset">
+        <legend>Workflow steps</legend>
+        <small className="hint">
+          Define named stages for reviewing submissions (e.g. "New", "In review", "Approved").
+          Manage submissions by step in the Responses → Workflow view.
+        </small>
+        {workflowSteps.length > 0 && (
+          <ul className="lang-list">
+            {workflowSteps.map((s) => (
+              <li key={s}>
+                <span>{s}</span>
+                <button type="button" className="link-button" onClick={() => removeStep(s)}>
+                  Remove
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+        <div className="lang-add">
+          <input
+            className="prop-input"
+            type="text"
+            placeholder="Step name"
+            value={newStep}
+            onChange={(e) => setNewStep(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                addStep();
+              }
+            }}
+          />
+          <button type="button" onClick={addStep} disabled={!newStep.trim()}>
+            Add
+          </button>
         </div>
       </fieldset>
 

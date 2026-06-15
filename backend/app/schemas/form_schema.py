@@ -186,6 +186,7 @@ class FormSettings(BaseModel):
     redirect_url: str | None = Field(default=None, alias="redirectUrl")
     notify_emails: list[str] = Field(default_factory=list, alias="notifyEmails")
     quiz_mode: bool = Field(default=False, alias="quizMode")
+    workflow_steps: list[str] = []
     outcomes: list[Outcome] = Field(default_factory=list)
     # Data quality: thresholds for automated flag checks run at submit time.
     quality_checks: dict[str, Any] | None = Field(default=None, alias="qualityChecks")

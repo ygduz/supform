@@ -32,6 +32,9 @@ class Submission(UUIDPrimaryKeyMixin, TimestampMixin, Base):
 
     read_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
+    # Multi-step approval workflow step.
+    workflow_step: Mapped[str | None] = mapped_column(String(100), nullable=True)
+
     # Review workflow: a reviewer can mark a record approved / not_approved / on_hold.
     validation_status: Mapped[str | None] = mapped_column(String(20), nullable=True, index=True)
     validated_by: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"), nullable=True)

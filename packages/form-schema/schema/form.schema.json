@@ -105,6 +105,12 @@
             }
           }
         },
+        "workflow_steps": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": [],
+          "description": "Named stages for multi-step approval workflow (e.g. New, In review, Approved)."
+        },
         "qualityChecks": {
           "type": "object",
           "description": "Thresholds for automated data quality flags computed at submission time.",

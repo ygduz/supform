@@ -13,6 +13,7 @@ from app.api.v1 import (
     members,
     projects,
     question_library,
+    reports,
     submissions,
     webhooks,
 )
@@ -30,3 +31,4 @@ api_router.include_router(media.router)
 api_router.include_router(webhooks.router)
 api_router.include_router(inbox.router)
 api_router.include_router(question_library.router)
+api_router.include_router(reports.router)

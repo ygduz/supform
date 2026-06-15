@@ -75,6 +75,7 @@ export interface SubmissionRow {
   answers: Record<string, unknown>;
   created_at: string;
   validation_status: ValidationStatus | null;
+  workflow_step?: string | null;
   quality_flags: string[];
   started_at?: string;
   read_at?: string | null;
@@ -315,6 +316,12 @@ export const api = {
 
   deleteSubmission: (formId: string, submissionId: string) =>
     request<void>(`/api/v1/forms/${formId}/submissions/${submissionId}`, { method: "DELETE" }),
+
+  setWorkflowStep: (submissionId: string, step: string): Promise<SubmissionRow> =>
+    request<SubmissionRow>(
+      `/api/v1/submissions/${submissionId}/workflow-step?step=${encodeURIComponent(step)}`,
+      { method: "PATCH" },
+    ),
 
   /** Import an XLSForm or ODK XForm file into a new draft form on a project. */
   importForm: async (

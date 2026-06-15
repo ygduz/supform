@@ -14,6 +14,7 @@ from app.core.exceptions import NotFoundError, ValidationError
 from app.core.ratelimit import rate_limit
 from app.db.session import get_db
 from app.form_engine import validate_submission
+from app.models.form import Form
 from app.models.submission import VALIDATION_STATUSES, Submission
 from app.models.user import User
 from app.schemas.api import (
@@ -146,3 +147,23 @@ async def delete_submission(
     submission = await _owned_submission(db, form_id, submission_id, user, min_role="editor")
     await db.delete(submission)
     await db.commit()
+
+
+@router.patch("/{submission_id}/workflow-step")
+async def set_workflow_step(
+    submission_id: uuid.UUID,
+    step: str,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> SubmissionOut:
+    """Move a submission to a specific workflow step."""
+    sub = await db.get(Submission, submission_id)
+    if sub is None:
+        raise NotFoundError("Submission not found")
+    form = await db.get(Form, sub.form_id)
+    if form is None or form.owner_id != user.id:
+        raise NotFoundError("Submission not found")
+    sub.workflow_step = step
+    await db.commit()
+    await db.refresh(sub)
+    return SubmissionOut.model_validate(sub)
