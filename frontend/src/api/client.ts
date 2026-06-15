@@ -119,6 +119,18 @@ export interface Webhook {
   created_at: string;
 }
 
+/** A single webhook delivery attempt (success or failure). */
+export interface WebhookDelivery {
+  id: string;
+  webhook_id: string;
+  url: string;
+  status_code: number | null;
+  error: string | null;
+  duration_ms: number | null;
+  is_test: boolean;
+  created_at: string;
+}
+
 export interface QuestionTemplate {
   id: string;
   label: string;
@@ -249,6 +261,14 @@ export const api = {
   deleteWebhook: (formId: string, webhookId: string) =>
     request<void>(`/api/v1/forms/${formId}/webhooks/${webhookId}`, {
       method: "DELETE",
+    }),
+
+  listWebhookDeliveries: (formId: string, webhookId: string) =>
+    request<WebhookDelivery[]>(`/api/v1/forms/${formId}/webhooks/${webhookId}/deliveries`),
+
+  testWebhook: (formId: string, webhookId: string) =>
+    request<WebhookDelivery>(`/api/v1/forms/${formId}/webhooks/${webhookId}/test`, {
+      method: "POST",
     }),
 
   // submissions

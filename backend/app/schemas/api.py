@@ -191,6 +191,18 @@ class WebhookOut(BaseModel):
     created_at: datetime
 
 
+class WebhookDeliveryOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: uuid.UUID
+    webhook_id: uuid.UUID
+    url: str
+    status_code: int | None = None
+    error: str | None = None
+    duration_ms: int | None = None
+    is_test: bool
+    created_at: datetime
+
+
 # ---- exports ----
 class ExportJobOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)

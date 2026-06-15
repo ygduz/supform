@@ -1562,13 +1562,12 @@ body,
 }
 .webhook-row {
   display: flex;
-  align-items: center;
-  gap: 12px;
+  flex-direction: column;
+  gap: 8px;
   padding: 10px 0;
   border-top: 1px solid var(--border);
 }
 .webhook-main {
-  flex: 1;
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -1578,12 +1577,69 @@ body,
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  font-size: 14px;
+}
+.webhook-secret {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.webhook-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 .webhook-active {
   display: flex;
   align-items: center;
   gap: 4px;
   font-size: 14px;
+  white-space: nowrap;
+}
+.webhook-test-result {
+  font-size: 13px;
+  padding: 6px 10px;
+  border-radius: var(--radius);
+}
+.webhook-test-ok {
+  background: #eafaf1;
+  color: #1e8449;
+}
+.webhook-test-fail {
+  background: #fdf2f2;
+  color: #c0392b;
+}
+.webhook-deliveries {
+  border-top: 1px dashed var(--border);
+  padding-top: 8px;
+}
+.delivery-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.delivery-table th,
+.delivery-table td {
+  text-align: left;
+  padding: 4px 6px;
+  border-bottom: 1px solid var(--border);
+}
+.delivery-table th {
+  color: var(--muted);
+  font-weight: 500;
+}
+.delivery-row-ok td:nth-child(2) {
+  color: #1e8449;
+}
+.delivery-row-fail td:nth-child(2) {
+  color: #c0392b;
+}
+.delivery-error {
+  color: var(--muted);
+  max-width: 280px;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 .lang-switcher {
