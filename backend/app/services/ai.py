@@ -153,7 +153,7 @@ async def translate_strings(
         if line and line[0].isdigit():
             dot = line.find(". ")
             if dot != -1:
-                line = line[dot + 2:]
+                line = line[dot + 2 :]
         results.append(line)
 
     # Pad or trim to match input length.

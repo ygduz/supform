@@ -29,6 +29,7 @@ from app.schemas.form_schema import Element, ElementType, FormSchema
 
 # ── helpers ────────────────────────────────────────────────────────────────────
 
+
 def _all_elements(schema: FormSchema) -> list[Element]:
     out: list[Element] = []
 
@@ -110,6 +111,7 @@ def _check_geo_outlier(
 
 
 # ── public API ─────────────────────────────────────────────────────────────────
+
 
 def run_quality_checks(
     schema: FormSchema,

@@ -77,12 +77,11 @@ def _label(el: Element | FormSchema, fallback: str = "") -> str:
 
 
 def _esc(s: str) -> str:
-    return (
-        s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace('"', "&quot;")
-    )
+    return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace('"', "&quot;")
 
 
 # ── XForm XML generation ──────────────────────────────────────────
+
 
 def _instance_fields(elements: list[Element], indent: int = 6) -> list[str]:
     pad = " " * indent
@@ -120,64 +119,73 @@ def _body_elements(elements: list[Element], choices_used: set[str], indent: int 
     pad = " " * indent
     out: list[str] = []
     for el in elements:
-        if el.type in ("note", "html", "section", "calculated", "start", "end", "today",
-                        "deviceid", "username"):
+        if el.type in (
+            "note",
+            "html",
+            "section",
+            "calculated",
+            "start",
+            "end",
+            "today",
+            "deviceid",
+            "username",
+        ):
             continue
         ref = f"/data/{el.name}"
         lbl = _esc(_label(el, el.name))
 
         if el.type == "group":
             out.append(f'{pad}<group ref="{ref}">')
-            out.append(f'{pad}  <label>{lbl}</label>')
+            out.append(f"{pad}  <label>{lbl}</label>")
             out.extend(_body_elements(el.elements or [], choices_used, indent + 2))
-            out.append(f'{pad}</group>')
+            out.append(f"{pad}</group>")
 
         elif el.type == "repeat":
             out.append(f'{pad}<repeat nodeset="{ref}">')
-            out.append(f'{pad}  <label>{lbl}</label>')
+            out.append(f"{pad}  <label>{lbl}</label>")
             out.extend(_body_elements(el.elements or [], choices_used, indent + 2))
-            out.append(f'{pad}</repeat>')
+            out.append(f"{pad}</repeat>")
 
         elif el.type in _CHOICE_TYPES:
             tag = "select" if el.type == "multi_choice" else "select1"
             out.append(f'{pad}<{tag} ref="{ref}">')
-            out.append(f'{pad}  <label>{lbl}</label>')
+            out.append(f"{pad}  <label>{lbl}</label>")
             list_name = f"list_{el.name}"
             choices_used.add(el.name)
-            out.append(f'{pad}  <itemset nodeset="instance(\'{list_name}\')/root/item">')
+            out.append(f"{pad}  <itemset nodeset=\"instance('{list_name}')/root/item\">")
             out.append(f'{pad}    <value ref="value"/>')
             out.append(f'{pad}    <label ref="label"/>')
-            out.append(f'{pad}  </itemset>')
-            out.append(f'{pad}</{tag}>')
+            out.append(f"{pad}  </itemset>")
+            out.append(f"{pad}</{tag}>")
 
         elif el.type == "geopoint":
             out.append(f'{pad}<input ref="{ref}" appearance="maps">')
-            out.append(f'{pad}  <label>{lbl}</label>')
-            out.append(f'{pad}</input>')
+            out.append(f"{pad}  <label>{lbl}</label>")
+            out.append(f"{pad}</input>")
 
         elif el.type in ("geotrace", "geoshape"):
             app = "draw" if el.type == "geoshape" else "lines"
             out.append(f'{pad}<input ref="{ref}" appearance="{app}">')
-            out.append(f'{pad}  <label>{lbl}</label>')
-            out.append(f'{pad}</input>')
+            out.append(f"{pad}  <label>{lbl}</label>")
+            out.append(f"{pad}</input>")
 
         elif el.type in ("file", "image", "signature"):
             out.append(f'{pad}<upload ref="{ref}" mediatype="image/*">')
-            out.append(f'{pad}  <label>{lbl}</label>')
-            out.append(f'{pad}</upload>')
+            out.append(f"{pad}  <label>{lbl}</label>")
+            out.append(f"{pad}</upload>")
 
         elif el.type == "barcode":
             out.append(f'{pad}<input ref="{ref}" appearance="barcode">')
-            out.append(f'{pad}  <label>{lbl}</label>')
-            out.append(f'{pad}</input>')
+            out.append(f"{pad}  <label>{lbl}</label>")
+            out.append(f"{pad}</input>")
 
         else:
             out.append(f'{pad}<input ref="{ref}">')
-            out.append(f'{pad}  <label>{lbl}</label>')
+            out.append(f"{pad}  <label>{lbl}</label>")
             if el.hint:
                 hint_txt = _esc(_label(el, "") if not isinstance(el.hint, str) else el.hint)
-                out.append(f'{pad}  <hint>{hint_txt}</hint>')
-            out.append(f'{pad}</input>')
+                out.append(f"{pad}  <hint>{hint_txt}</hint>")
+            out.append(f"{pad}</input>")
     return out
 
 
@@ -200,7 +208,7 @@ def _choice_instances(elements: list[Element]) -> list[str]:
                 lv = _esc(next(iter(raw_label.values()), str(opt.value)))
             else:
                 lv = _esc(str(opt.value))
-            out.append(f'      <item><value>{v}</value><label>{lv}</label></item>')
+            out.append(f"      <item><value>{v}</value><label>{lv}</label></item>")
         out.append("    </root></instance>")
     return out
 
@@ -250,6 +258,7 @@ def schema_to_xform(form_id: str, schema: FormSchema, base_url: str) -> str:
 
 # ── Endpoints ─────────────────────────────────────────────────────
 
+
 @router.get("/formList")
 async def form_list(
     request: Request,
@@ -265,12 +274,12 @@ async def form_list(
     for form, _ in published:
         schema_url = f"{base}/openrosa/forms/{form.id}.xml"
         items.append(
-            f'  <xform>\n'
-            f'    <formID>{form.id}</formID>\n'
-            f'    <name>{_esc(form.title or form.name)}</name>\n'
-            f'    <version>{form.current_version}</version>\n'
-            f'    <downloadUrl>{schema_url}</downloadUrl>\n'
-            f'  </xform>'
+            f"  <xform>\n"
+            f"    <formID>{form.id}</formID>\n"
+            f"    <name>{_esc(form.title or form.name)}</name>\n"
+            f"    <version>{form.current_version}</version>\n"
+            f"    <downloadUrl>{schema_url}</downloadUrl>\n"
+            f"  </xform>"
         )
 
     body = (
@@ -363,8 +372,8 @@ async def receive_submission(
 
     return Response(
         content='<OpenRosaResponse xmlns="http://openrosa.org/http/response">'
-                "<message>Submission accepted</message>"
-                "</OpenRosaResponse>",
+        "<message>Submission accepted</message>"
+        "</OpenRosaResponse>",
         status_code=201,
         media_type="text/xml",
         headers=_OR_HEADERS,

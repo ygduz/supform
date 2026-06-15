@@ -100,9 +100,7 @@ async def create_form(
     return form
 
 
-async def duplicate_form(
-    db: AsyncSession, form_id: uuid.UUID, user_id: uuid.UUID
-) -> Form:
+async def duplicate_form(db: AsyncSession, form_id: uuid.UUID, user_id: uuid.UUID) -> Form:
     """Create a copy of the form's draft in the same project. Editor+ only."""
     source = await get_owned_form(db, form_id, user_id, min_role="editor")
     content = FormSchema.model_validate(source.draft_content)

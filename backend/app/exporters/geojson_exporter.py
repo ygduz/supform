@@ -87,11 +87,13 @@ def export_geojson(form: FormSchema, submissions: Iterable[dict[str, Any]]) -> s
             else:
                 properties[key] = value
 
-        features.append({
-            "type": "Feature",
-            "geometry": geometry,
-            "properties": properties,
-        })
+        features.append(
+            {
+                "type": "Feature",
+                "geometry": geometry,
+                "properties": properties,
+            }
+        )
 
     collection = {
         "type": "FeatureCollection",

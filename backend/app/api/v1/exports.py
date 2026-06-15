@@ -107,9 +107,7 @@ async def export_media_zip(
 
     # Collect every MediaFile that belongs to this form.
     stmt = (
-        select(MediaFile)
-        .where(MediaFile.form_id == form_id)
-        .order_by(MediaFile.created_at.asc())
+        select(MediaFile).where(MediaFile.form_id == form_id).order_by(MediaFile.created_at.asc())
     )
     media_files = list(await db.scalars(stmt))
 
