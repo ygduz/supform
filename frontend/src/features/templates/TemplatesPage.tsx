@@ -39,8 +39,14 @@ export function TemplatesPage() {
       </p>
 
       <div className="ai-cta">
+        <div className="ai-cta-text">
+          <strong>Generate with AI</strong>
+          <span className="muted">
+            Describe your form in plain English — get a draft in seconds.
+          </span>
+        </div>
         <button type="button" className="button" onClick={() => setAiOpen(true)}>
-          ✨ Generate with AI
+          ✨ Try it
         </button>
       </div>
       {aiOpen && <AIGenerateDialog onClose={() => setAiOpen(false)} />}

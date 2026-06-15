@@ -738,14 +738,70 @@ button:focus-visible {
 
 /* Import page */
 .import-page {
-  max-width: 560px;
+  max-width: 620px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.import-section {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  background: var(--surface-raised);
   display: flex;
   flex-direction: column;
   gap: 14px;
+}
+.import-section-label {
+  display: flex;
+  gap: 14px;
   align-items: flex-start;
 }
-.import-page input[type="file"] {
-  font-size: 14px;
+.import-section-icon {
+  font-size: 28px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+.import-section-label h2 {
+  margin: 0 0 4px;
+  font-size: var(--text-lg);
+}
+.import-section-label p {
+  margin: 0;
+}
+.file-dropzone {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 2px dashed var(--border);
+  border-radius: var(--radius);
+  padding: 24px 16px;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+  text-align: center;
+}
+.file-dropzone:hover {
+  border-color: var(--primary);
+  background: var(--primary-light);
+}
+.file-dropzone-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  overflow: hidden;
+}
+.file-dropzone-prompt {
+  font-size: var(--text-sm);
+}
+.file-dropzone-name {
+  font-size: var(--text-sm);
+  color: var(--primary);
+  font-weight: 500;
+}
+.import-detected {
+  margin: 0;
 }
 .field {
   margin-bottom: 24px;
@@ -2439,36 +2495,53 @@ body,
 }
 .template-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
   gap: 16px;
-  margin-top: 20px;
+  margin-top: 16px;
 }
 .template-card {
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: var(--radius-lg);
   padding: 20px;
   display: flex;
   flex-direction: column;
   gap: 8px;
-  background: #fff;
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow 0.18s ease, transform 0.18s ease, border-color 0.18s ease;
+}
+.template-card:hover {
+  box-shadow: var(--shadow);
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--primary) 30%, var(--border));
 }
 .template-card h2 {
   margin: 0;
-  font-size: 18px;
+  font-size: 16px;
+  font-weight: 600;
 }
 .template-icon {
-  font-size: 28px;
+  font-size: 30px;
+  line-height: 1;
 }
 .template-fields {
   list-style: none;
   margin: 4px 0 12px;
   padding: 0;
-  font-size: 14px;
-  color: var(--muted);
+  font-size: 13px;
+  color: var(--text-secondary);
   flex: 1;
 }
 .template-fields li {
-  padding: 2px 0;
+  padding: 3px 0;
+  padding-left: 14px;
+  position: relative;
+}
+.template-fields li::before {
+  content: "–";
+  position: absolute;
+  left: 0;
+  color: var(--border);
 }
 .template-card .button {
   margin-top: auto;
@@ -2480,8 +2553,12 @@ body,
   margin-top: auto;
 }
 .section-title {
-  margin: 28px 0 12px;
-  font-size: 18px;
+  margin: 32px 0 8px;
+  font-size: var(--text-sm);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-secondary);
 }
 
 /* Responses analytics */
@@ -2570,7 +2647,28 @@ body,
 
 /* AI generation */
 .ai-cta {
-  margin: 8px 0 16px;
+  margin: 16px 0 24px;
+  padding: 18px 22px;
+  background: linear-gradient(135deg, #f0f4ff 0%, #faf5ff 100%);
+  border: 1px solid color-mix(in srgb, var(--primary) 20%, var(--border));
+  border-radius: var(--radius-lg);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.ai-cta-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  font-size: var(--text-sm);
+}
+.ai-cta-text strong {
+  font-size: var(--text-base);
+}
+.ai-cta .button {
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 .ai-prompt {
   width: 100%;
@@ -3677,9 +3775,13 @@ body,
   border-top: 1px solid var(--border);
   margin: 28px 0;
 }
+.text-import {
+  width: 100%;
+}
 .text-import h2 {
   margin: 0 0 6px;
-  font-size: 18px;
+  font-size: var(--text-lg);
+  font-weight: 600;
 }
 .text-import-tools {
   display: flex;
