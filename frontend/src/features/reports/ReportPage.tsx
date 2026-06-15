@@ -1,4 +1,5 @@
 import { type SubmissionRow, api } from "@/api/client";
+import { Button, EmptyState } from "@/components";
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 
@@ -207,34 +208,49 @@ export function ReportPage() {
   return (
     <div className="rpt-page">
       <div className="rpt-toolbar no-print">
-        <h2 className="rpt-page-title">Report</h2>
+        <div className="rpt-toolbar-head">
+          <h2 className="rpt-page-title">Report</h2>
+          <p className="rpt-page-sub">{rows.length} responses</p>
+        </div>
         <div className="rpt-toolbar-actions">
           {editMode && (
-            <>
+            <div className="rpt-add-group">
+              <span className="rpt-add-label">Add widget</span>
               <button type="button" className="rpt-add-btn" onClick={() => addWidget("bar")}>
-                + Bar
+                📊 Bar
               </button>
               <button type="button" className="rpt-add-btn" onClick={() => addWidget("pie")}>
-                + Pie
+                🥧 Pie
               </button>
               <button type="button" className="rpt-add-btn" onClick={() => addWidget("number")}>
-                + KPI
+                🔢 KPI
               </button>
               <button type="button" className="rpt-add-btn" onClick={() => addWidget("text")}>
-                + Text
+                📝 Text
               </button>
-            </>
+            </div>
           )}
-          <button type="button" className="link-button" onClick={() => setEditMode((e) => !e)}>
+          <Button variant="ghost" size="sm" onClick={() => setEditMode((e) => !e)}>
             {editMode ? "Preview" : "Edit"}
-          </button>
-          <button type="button" className="btn-primary" onClick={handlePrint}>
+          </Button>
+          <Button variant="primary" size="sm" onClick={handlePrint}>
             Print / PDF
-          </button>
+          </Button>
         </div>
       </div>
 
-      {widgets.length === 0 && <p className="rpt-empty">Add widgets above to build your report.</p>}
+      {widgets.length === 0 && (
+        <EmptyState
+          icon="📊"
+          title="Build a report"
+          description={
+            editMode
+              ? "Add a Bar, Pie, KPI, or Text widget above to start visualizing your responses."
+              : "No widgets yet. Switch to Edit to add charts and KPIs."
+          }
+          className="rpt-empty"
+        />
+      )}
 
       <div className="rpt-grid">
         {widgets.map((w) => (
