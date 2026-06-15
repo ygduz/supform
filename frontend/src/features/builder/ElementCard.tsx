@@ -104,7 +104,10 @@ export function ElementCard({
 
   function handleCardClick(e: React.MouseEvent) {
     // While a connector is being drawn, clicking a card completes the connection.
+    // Stop propagation so the click doesn't bubble to the canvas background handler,
+    // which would cancel connect mode and wipe the just-created pending connection.
     if (connectingFrom !== null) {
+      e.stopPropagation();
       requestConnect(element.name);
       return;
     }
@@ -251,6 +254,19 @@ export function ElementCard({
           >
             ☆
           </button>
+          {!container && (
+            <button
+              type="button"
+              title="Add conditional logic — show or hide another question based on this answer"
+              className={connectingFrom === element.name ? "active" : ""}
+              onClick={(e) => {
+                e.stopPropagation();
+                startConnect(element.name);
+              }}
+            >
+              ⚡
+            </button>
+          )}
           {container ? (
             <button
               type="button"

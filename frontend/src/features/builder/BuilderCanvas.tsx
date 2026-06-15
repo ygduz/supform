@@ -105,7 +105,8 @@ export function BuilderCanvas({
 
       {connectingFrom && (
         <div className="connect-hint">
-          Click any question to use it as the condition trigger — or press <kbd>Esc</kbd> to cancel.
+          Click the question to show or hide based on this answer — or press <kbd>Esc</kbd> to
+          cancel.
         </div>
       )}
 
