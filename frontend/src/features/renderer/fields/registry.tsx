@@ -586,7 +586,6 @@ const NoteField: Renderer = ({ element }) => {
 };
 
 const HtmlField: Renderer = ({ element }) => {
-  // biome-ignore lint/security/noDangerouslySetInnerHtml: intentional rich content
   return (
     <div
       className="html-field"

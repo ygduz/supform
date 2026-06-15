@@ -251,7 +251,11 @@ export function summaryStats(
   const flaggedCount = rows.filter((r) => r.quality_flags.length > 0).length;
   const flagRate = total > 0 ? Math.round((flaggedCount / total) * 100) : 0;
   const flagBreakdown = [...flagCounts.entries()]
-    .map(([flag, count]) => ({ flag, count, pct: total > 0 ? Math.round((count / total) * 100) : 0 }))
+    .map(([flag, count]) => ({
+      flag,
+      count,
+      pct: total > 0 ? Math.round((count / total) * 100) : 0,
+    }))
     .sort((a, b) => b.count - a.count);
 
   return { total, last7Days, flaggedCount, flagRate, flagBreakdown };
