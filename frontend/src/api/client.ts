@@ -79,6 +79,7 @@ export interface SubmissionRow {
   quality_flags: string[];
   started_at?: string;
   read_at?: string | null;
+  form_title?: string | null;
 }
 
 /** Reference a file field stores as its answer after upload. */

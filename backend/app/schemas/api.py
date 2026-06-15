@@ -160,6 +160,7 @@ class SubmissionOut(BaseModel):
     score: float | None = None
     quality_flags: list[str] = []
     started_at: str | None = None
+    form_title: str | None = None
 
 
 class ValidationUpdate(BaseModel):

@@ -90,7 +90,7 @@ export function InboxPage() {
               onKeyDown={(e) => e.key === "Enter" && handleRead(item)}
             >
               <div className="inbox-item-meta">
-                <span className="inbox-item-form">{item.form_id}</span>
+                <span className="inbox-item-form">{item.form_title ?? item.form_id}</span>
                 <span className="inbox-item-time">
                   {new Date(item.created_at).toLocaleString()}
                 </span>
@@ -104,7 +104,9 @@ export function InboxPage() {
       <div className="inbox-detail">
         {selected ? (
           <>
-            <h3 className="inbox-detail-title">Submission detail</h3>
+            <h3 className="inbox-detail-title">
+              {selected.form_title ?? "Submission detail"}
+            </h3>
             <p className="inbox-detail-time">
               Received {new Date(selected.created_at).toLocaleString()}
             </p>
