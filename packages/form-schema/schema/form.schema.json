@@ -147,8 +147,8 @@
           "examples": [
             "text", "longtext", "number", "integer", "decimal", "email", "url", "phone",
             "single_choice", "multi_choice", "dropdown", "rating", "ranking", "scale",
-            "date", "time", "datetime", "boolean", "matrix",
-            "file", "image", "signature", "geopoint", "barcode",
+            "date", "time", "datetime", "date_range", "boolean", "matrix",
+            "file", "image", "signature", "geopoint", "barcode", "address",
             "calculated", "hidden", "note", "section", "group", "repeat", "html", "image_block"
           ]
         },

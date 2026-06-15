@@ -41,6 +41,7 @@ class ElementType(StrEnum):
     DATE = "date"
     TIME = "time"
     DATETIME = "datetime"
+    DATE_RANGE = "date_range"
     BOOLEAN = "boolean"
     # complex
     MATRIX = "matrix"
@@ -50,6 +51,7 @@ class ElementType(StrEnum):
     FILE = "file"
     IMAGE = "image"
     SIGNATURE = "signature"
+    ADDRESS = "address"
     GEOPOINT = "geopoint"
     GEOTRACE = "geotrace"
     GEOSHAPE = "geoshape"

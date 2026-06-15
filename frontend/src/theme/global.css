@@ -3852,3 +3852,44 @@ body,
   color: #adb5bd;
   border-top: 1px solid #f1f3f5;
 }
+
+/* ── DateRange field ────────────────────────────────────────── */
+.field-date-range {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.field-date-range input[type="date"] {
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 14px;
+}
+.dr-label {
+  font-size: 12px;
+  color: #6c757d;
+  font-weight: 500;
+}
+
+/* ── Address field ──────────────────────────────────────────── */
+.field-address {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+.addr-wide {
+  grid-column: 1 / -1;
+  width: 100%;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  padding: 7px 10px;
+  font-size: 14px;
+}
+.addr-short {
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  padding: 7px 10px;
+  font-size: 14px;
+  width: 100%;
+}
