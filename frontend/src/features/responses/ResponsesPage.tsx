@@ -290,6 +290,9 @@ export function ResponsesPage() {
 
   return (
     <section className="responses">
+      <nav className="responses-breadcrumb">
+        <Link to="/forms">← My forms</Link>
+      </nav>
       <header className="responses-header">
         <div>
           <h1>Responses</h1>
@@ -301,85 +304,62 @@ export function ResponsesPage() {
           <Link to={`/forms/${formId}/report`} className="button secondary">
             Report
           </Link>
-          <span className="muted">Export:</span>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => download("csv")}
-            disabled={rows.length === 0}
-          >
-            CSV
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => download("xlsx")}
-            disabled={rows.length === 0}
-          >
-            XLSX
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => download("json")}
-            disabled={rows.length === 0}
-          >
-            JSON
-          </Button>
-          {hasGeo && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => download("geojson")}
-              disabled={rows.length === 0}
-            >
-              GeoJSON
-            </Button>
-          )}
-          {hasGeo && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => download("kml")}
-              disabled={rows.length === 0}
-            >
-              KML
-            </Button>
-          )}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => download("spss")}
-            disabled={rows.length === 0}
-          >
-            SPSS
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => download("xlsform")}>
-            XLSForm
-          </Button>
-          {hasMedia && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={async () => {
-                if (!formId) return;
-                try {
-                  const { blob, filename } = await api.exportMediaZip(formId);
-                  const url = URL.createObjectURL(blob);
-                  const a = document.createElement("a");
-                  a.href = url;
-                  a.download = filename;
-                  a.click();
-                  URL.revokeObjectURL(url);
-                } catch (err) {
-                  setError((err as Error).message);
-                }
-              }}
-              disabled={rows.length === 0}
-            >
-              Media ZIP
-            </Button>
-          )}
+          <details className="export-dropdown">
+            <summary className="button outline">Export ▾</summary>
+            <div className="export-menu">
+              <button type="button" onClick={() => download("csv")} disabled={rows.length === 0}>
+                CSV
+              </button>
+              <button type="button" onClick={() => download("xlsx")} disabled={rows.length === 0}>
+                XLSX
+              </button>
+              <button type="button" onClick={() => download("json")} disabled={rows.length === 0}>
+                JSON
+              </button>
+              <button type="button" onClick={() => download("spss")} disabled={rows.length === 0}>
+                SPSS
+              </button>
+              <button type="button" onClick={() => download("xlsform")}>
+                XLSForm
+              </button>
+              {hasGeo && (
+                <button
+                  type="button"
+                  onClick={() => download("geojson")}
+                  disabled={rows.length === 0}
+                >
+                  GeoJSON
+                </button>
+              )}
+              {hasGeo && (
+                <button type="button" onClick={() => download("kml")} disabled={rows.length === 0}>
+                  KML
+                </button>
+              )}
+              {hasMedia && (
+                <button
+                  type="button"
+                  onClick={async () => {
+                    if (!formId) return;
+                    try {
+                      const { blob, filename } = await api.exportMediaZip(formId);
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement("a");
+                      a.href = url;
+                      a.download = filename;
+                      a.click();
+                      URL.revokeObjectURL(url);
+                    } catch (err) {
+                      setError((err as Error).message);
+                    }
+                  }}
+                  disabled={rows.length === 0}
+                >
+                  Media ZIP
+                </button>
+              )}
+            </div>
+          </details>
         </div>
       </header>
 
@@ -390,7 +370,11 @@ export function ResponsesPage() {
       )}
 
       {rows.length === 0 ? (
-        <EmptyState title="No responses yet" description="Share the form to start collecting." />
+        <EmptyState
+          icon="📬"
+          title="No responses yet"
+          description="Share the form link to start collecting responses."
+        />
       ) : (
         <>
           <Tabs tabs={viewTabs} active={view} onChange={(key) => setView(key as View)} />

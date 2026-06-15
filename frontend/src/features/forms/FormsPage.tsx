@@ -1,5 +1,5 @@
 import { type FormListItem, api, isAuthenticated } from "@/api/client";
-import { Badge, Button, Card, EmptyState, Spinner } from "@/components";
+import { Badge, Card, EmptyState, Spinner } from "@/components";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
@@ -229,9 +229,9 @@ export function FormsPage() {
                 <button type="button" className="link-button" onClick={() => onDuplicate(form)}>
                   Duplicate
                 </button>
-                <Button variant="danger" size="sm" onClick={() => onDelete(form)}>
+                <button type="button" className="link-button danger" onClick={() => onDelete(form)}>
                   Delete
-                </Button>
+                </button>
               </footer>
             </Card>
           ))}

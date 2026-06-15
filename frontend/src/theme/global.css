@@ -2074,6 +2074,17 @@ body,
 }
 
 /* Responses dashboard */
+.responses-breadcrumb {
+  margin-bottom: 8px;
+  font-size: var(--text-sm);
+}
+.responses-breadcrumb a {
+  color: var(--text-secondary);
+  text-decoration: none;
+}
+.responses-breadcrumb a:hover {
+  color: var(--primary);
+}
 .responses-header {
   display: flex;
   align-items: flex-end;
@@ -2089,19 +2100,59 @@ body,
   align-items: center;
   gap: 8px;
 }
-.export-actions button {
-  padding: 7px 14px;
+
+/* Export dropdown */
+.export-dropdown {
+  position: relative;
+}
+.export-dropdown > summary {
+  list-style: none;
+  cursor: pointer;
+  font-size: var(--text-sm);
+  padding: 6px 14px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  background: #fff;
-  cursor: pointer;
-  font-size: 14px;
+  background: var(--surface);
+  color: var(--text);
+  user-select: none;
 }
-.export-actions button:hover:not(:disabled) {
+.export-dropdown > summary::-webkit-details-marker {
+  display: none;
+}
+.export-dropdown[open] > summary {
   border-color: var(--primary);
+  color: var(--primary);
 }
-.export-actions button:disabled {
-  opacity: 0.5;
+.export-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  min-width: 140px;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  padding: 4px 0;
+}
+.export-menu button {
+  background: none;
+  border: none;
+  padding: 7px 16px;
+  text-align: left;
+  font-size: var(--text-sm);
+  color: var(--text);
+  cursor: pointer;
+  width: 100%;
+}
+.export-menu button:hover:not(:disabled) {
+  background: var(--surface);
+  color: var(--primary);
+}
+.export-menu button:disabled {
+  opacity: 0.45;
   cursor: default;
 }
 
@@ -2157,8 +2208,16 @@ body,
   position: sticky;
   top: 0;
 }
+.responses-table tbody tr:nth-child(even) {
+  background: var(--surface-sunken);
+}
 .responses-table tbody tr:hover {
-  background: var(--surface);
+  background: var(--primary-light);
+}
+.responses-table tbody tr.row-selected {
+  background: color-mix(in srgb, var(--primary) 8%, transparent);
+  outline: 1px solid color-mix(in srgb, var(--primary) 30%, transparent);
+  outline-offset: -1px;
 }
 
 /* Modal + share dialog */
@@ -2957,16 +3016,18 @@ body,
 }
 .form-card {
   border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: #fff;
+  border-radius: var(--radius-lg);
+  background: var(--surface-raised);
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  transition: box-shadow 0.15s ease, transform 0.15s ease;
+  transition: box-shadow 0.18s ease, transform 0.18s ease, border-color 0.18s ease;
+  box-shadow: var(--shadow-sm);
 }
 .form-card:hover {
-  box-shadow: 0 6px 24px rgba(15, 23, 42, 0.1);
-  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-3px);
+  border-color: color-mix(in srgb, var(--primary) 30%, var(--border));
 }
 .form-card-main {
   text-align: left;
@@ -4764,19 +4825,27 @@ body,
 }
 .wf-col-header {
   padding: 10px 14px;
-  background: #e9ecef;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
   display: flex;
   align-items: center;
   justify-content: space-between;
   font-weight: 600;
   font-size: 13px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
 }
 .wf-col-count {
-  background: #fff;
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
   border-radius: 10px;
   padding: 1px 7px;
   font-size: 11px;
-  color: var(--muted);
+  color: var(--text);
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: none;
 }
 .wf-cards {
   padding: 8px;
@@ -4786,11 +4855,16 @@ body,
   min-height: 60px;
 }
 .wf-card {
-  background: #fff;
+  background: var(--surface-raised);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius);
   padding: 10px 12px;
   font-size: 12px;
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow 0.15s ease;
+}
+.wf-card:hover {
+  box-shadow: var(--shadow);
 }
 .wf-card-id {
   font-weight: 600;
