@@ -3221,30 +3221,35 @@ body,
 /* Port — right-edge connector handle on each question card */
 .el-port {
   position: absolute;
-  right: -10px;
+  right: -13px;
   top: 50%;
   transform: translateY(-50%);
-  width: 20px;
-  height: 20px;
+  width: 26px;
+  height: 26px;
   border-radius: 50%;
   background: #6366f1;
-  border: 2px solid #fff;
+  border: 2px solid var(--surface-raised);
   cursor: crosshair;
   opacity: 0;
-  transition: opacity 0.15s;
+  transition: opacity 0.15s, transform 0.15s, box-shadow 0.15s;
   z-index: 10;
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
-  font-size: 9px;
+  font-size: 12px;
   padding: 0;
   line-height: 1;
-  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.4);
 }
 .el-card:hover .el-port,
 .el-port.active {
   opacity: 1;
+}
+.el-port.active {
+  background: #4f46e5;
+  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.25), 0 2px 8px rgba(99, 102, 241, 0.4);
+  transform: translateY(-50%) scale(1.15);
 }
 
 /* Connecting mode: highlight eligible targets */
@@ -3254,6 +3259,25 @@ body,
 }
 
 /* Condition picker overlay */
+/* Connecting mode hint banner (mirrors group-link-hint) */
+.connect-hint {
+  background: color-mix(in srgb, #6366f1 10%, transparent);
+  border: 1px solid color-mix(in srgb, #6366f1 30%, transparent);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  font-size: var(--text-sm);
+  color: #4338ca;
+  margin-bottom: 12px;
+  text-align: center;
+}
+.connect-hint kbd {
+  background: rgba(99, 102, 241, 0.15);
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  border-radius: 4px;
+  padding: 1px 5px;
+  font-size: 11px;
+}
+
 .condition-overlay {
   position: fixed;
   inset: 0;
@@ -3264,23 +3288,59 @@ body,
   z-index: 200;
 }
 .condition-picker {
-  background: #fff;
-  border-radius: 12px;
-  padding: 20px 22px;
+  background: var(--surface-raised);
+  border-radius: var(--radius-lg);
+  padding: 22px 24px;
   max-width: 360px;
   width: 100%;
-  box-shadow: 0 8px 32px rgba(15, 23, 42, 0.18);
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--border);
+}
+.condition-picker-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.condition-picker-icon {
+  font-size: 22px;
+  line-height: 1;
+  margin-top: 2px;
+  flex-shrink: 0;
 }
 .condition-picker-heading {
-  margin: 0 0 16px;
+  margin: 0 0 2px;
   font-size: 15px;
-  line-height: 1.5;
+  font-weight: 600;
+  line-height: 1.4;
+}
+.condition-picker-sub {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-secondary);
 }
 .condition-options {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
   margin-bottom: 16px;
+}
+/* Option chips — selectable choices, not action buttons */
+.option-chip {
+  padding: 6px 14px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+  cursor: pointer;
+  transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+}
+.option-chip:hover {
+  border-color: var(--primary);
+  background: var(--primary-light);
+  color: var(--primary);
 }
 .condition-custom {
   display: flex;
@@ -3305,11 +3365,12 @@ body,
 }
 .op-btn {
   border: none;
-  background: #fff;
+  background: var(--surface);
   padding: 6px 14px;
   font-size: 13px;
   cursor: pointer;
-  color: var(--muted);
+  color: var(--text-secondary);
+  font-weight: 500;
 }
 .op-btn + .op-btn {
   border-left: 1px solid var(--border);

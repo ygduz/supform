@@ -103,6 +103,12 @@ export function BuilderCanvas({
         </div>
       )}
 
+      {connectingFrom && (
+        <div className="connect-hint">
+          Click any question to use it as the condition trigger — or press <kbd>Esc</kbd> to cancel.
+        </div>
+      )}
+
       <ConnectorLayer containerRef={innerRef} />
 
       <CanvasList

@@ -341,15 +341,19 @@ export function ElementCard({
         <button
           type="button"
           className={`el-port${connectingFrom === element.name ? " active" : ""}`}
-          title="Draw a condition connector to another question"
+          title={
+            connectingFrom === element.name
+              ? "Connecting… click a target question or press Esc"
+              : "Add conditional logic — click then click the trigger question"
+          }
           onPointerDown={(e) => e.stopPropagation()}
           onClick={(e) => {
             e.stopPropagation();
             startConnect(element.name);
           }}
-          aria-label="Connect to another question"
+          aria-label="Add conditional logic"
         >
-          ↗
+          ⚡
         </button>
       )}
     </li>

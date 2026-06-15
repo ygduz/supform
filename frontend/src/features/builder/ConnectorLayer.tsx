@@ -69,6 +69,9 @@ export function ConnectorLayer({
 
         const removeConn = () => update(conn.toName, { visibleIf: undefined });
 
+        const pillW = 72;
+        const pillH = 22;
+
         return (
           <g key={`${conn.fromName}->${conn.toName}`}>
             <path
@@ -77,7 +80,7 @@ export function ConnectorLayer({
               strokeWidth={2}
               fill="none"
               markerEnd={marker}
-              opacity={0.8}
+              opacity={0.7}
             />
             {/* Wide invisible stroke for easier clicking */}
             <path
@@ -86,27 +89,61 @@ export function ConnectorLayer({
               strokeWidth={14}
               fill="none"
               role="button"
-              aria-label={`Remove connector: ${label}`}
+              aria-label={`Remove condition: ${label}`}
               tabIndex={0}
               style={{ cursor: "pointer", pointerEvents: "stroke" }}
               onClick={removeConn}
               onKeyDown={(e) => e.key === "Enter" && removeConn()}
             />
-            {/* Condition pill — SVG <g> with role="button" is intentional (no block-level HTML inside SVG) */}
-            <g
-              transform={`translate(${midX},${midY})`}
-              // biome-ignore lint/a11y/useSemanticElements: SVG group cannot be a <button>
-              role="button"
-              aria-label={`Remove connector: ${label}`}
-              tabIndex={0}
-              style={{ cursor: "pointer", pointerEvents: "all" }}
-              onClick={removeConn}
-              onKeyDown={(e) => e.key === "Enter" && removeConn()}
-            >
-              <rect x={-28} y={-10} width={56} height={20} rx={10} fill={color} />
-              <text x={0} y={4} textAnchor="middle" fill="white" fontSize={10} fontWeight={600}>
+            {/* Condition pill with explicit × remove */}
+            <g transform={`translate(${midX},${midY})`}>
+              <title>Condition: {label} — click × to remove</title>
+              {/* pill background */}
+              <rect
+                x={-pillW / 2}
+                y={-pillH / 2}
+                width={pillW}
+                height={pillH}
+                rx={pillH / 2}
+                fill={color}
+                opacity={0.92}
+              />
+              {/* condition label */}
+              <text
+                x={-8}
+                y={4}
+                textAnchor="middle"
+                fill="white"
+                fontSize={10}
+                fontWeight={600}
+                style={{ pointerEvents: "none", userSelect: "none" }}
+              >
                 {label}
               </text>
+              {/* × remove button */}
+              <g
+                transform={`translate(${pillW / 2 - 11}, 0)`}
+                // biome-ignore lint/a11y/useSemanticElements: SVG group cannot be a <button>
+                role="button"
+                aria-label={`Remove condition: ${label}`}
+                tabIndex={0}
+                style={{ cursor: "pointer", pointerEvents: "all" }}
+                onClick={removeConn}
+                onKeyDown={(e) => e.key === "Enter" && removeConn()}
+              >
+                <circle r={8} fill="rgba(0,0,0,0.25)" />
+                <text
+                  x={0}
+                  y={4}
+                  textAnchor="middle"
+                  fill="white"
+                  fontSize={10}
+                  fontWeight={700}
+                  style={{ pointerEvents: "none", userSelect: "none" }}
+                >
+                  ×
+                </text>
+              </g>
             </g>
           </g>
         );
