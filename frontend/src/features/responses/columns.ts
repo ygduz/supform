@@ -59,6 +59,21 @@ export function buildColumns(schema: FormSchema): Column[] {
         continue;
       }
 
+      if (el.type === "repeat") {
+        // Show a compact summary: "N entries" for the main table; full detail in the
+        // expanded view or JSON/XLSX export.
+        columns.push({
+          key: el.name,
+          label: elementLabel(el),
+          value: (answers) => {
+            const instances = answers[el.name];
+            if (!Array.isArray(instances) || instances.length === 0) return "";
+            return `${instances.length} ${instances.length === 1 ? "entry" : "entries"}`;
+          },
+        });
+        continue;
+      }
+
       columns.push({
         key: el.name,
         label: elementLabel(el),

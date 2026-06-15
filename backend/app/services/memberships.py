@@ -1,8 +1,14 @@
 """Project membership / role logic — the single authorization gate for team access.
 
-Roles form a hierarchy: ``viewer`` < ``editor`` < ``owner``. The project's
+Roles form a hierarchy: ``viewer`` < ``editor`` < ``admin`` < ``owner``. The project's
 ``owner_id`` always resolves to the implicit ``owner`` role; additional collaborators
 are stored as :class:`ProjectMembership` rows. Forms inherit their project's roles.
+
+Role capabilities:
+- viewer  — read submissions, view the form schema
+- editor  — viewer + build/publish forms, manage submissions (edit/delete/approve)
+- admin   — editor + invite/remove members (cannot delete the project)
+- owner   — full control including project deletion (unique to the creator)
 """
 
 from __future__ import annotations
@@ -18,9 +24,9 @@ from app.models.project_membership import ProjectMembership
 from app.models.user import User
 
 # Hierarchy levels; a higher number includes every lower capability.
-ROLE_LEVELS = {"viewer": 1, "editor": 2, "owner": 3}
-# Roles that can be granted to a collaborator (``owner`` is fixed to the project owner).
-GRANTABLE_ROLES = ("viewer", "editor")
+ROLE_LEVELS = {"viewer": 1, "editor": 2, "admin": 3, "owner": 4}
+# Roles that can be granted to a collaborator (``owner`` is fixed to the project creator).
+GRANTABLE_ROLES = ("viewer", "editor", "admin")
 
 
 def _level(role: str | None) -> int:

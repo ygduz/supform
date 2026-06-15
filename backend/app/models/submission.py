@@ -41,3 +41,13 @@ class Submission(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     def score(self) -> float | None:
         """Quiz score, computed at submit time and stored in metadata (None if not a quiz)."""
         return (self.metadata_ or {}).get("_score")
+
+    @property
+    def quality_flags(self) -> list[str]:
+        """Data quality flags set at submit time (empty list = no issues detected)."""
+        return (self.metadata_ or {}).get("_quality_flags", [])
+
+    @property
+    def started_at(self) -> str | None:
+        """ISO timestamp when the respondent opened the form (from client metadata)."""
+        return (self.metadata_ or {}).get("_started_at")

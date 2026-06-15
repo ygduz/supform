@@ -13,9 +13,15 @@ from app.api.deps import get_current_user, get_optional_user
 from app.core.exceptions import NotFoundError, ValidationError
 from app.core.ratelimit import rate_limit
 from app.db.session import get_db
+from app.form_engine import validate_submission
 from app.models.submission import VALIDATION_STATUSES, Submission
 from app.models.user import User
-from app.schemas.api import SubmissionCreate, SubmissionOut, ValidationUpdate
+from app.schemas.api import (
+    SubmissionAnswersUpdate,
+    SubmissionCreate,
+    SubmissionOut,
+    ValidationUpdate,
+)
 from app.services import forms as forms_service
 from app.services import notifications as notifications_service
 from app.services import submissions as submissions_service
@@ -106,6 +112,25 @@ async def set_validation_status(
     submission.validation_status = payload.status
     submission.validated_by = user.id if payload.status else None
     submission.validated_at = datetime.now(UTC) if payload.status else None
+    await db.commit()
+    return submission
+
+
+@router.patch("/forms/{form_id}/submissions/{submission_id}", response_model=SubmissionOut)
+async def edit_submission(
+    form_id: uuid.UUID,
+    submission_id: uuid.UUID,
+    payload: SubmissionAnswersUpdate,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Update a submission's answers. Re-validates against the published schema. Editor+."""
+    submission = await _owned_submission(db, form_id, submission_id, user, min_role="editor")
+    schema = await forms_service.get_published_schema(db, form_id)
+    result = validate_submission(schema, payload.answers)
+    if not result.is_valid:
+        raise ValidationError("Edited answers failed validation", details=result.errors)
+    submission.answers = result.cleaned
     await db.commit()
     return submission
 

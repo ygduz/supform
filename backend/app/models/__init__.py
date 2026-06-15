@@ -12,6 +12,7 @@ from app.models.project_membership import ProjectMembership
 from app.models.submission import Submission
 from app.models.user import User
 from app.models.webhook import Webhook
+from app.models.webhook_delivery import WebhookDelivery
 
 __all__ = [
     "User",
@@ -23,4 +24,5 @@ __all__ = [
     "MediaFile",
     "ExportJob",
     "Webhook",
+    "WebhookDelivery",
 ]

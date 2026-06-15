@@ -11,6 +11,7 @@ import hashlib
 import hmac
 import json
 import secrets
+import time
 import uuid
 from typing import Any
 
@@ -22,6 +23,7 @@ from app.core.ssrf import assert_safe_url
 from app.models.form import Form
 from app.models.submission import Submission
 from app.models.webhook import Webhook
+from app.models.webhook_delivery import WebhookDelivery
 
 SUBMISSION_CREATED = "submission.created"
 SIGNATURE_HEADER = "X-Supform-Signature"
@@ -157,3 +159,83 @@ def deliver(url: str, secret: str, payload: dict[str, Any], *, timeout: float = 
     response = httpx.post(url, content=body, headers=headers, timeout=timeout)
     response.raise_for_status()
     return response.status_code
+
+
+async def log_delivery(
+    db: AsyncSession,
+    *,
+    webhook_id: uuid.UUID,
+    url: str,
+    status_code: int | None,
+    error: str | None,
+    duration_ms: int | None,
+    is_test: bool = False,
+) -> WebhookDelivery:
+    entry = WebhookDelivery(
+        webhook_id=webhook_id,
+        url=url,
+        status_code=status_code,
+        error=error,
+        duration_ms=duration_ms,
+        is_test=is_test,
+    )
+    db.add(entry)
+    await db.flush()
+    return entry
+
+
+async def list_deliveries(
+    db: AsyncSession,
+    webhook_id: uuid.UUID,
+    *,
+    limit: int = 50,
+) -> list[WebhookDelivery]:
+    stmt = (
+        select(WebhookDelivery)
+        .where(WebhookDelivery.webhook_id == webhook_id)
+        .order_by(WebhookDelivery.created_at.desc())
+        .limit(limit)
+    )
+    return list(await db.scalars(stmt))
+
+
+def _test_payload(webhook: Webhook) -> dict[str, Any]:
+    """A synthetic payload used by the test-delivery endpoint."""
+    return {
+        "event": webhook.event,
+        "form": {"id": str(webhook.form_id), "name": "test"},
+        "submission": {
+            "id": str(uuid.uuid4()),
+            "form_version": 1,
+            "answers": {},
+            "metadata": {},
+            "source": "test",
+            "created_at": None,
+        },
+        "_test": True,
+    }
+
+
+async def test_delivery(
+    db: AsyncSession, form_id: uuid.UUID, webhook_id: uuid.UUID
+) -> WebhookDelivery:
+    """Fire a synthetic delivery and log the result. Returns the delivery log entry."""
+    webhook = await get_webhook(db, form_id, webhook_id)
+    payload = _test_payload(webhook)
+    t0 = time.monotonic()
+    status_code: int | None = None
+    error: str | None = None
+    try:
+        status_code = deliver(webhook.url, webhook.secret, payload)
+    except Exception as exc:
+        error = str(exc)[:500]
+    duration_ms = int((time.monotonic() - t0) * 1000)
+    return await log_delivery(
+        db,
+        webhook_id=webhook_id,
+        url=webhook.url,
+        status_code=status_code,
+        error=error,
+        duration_ms=duration_ms,
+        is_test=True,
+    )

@@ -38,7 +38,14 @@ export type ElementType =
   | "image"
   | "signature"
   | "geopoint"
+  | "geotrace"
+  | "geoshape"
   | "barcode"
+  | "start"
+  | "end"
+  | "today"
+  | "deviceid"
+  | "username"
   | "calculated"
   | "hidden"
   | "note"
@@ -80,6 +87,7 @@ export interface RepeatSettings {
   min?: number;
   max?: number;
   addButtonText?: I18nString;
+  entryLabel?: I18nString;
 }
 
 export interface Element {
@@ -144,6 +152,14 @@ export interface FormSettings {
   /** Score selected-option points and show an outcome on the thank-you screen. */
   quizMode?: boolean;
   outcomes?: Outcome[];
+  qualityChecks?: QualityChecks;
+}
+
+export interface QualityChecks {
+  /** Submissions completed faster than this many seconds are flagged "too_fast". Default 30. */
+  minDurationSeconds?: number;
+  /** Geopoint answers outside [minLat, minLng, maxLat, maxLng] are flagged "geo_outlier". */
+  expectedGeoBbox?: [number, number, number, number];
 }
 
 export interface FormSchema {

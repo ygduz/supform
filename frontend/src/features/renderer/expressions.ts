@@ -13,10 +13,12 @@ export function evaluateBool(
 ): boolean {
   if (!expression) return true;
   try {
-    // Minimal, safe-enough shim: only supports `field <op> literal` and and/or chains.
-    // Deliberately conservative — unknown syntax defaults to visible.
-    const fn = new Function(...Object.keys(context), `return (${toJs(expression)});`);
-    return Boolean(fn(...Object.values(context)));
+    // Inject `selected()` so visibleIf built with the contains op works client-side.
+    const selected = (value: unknown, option: unknown): boolean =>
+      Array.isArray(value) ? value.includes(option) : value === option;
+    const scope = { selected, ...context };
+    const fn = new Function(...Object.keys(scope), `return (${toJs(expression)});`);
+    return Boolean(fn(...Object.values(scope)));
   } catch {
     return true;
   }
@@ -36,6 +38,8 @@ function toJs(expr: string): string {
  * current answers. Referenced fields that aren't answered yet default to 0 so partial
  * forms still compute. Interactivity only — the server recomputes authoritatively.
  */
+export const evaluate = evaluateValue;
+
 export function evaluateValue(
   expression: string | undefined,
   context: Record<string, unknown>,

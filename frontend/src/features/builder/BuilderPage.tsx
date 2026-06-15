@@ -20,22 +20,24 @@ import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { formToText } from "../import/textForm";
-import { FormRenderer } from "../renderer/FormRenderer";
 import { saveMyTemplate } from "../templates/myTemplates";
 import { BuilderCanvas, type DropLocation } from "./BuilderCanvas";
+import { LanguagePreview } from "./LanguagePreview";
 import { LogicBuilder } from "./LogicBuilder";
 import { OverviewPanel } from "./OverviewPanel";
 import { PaletteItem } from "./PaletteItem";
 import { PropertiesPanel } from "./PropertiesPanel";
+import { QuestionLibraryPanel } from "./QuestionLibraryPanel";
 import { SettingsPanel } from "./SettingsPanel";
 import { ShareDialog } from "./ShareDialog";
 import { ShareLinkDialog } from "./ShareLinkDialog";
 import { ThemePanel } from "./ThemePanel";
+import { TranslatePanel } from "./TranslatePanel";
 import { WebhooksDialog } from "./WebhooksDialog";
 import { findElement, groupElements, pageElements } from "./model";
 import { ELEMENT_PALETTE } from "./palette";
 
-type Tab = "overview" | "properties" | "theme" | "settings" | "preview";
+type Tab = "overview" | "properties" | "theme" | "settings" | "translate" | "preview";
 
 export function BuilderPage() {
   const { formId = "new" } = useParams();
@@ -47,7 +49,9 @@ export function BuilderPage() {
   const [sharing, setSharing] = useState(false);
   const [shareLink, setShareLink] = useState(false);
   const [integrations, setIntegrations] = useState(false);
+  const [showLibrary, setShowLibrary] = useState(false);
   const importRef = useRef<HTMLInputElement>(null);
+  const isMultilingual = (schema.languages?.length ?? 0) >= 2;
 
   // ---- drag state (shared across palette + canvas) ----
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
@@ -382,10 +386,37 @@ export function BuilderPage() {
         <div className="builder-body">
           {/* Palette */}
           <aside className="palette">
-            <p className="palette-heading">Add a question</p>
-            {ELEMENT_PALETTE.map((item) => (
-              <PaletteItem key={item.type} type={item.type} label={item.label} icon={item.icon} />
-            ))}
+            <div className="palette-tabs">
+              <button
+                type="button"
+                className={!showLibrary ? "palette-tab active" : "palette-tab"}
+                onClick={() => setShowLibrary(false)}
+              >
+                Fields
+              </button>
+              <button
+                type="button"
+                className={showLibrary ? "palette-tab active" : "palette-tab"}
+                onClick={() => setShowLibrary(true)}
+              >
+                Library
+              </button>
+            </div>
+            {showLibrary ? (
+              <QuestionLibraryPanel onClose={() => setShowLibrary(false)} />
+            ) : (
+              <>
+                <p className="palette-heading">Add a question</p>
+                {ELEMENT_PALETTE.map((item) => (
+                  <PaletteItem
+                    key={item.type}
+                    type={item.type}
+                    label={item.label}
+                    icon={item.icon}
+                  />
+                ))}
+              </>
+            )}
           </aside>
 
           {/* Canvas */}
@@ -468,14 +499,27 @@ export function BuilderPage() {
           {/* Inspector */}
           <aside className="inspector">
             <div className="tabs">
-              {(["overview", "properties", "theme", "settings", "preview"] as Tab[]).map((t) => (
+              {(
+                [
+                  "overview",
+                  "properties",
+                  "theme",
+                  "settings",
+                  ...(isMultilingual ? (["translate"] as Tab[]) : []),
+                  "preview",
+                ] as Tab[]
+              ).map((t) => (
                 <button
                   key={t}
                   type="button"
                   className={tab === t ? "tab active" : "tab"}
                   onClick={() => setTab(t)}
                 >
-                  {t === "overview" ? "Map" : t.charAt(0).toUpperCase() + t.slice(1)}
+                  {t === "overview"
+                    ? "Map"
+                    : t === "translate"
+                      ? "🌐"
+                      : t.charAt(0).toUpperCase() + t.slice(1)}
                 </button>
               ))}
             </div>
@@ -489,11 +533,8 @@ export function BuilderPage() {
               ))}
             {tab === "theme" && <ThemePanel />}
             {tab === "settings" && <SettingsPanel />}
-            {tab === "preview" && (
-              <div className="preview-pane">
-                <FormRenderer schema={schema} formId="preview" />
-              </div>
-            )}
+            {tab === "translate" && <TranslatePanel />}
+            {tab === "preview" && <LanguagePreview schema={schema} />}
           </aside>
         </div>
 

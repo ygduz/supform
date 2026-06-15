@@ -100,3 +100,41 @@ def Calculated(name: str, *, calculate: str, **kw: Any) -> Element:
 
 def Note(name: str, *, label: str, **kw: Any) -> Element:
     return _base("note", name, label=label, **kw)
+
+
+def Group(name: str, *, elements: list[Element], **kw: Any) -> Element:
+    return _base("group", name, elements=elements, **kw)
+
+
+def QualityChecks(
+    *,
+    min_duration_seconds: int | None = None,
+    expected_geo_bbox: tuple[float, float, float, float] | None = None,
+) -> dict[str, Any]:
+    """Return a ``qualityChecks`` settings dict for use in ``Form(..., settings={...})``."""
+    qc: dict[str, Any] = {}
+    if min_duration_seconds is not None:
+        qc["minDurationSeconds"] = min_duration_seconds
+    if expected_geo_bbox is not None:
+        qc["expectedGeoBbox"] = list(expected_geo_bbox)
+    return qc
+
+
+def Repeat(
+    name: str,
+    *,
+    elements: list[Element],
+    min: int = 0,
+    max: int | None = None,
+    entry_label: str | None = None,
+    add_button_text: str | None = None,
+    **kw: Any,
+) -> Element:
+    repeat: dict[str, Any] = {"min": min}
+    if max is not None:
+        repeat["max"] = max
+    if entry_label is not None:
+        repeat["entryLabel"] = entry_label
+    if add_button_text is not None:
+        repeat["addButtonText"] = add_button_text
+    return _base("repeat", name, elements=elements, repeat=repeat, **kw)

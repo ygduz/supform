@@ -1,7 +1,7 @@
 """Project sharing: manage collaborator roles on a project.
 
 Listing members needs ``viewer`` access; granting, re-roling, or removing collaborators
-is owner-only.
+requires at least ``admin`` role (which includes ``owner``).
 """
 
 from __future__ import annotations
@@ -41,7 +41,7 @@ async def add_member(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> MemberOut:
-    await memberships.require_project_role(db, project_id, user.id, "owner")
+    await memberships.require_project_role(db, project_id, user.id, "admin")
     member, role = await memberships.add_member(db, project_id, payload.email, payload.role)
     await db.commit()
     return _member_out(member, role)
@@ -55,7 +55,7 @@ async def update_member(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> MemberOut:
-    await memberships.require_project_role(db, project_id, user.id, "owner")
+    await memberships.require_project_role(db, project_id, user.id, "admin")
     member, role = await memberships.update_member(db, project_id, member_id, payload.role)
     await db.commit()
     return _member_out(member, role)
@@ -68,6 +68,6 @@ async def remove_member(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> None:
-    await memberships.require_project_role(db, project_id, user.id, "owner")
+    await memberships.require_project_role(db, project_id, user.id, "admin")
     await memberships.remove_member(db, project_id, member_id)
     await db.commit()

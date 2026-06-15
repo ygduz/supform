@@ -1,3 +1,4 @@
+import { api } from "@/api/client";
 import { localize } from "@/lib/i18n";
 import { useBuilderStore } from "@/stores/builderStore";
 import type { Element } from "@/types/form-schema";
@@ -53,6 +54,9 @@ export function ElementCard({
     useBuilderStore();
   const collapsed = useBuilderStore((s) => s.collapsedNames.has(element.name));
   const toggleCollapsed = useBuilderStore((s) => s.toggleCollapsed);
+  const connectingFrom = useBuilderStore((s) => s.connectingFrom);
+  const startConnect = useBuilderStore((s) => s.startConnect);
+  const requestConnect = useBuilderStore((s) => s.requestConnect);
   const container = isContainerType(element.type);
   const childCount = element.elements?.length ?? 0;
 
@@ -99,6 +103,11 @@ export function ElementCard({
     .join(" ");
 
   function handleCardClick(e: React.MouseEvent) {
+    // While a connector is being drawn, clicking a card completes the connection.
+    if (connectingFrom !== null) {
+      requestConnect(element.name);
+      return;
+    }
     if (groupingSource !== null) {
       if (element.name !== groupingSource) onGroupLink(element.name);
       return;
@@ -122,7 +131,13 @@ export function ElementCard({
   }
 
   return (
-    <li ref={setRefs} style={style} className={cls} data-el-name={element.name}>
+    <li
+      ref={setRefs}
+      style={style}
+      className={cls}
+      data-el-name={element.name}
+      data-connecting={connectingFrom === element.name ? "" : undefined}
+    >
       <div className="el-row">
         {/* Explicit drag activator: pointer drags from interactive children (the card-body
             button, inputs) are ignored by dnd-kit, so the handle carries the listeners. */}
@@ -218,6 +233,24 @@ export function ElementCard({
           <button type="button" title="Duplicate" onClick={() => duplicate(element.name)}>
             ⧉
           </button>
+          <button
+            type="button"
+            title="Save to question library"
+            onClick={async () => {
+              const label = localize(element.label) || element.name;
+              try {
+                await api.createQuestionTemplate(
+                  label,
+                  element as unknown as Record<string, unknown>,
+                );
+                alert(`"${label}" saved to your question library.`);
+              } catch {
+                alert("Failed to save to library.");
+              }
+            }}
+          >
+            ☆
+          </button>
           {container ? (
             <button
               type="button"
@@ -302,6 +335,22 @@ export function ElementCard({
             onGroupLink={onGroupLink}
           />
         </div>
+      )}
+
+      {!container && (
+        <button
+          type="button"
+          className={`el-port${connectingFrom === element.name ? " active" : ""}`}
+          title="Draw a condition connector to another question"
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={(e) => {
+            e.stopPropagation();
+            startConnect(element.name);
+          }}
+          aria-label="Connect to another question"
+        >
+          ↗
+        </button>
       )}
     </li>
   );

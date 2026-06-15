@@ -51,7 +51,15 @@ class ElementType(StrEnum):
     IMAGE = "image"
     SIGNATURE = "signature"
     GEOPOINT = "geopoint"
+    GEOTRACE = "geotrace"
+    GEOSHAPE = "geoshape"
     BARCODE = "barcode"
+    # metadata auto-capture (invisible to respondents, filled server-side)
+    START = "start"
+    END = "end"
+    TODAY = "today"
+    DEVICEID = "deviceid"
+    USERNAME = "username"
     # derived / layout
     CALCULATED = "calculated"
     HIDDEN = "hidden"
@@ -99,6 +107,7 @@ class RepeatSettings(BaseModel):
     min: int = 0
     max: int | None = None
     add_button_text: I18nString | None = Field(default=None, alias="addButtonText")
+    entry_label: I18nString | None = Field(default=None, alias="entryLabel")
 
 
 class Element(BaseModel):
@@ -176,6 +185,8 @@ class FormSettings(BaseModel):
     notify_emails: list[str] = Field(default_factory=list, alias="notifyEmails")
     quiz_mode: bool = Field(default=False, alias="quizMode")
     outcomes: list[Outcome] = Field(default_factory=list)
+    # Data quality: thresholds for automated flag checks run at submit time.
+    quality_checks: dict[str, Any] | None = Field(default=None, alias="qualityChecks")
 
 
 class FormSchema(BaseModel):

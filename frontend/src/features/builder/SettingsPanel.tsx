@@ -1,7 +1,8 @@
 import { languageLabel, localize } from "@/lib/i18n";
 import { useBuilderStore } from "@/stores/builderStore";
-import type { Outcome } from "@/types/form-schema";
+import type { Outcome, QualityChecks } from "@/types/form-schema";
 import { useState } from "react";
+import { COMMON_LANGUAGES } from "./languages";
 
 /** Form-level collection settings. Enforced server-side on the public submit endpoint. */
 export function SettingsPanel() {
@@ -10,6 +11,10 @@ export function SettingsPanel() {
   const languages = schema.languages ?? [];
   const defaultLanguage = schema.defaultLanguage ?? "en";
   const [newLang, setNewLang] = useState("");
+
+  const qc = settings.qualityChecks ?? {};
+  const setQC = (patch: Partial<QualityChecks>) =>
+    setSettings({ qualityChecks: { ...qc, ...patch } });
 
   const outcomes = settings.outcomes ?? [];
   const setOutcome = (i: number, patch: Partial<Outcome>) =>
@@ -65,19 +70,35 @@ export function SettingsPanel() {
           </ul>
         )}
         <div className="lang-add">
-          <input
-            type="text"
-            value={newLang}
-            placeholder="Language code"
-            onChange={(e) => setNewLang(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                e.preventDefault();
-                addLanguage();
-              }
-            }}
-          />
-          <button type="button" onClick={addLanguage} disabled={!newLang.trim()}>
+          <select className="select" value={newLang} onChange={(e) => setNewLang(e.target.value)}>
+            <option value="">— pick a language —</option>
+            {COMMON_LANGUAGES.filter((l) => !languages.includes(l.code)).map((l) => (
+              <option key={l.code} value={l.code}>
+                {l.label} ({l.code})
+              </option>
+            ))}
+            <option value="__other__">Other (enter code below)</option>
+          </select>
+          {newLang === "__other__" && (
+            <input
+              className="prop-input"
+              type="text"
+              placeholder="e.g. zu, ps, ky"
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  setNewLang((e.target as HTMLInputElement).value.trim().toLowerCase());
+                  addLanguage();
+                }
+              }}
+              onBlur={(e) => setNewLang(e.target.value.trim().toLowerCase() || "__other__")}
+            />
+          )}
+          <button
+            type="button"
+            onClick={addLanguage}
+            disabled={!newLang.trim() || newLang === "__other__"}
+          >
             Add language
           </button>
         </div>
@@ -229,6 +250,55 @@ export function SettingsPanel() {
             onChange={(e) => setSettings({ welcomeMessage: e.target.value || undefined })}
           />
         </label>
+      </fieldset>
+
+      <fieldset className="prop-fieldset">
+        <legend>Data quality checks</legend>
+        <small className="hint">
+          Automatically flag suspicious submissions. Flags appear in the responses table.
+        </small>
+        <label className="prop">
+          <span>Min completion time (seconds)</span>
+          <input
+            type="number"
+            min={0}
+            value={qc.minDurationSeconds ?? ""}
+            placeholder="30"
+            onChange={(e) =>
+              setQC({
+                minDurationSeconds: e.target.value === "" ? undefined : Number(e.target.value),
+              })
+            }
+          />
+          <small className="hint">
+            Flag as "too fast" if submitted faster than this. Default: 30 s.
+          </small>
+        </label>
+        <div className="prop">
+          <span>Expected geo bounding box</span>
+          <div className="bbox-row">
+            {(["minLat", "minLng", "maxLat", "maxLng"] as const).map((k, i) => (
+              <input
+                key={k}
+                type="number"
+                step="any"
+                aria-label={k}
+                placeholder={k}
+                value={qc.expectedGeoBbox?.[i] ?? ""}
+                onChange={(e) => {
+                  const bbox: [number, number, number, number] = [
+                    ...(qc.expectedGeoBbox ?? [0, 0, 0, 0]),
+                  ] as [number, number, number, number];
+                  bbox[i] = e.target.value === "" ? 0 : Number(e.target.value);
+                  setQC({ expectedGeoBbox: bbox });
+                }}
+              />
+            ))}
+          </div>
+          <small className="hint">
+            Flag geopoints outside [minLat, minLng, maxLat, maxLng]. Leave blank to skip.
+          </small>
+        </div>
       </fieldset>
 
       <fieldset className="prop-fieldset">

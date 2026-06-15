@@ -1,10 +1,22 @@
 import type { SubmissionRow } from "@/api/client";
 import type { FormSchema } from "@/types/form-schema";
 import { useMemo } from "react";
-import { numericStats, responsesByDay } from "./analytics";
+import {
+  completionTimeStats,
+  numericStats,
+  responsesByDay,
+  summaryStats,
+  textResponses,
+} from "./analytics";
 import { buildSummaries } from "./columns";
 
-/** Visual analytics for a form's responses: timeline, choice breakdowns, numeric stats. */
+const FLAG_LABELS: Record<string, string> = {
+  too_fast: "Too fast",
+  straight_lining: "Straight-lining",
+  geo_outlier: "Geo outlier",
+};
+
+/** Visual analytics for a form's responses: summary, timeline, choice breakdowns, numeric stats. */
 export function AnalyticsPanel({
   schema,
   rows,
@@ -12,14 +24,49 @@ export function AnalyticsPanel({
   schema: FormSchema;
   rows: SubmissionRow[];
 }) {
+  const summary = useMemo(() => summaryStats(rows), [rows]);
+  const completion = useMemo(() => completionTimeStats(rows), [rows]);
   const summaries = useMemo(() => buildSummaries(schema, rows), [schema, rows]);
   const numeric = useMemo(() => numericStats(schema, rows), [schema, rows]);
+  const texts = useMemo(() => textResponses(schema, rows), [schema, rows]);
   const byDay = useMemo(() => responsesByDay(rows), [rows]);
 
   const peak = byDay.reduce((m, d) => Math.max(m, d.count), 0);
 
+  if (rows.length === 0) {
+    return <p className="muted">No responses to chart yet.</p>;
+  }
+
   return (
     <div className="analytics">
+      {/* ── Summary strip ─────────────────────────────────────────────── */}
+      <div className="analytics-summary">
+        <div className="analytics-stat">
+          <span className="analytics-stat-value">{summary.total}</span>
+          <span className="analytics-stat-label">Total responses</span>
+        </div>
+        <div className="analytics-stat">
+          <span className="analytics-stat-value">{summary.last7Days}</span>
+          <span className="analytics-stat-label">Last 7 days</span>
+        </div>
+        {completion && (
+          <div className="analytics-stat">
+            <span className="analytics-stat-value">{formatDuration(completion.mean)}</span>
+            <span className="analytics-stat-label">Avg completion time</span>
+          </div>
+        )}
+        <div className="analytics-stat">
+          <span
+            className="analytics-stat-value"
+            style={{ color: summary.flagRate > 20 ? "var(--color-danger, #c0392b)" : undefined }}
+          >
+            {summary.flagRate}%
+          </span>
+          <span className="analytics-stat-label">Flag rate</span>
+        </div>
+      </div>
+
+      {/* ── Timeline ──────────────────────────────────────────────────── */}
       {byDay.length > 1 && (
         <div className="analytics-card">
           <h3>Responses over time</h3>
@@ -40,6 +87,63 @@ export function AnalyticsPanel({
         </div>
       )}
 
+      {/* ── Quality flags breakdown ───────────────────────────────────── */}
+      {summary.flagBreakdown.length > 0 && (
+        <div className="analytics-card">
+          <h3>Data quality flags</h3>
+          <p className="muted" style={{ marginBottom: "0.75rem" }}>
+            {summary.flaggedCount} of {summary.total} submission
+            {summary.total !== 1 ? "s" : ""} ({summary.flagRate}%) have at least one flag.
+          </p>
+          <ul className="bar-list">
+            {summary.flagBreakdown.map((f) => (
+              <li key={f.flag}>
+                <div className="bar-head">
+                  <span className={`quality-flag quality-flag--${f.flag}`}>
+                    {FLAG_LABELS[f.flag] ?? f.flag}
+                  </span>
+                  <span className="muted">
+                    {f.count} · {f.pct}%
+                  </span>
+                </div>
+                <div className="bar-track">
+                  <div className="bar-fill bar-fill--flag" style={{ width: `${f.pct}%` }} />
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/* ── Completion time detail ────────────────────────────────────── */}
+      {completion && (
+        <div className="analytics-card">
+          <h3>Completion time</h3>
+          <p className="muted" style={{ marginBottom: "0.5rem" }}>
+            Based on {completion.count} timed submission{completion.count !== 1 ? "s" : ""}.
+          </p>
+          <table className="stats-table">
+            <thead>
+              <tr>
+                <th>Average</th>
+                <th>Median</th>
+                <th>Fastest</th>
+                <th>Slowest</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>{formatDuration(completion.mean)}</td>
+                <td>{formatDuration(completion.median)}</td>
+                <td>{formatDuration(completion.min)}</td>
+                <td>{formatDuration(completion.max)}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* ── Numeric field stats ───────────────────────────────────────── */}
       {numeric.length > 0 && (
         <div className="analytics-card">
           <h3>Numeric fields</h3>
@@ -70,6 +174,7 @@ export function AnalyticsPanel({
         </div>
       )}
 
+      {/* ── Choice field charts ───────────────────────────────────────── */}
       {summaries.length > 0 && (
         <div className="chart-grid">
           {summaries.map((summary) => {
@@ -101,14 +206,62 @@ export function AnalyticsPanel({
         </div>
       )}
 
-      {summaries.length === 0 && numeric.length === 0 && (
-        <p className="muted">No chartable fields — this form has only free-text questions.</p>
+      {/* ── Text field clouds ─────────────────────────────────────────── */}
+      {texts.length > 0 && (
+        <div className="text-analytics">
+          {texts.map((field) => (
+            <div className="analytics-card" key={field.name}>
+              <h3>{field.label}</h3>
+              <p className="muted text-analytics-count">
+                {field.count} {field.count === 1 ? "answer" : "answers"}
+              </p>
+              {field.topWords.length > 0 && (
+                <div className="word-cloud">
+                  {field.topWords.map((w) => (
+                    <span
+                      className="word-chip"
+                      key={w.word}
+                      style={{ fontSize: `${wordSize(w.count, field.topWords[0].count)}rem` }}
+                      title={`${w.count}×`}
+                    >
+                      {w.word}
+                    </span>
+                  ))}
+                </div>
+              )}
+              <ul className="text-answer-list">
+                {field.answers.slice(0, MAX_TEXT_ANSWERS).map((answer, i) => (
+                  // biome-ignore lint/suspicious/noArrayIndexKey: answers have no stable id
+                  <li key={i}>{answer}</li>
+                ))}
+              </ul>
+              {field.count > MAX_TEXT_ANSWERS && (
+                <p className="muted">
+                  + {field.count - MAX_TEXT_ANSWERS} more — see the Table view or export.
+                </p>
+              )}
+            </div>
+          ))}
+        </div>
       )}
     </div>
   );
 }
 
-/** Trim to two decimals without trailing zeros (e.g. 4.00 -> 4, 4.5 -> 4.5). */
+const MAX_TEXT_ANSWERS = 20;
+
+function wordSize(count: number, max: number): number {
+  if (max <= 1) return 1;
+  return Number((0.85 + (count / max) * 0.75).toFixed(2));
+}
+
 function round(n: number): string {
   return Number(n.toFixed(2)).toString();
+}
+
+function formatDuration(secs: number): string {
+  if (secs < 60) return `${Math.round(secs)}s`;
+  const m = Math.floor(secs / 60);
+  const s = Math.round(secs % 60);
+  return s > 0 ? `${m}m ${s}s` : `${m}m`;
 }

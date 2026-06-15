@@ -131,6 +131,22 @@ export function PropertiesPanel({ element }: { element: Element }) {
       {type === "repeat" && (
         <fieldset className="prop-fieldset">
           <legend>Repeat</legend>
+          <label className="prop-label">
+            Entry label
+            <input
+              className="prop-input"
+              type="text"
+              placeholder="e.g. Member, Asset, Incident"
+              value={
+                typeof element.repeat?.entryLabel === "string"
+                  ? element.repeat.entryLabel
+                  : ((element.repeat?.entryLabel as Record<string, string> | undefined)?.en ?? "")
+              }
+              onChange={(e) =>
+                update(name, { repeat: { ...element.repeat, entryLabel: e.target.value } })
+              }
+            />
+          </label>
           <div className="prop-group">
             <NumberProp
               label="Min entries"
@@ -147,6 +163,25 @@ export function PropertiesPanel({ element }: { element: Element }) {
               }
             />
           </div>
+          <label className="prop-label">
+            "Add" button text
+            <input
+              className="prop-input"
+              type="text"
+              placeholder="e.g. Add another member"
+              value={
+                typeof element.repeat?.addButtonText === "string"
+                  ? element.repeat.addButtonText
+                  : ((element.repeat?.addButtonText as Record<string, string> | undefined)?.en ??
+                    "")
+              }
+              onChange={(e) =>
+                update(name, {
+                  repeat: { ...element.repeat, addButtonText: e.target.value },
+                })
+              }
+            />
+          </label>
         </fieldset>
       )}
 

@@ -1,4 +1,5 @@
 import { api, isAuthenticated } from "@/api/client";
+import { buildConnectorExpression } from "@/features/builder/connectors";
 import * as model from "@/features/builder/model";
 import type {
   Choice,
@@ -6,6 +7,7 @@ import type {
   ElementType,
   FormSchema,
   FormSettings,
+  I18nString,
   Theme,
 } from "@/types/form-schema";
 import { create } from "zustand";
@@ -56,12 +58,15 @@ interface BuilderState {
   /** Extend selection from the last focused element to `name` (Shift+click). */
   selectRange: (name: string) => void;
   clearSelection: () => void;
-  setTitle: (title: string) => void;
+  setTitle: (title: I18nString) => void;
+  setPageTitle: (index: number, title: I18nString) => void;
   setTheme: (patch: Partial<Theme>) => void;
   setSettings: (patch: Partial<FormSettings>) => void;
   setLanguages: (languages: string[], defaultLanguage?: string) => void;
 
   add: (type: ElementType) => void;
+  /** Insert a fully-formed element (e.g. from the question library) onto the active page. */
+  insertElement: (el: Element) => void;
   /** Insert a new element of `type` at an explicit position (palette drag-to-canvas). */
   addAt: (
     type: ElementType,
@@ -103,6 +108,14 @@ interface BuilderState {
   addColumn: (name: string) => void;
   updateColumn: (name: string, index: number, patch: Partial<Choice>) => void;
   removeColumn: (name: string, index: number) => void;
+
+  /** UI state for drawing connectors between question cards. */
+  connectingFrom: string | null;
+  pendingConnection: { from: string; to: string } | null;
+  startConnect: (name: string) => void;
+  cancelConnect: () => void;
+  requestConnect: (toName: string) => void;
+  confirmConnect: (value: string | number | boolean, op: "==" | "!=") => void;
 
   setActivePage: (index: number) => void;
   addPage: () => void;
@@ -170,6 +183,8 @@ export const useBuilderStore = create<BuilderState>((rawSet, get) => {
     selectedNames: new Set<string>(),
     collapsedNames: new Set<string>(),
     viewportName: null,
+    connectingFrom: null,
+    pendingConnection: null,
     activePage: 0,
     status: "idle",
     error: null,
@@ -330,11 +345,23 @@ export const useBuilderStore = create<BuilderState>((rawSet, get) => {
     setTitle: (title) => set((s) => ({ schema: { ...s.schema, title }, dirty: true })),
 
     setLanguages: (languages, defaultLanguage) =>
+      set((s) => {
+        const prevCount = s.schema.languages?.length ?? 0;
+        const defLang = defaultLanguage ?? s.schema.defaultLanguage ?? languages[0] ?? "en";
+        // When gaining the first translation language, upgrade all plain strings to i18n objects.
+        const needsMigration = prevCount < 2 && languages.length >= 1;
+        const base = needsMigration ? model.migrateStringsToI18n(s.schema, defLang) : s.schema;
+        return {
+          schema: { ...base, languages, defaultLanguage: defLang },
+          dirty: true,
+        };
+      }),
+
+    setPageTitle: (index, title) =>
       set((s) => ({
         schema: {
           ...s.schema,
-          languages,
-          defaultLanguage: defaultLanguage ?? s.schema.defaultLanguage ?? languages[0] ?? "en",
+          pages: s.schema.pages.map((p, i) => (i === index ? { ...p, title } : p)),
         },
         dirty: true,
       })),
@@ -373,6 +400,21 @@ export const useBuilderStore = create<BuilderState>((rawSet, get) => {
           parentName,
         });
         return { schema, selectedName: name, selectedNames: new Set([name]), dirty: true };
+      }),
+
+    insertElement: (el) =>
+      set((s) => {
+        const name = model.nextName(s.schema);
+        const stamped = { ...el, name };
+        const pages = s.schema.pages.map((p, i) =>
+          i === s.activePage ? { ...p, elements: [...p.elements, stamped] } : p,
+        );
+        return {
+          schema: { ...s.schema, pages },
+          selectedName: name,
+          selectedNames: new Set([name]),
+          dirty: true,
+        };
       }),
 
     addAt: (type, target, index) =>
@@ -447,6 +489,27 @@ export const useBuilderStore = create<BuilderState>((rawSet, get) => {
 
     setViewportName: (name) => {
       if (get().viewportName !== name) rawSet({ viewportName: name });
+    },
+
+    startConnect: (name) => rawSet({ connectingFrom: name }),
+    cancelConnect: () => rawSet({ connectingFrom: null, pendingConnection: null }),
+    requestConnect: (toName) => {
+      const { connectingFrom } = get();
+      if (!connectingFrom || connectingFrom === toName) {
+        rawSet({ connectingFrom: null });
+        return;
+      }
+      rawSet({ connectingFrom: null, pendingConnection: { from: connectingFrom, to: toName } });
+    },
+    confirmConnect: (value, op) => {
+      const { pendingConnection } = get();
+      if (!pendingConnection) return;
+      const expr = buildConnectorExpression(pendingConnection.from, op, value);
+      set((s) => ({
+        schema: model.updateElement(s.schema, pendingConnection.to, { visibleIf: expr }),
+        dirty: true,
+      }));
+      rawSet({ pendingConnection: null });
     },
 
     duplicateSelected: () =>

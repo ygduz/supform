@@ -3,6 +3,8 @@ import type { Element } from "@/types/form-schema";
 import { useEffect, useRef } from "react";
 import { BulkActionBar } from "./BulkActionBar";
 import { CanvasList } from "./CanvasList";
+import { ConditionPicker } from "./ConditionPicker";
+import { ConnectorLayer } from "./ConnectorLayer";
 
 /** Where a droppable lives in the tree; shared by CanvasList/ElementCard and BuilderPage. */
 export interface DropLocation {
@@ -33,6 +35,8 @@ export function BuilderCanvas({
 }) {
   const { selectedName, selectedNames } = useBuilderStore();
   const setViewportName = useBuilderStore((s) => s.setViewportName);
+  const connectingFrom = useBuilderStore((s) => s.connectingFrom);
+  const cancelConnect = useBuilderStore((s) => s.cancelConnect);
   const multiCount = selectedNames.size;
   // Changes whenever cards are added/removed/reordered, so the observer re-binds.
   const cardKey = `${pageIndex}:${elements.map((e) => e.name).join(",")}`;
@@ -75,13 +79,31 @@ export function BuilderCanvas({
     // Re-observe when the set of rendered cards changes (add/remove/reorder/page switch).
   }, [setViewportName, cardKey]);
 
+  // Cancel connecting mode on Escape
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && connectingFrom !== null) cancelConnect();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [connectingFrom, cancelConnect]);
+
+  const canvasInnerCls = `canvas-inner${connectingFrom ? " connecting" : ""}`;
+
   return (
-    <div className="canvas-inner" ref={innerRef}>
+    // biome-ignore lint/a11y/useKeyWithClickEvents: background cancel is supplementary to Escape key handler
+    <div
+      className={canvasInnerCls}
+      ref={innerRef}
+      onClick={connectingFrom ? () => cancelConnect() : undefined}
+    >
       {groupingSource && (
         <div className="group-link-hint">
           Click another question to group it with this one — or press <kbd>Esc</kbd> to cancel.
         </div>
       )}
+
+      <ConnectorLayer containerRef={innerRef} />
 
       <CanvasList
         elements={elements}
@@ -95,6 +117,8 @@ export function BuilderCanvas({
       />
 
       {multiCount >= 2 && <BulkActionBar count={multiCount} />}
+
+      <ConditionPicker />
     </div>
   );
 }

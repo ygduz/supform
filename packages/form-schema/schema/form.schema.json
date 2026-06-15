@@ -104,6 +104,20 @@
               "redirectUrl": { "type": "string" }
             }
           }
+        },
+        "qualityChecks": {
+          "type": "object",
+          "description": "Thresholds for automated data quality flags computed at submission time.",
+          "properties": {
+            "minDurationSeconds": { "type": "integer", "minimum": 0, "description": "Flag submissions completed faster than this (seconds). Default 30." },
+            "expectedGeoBbox": {
+              "type": "array",
+              "items": { "type": "number" },
+              "minItems": 4,
+              "maxItems": 4,
+              "description": "Bounding box [minLat, minLng, maxLat, maxLng] — geopoints outside are flagged."
+            }
+          }
         }
       }
     },
@@ -187,7 +201,8 @@
           "properties": {
             "min": { "type": "integer", "minimum": 0 },
             "max": { "type": "integer", "minimum": 1 },
-            "addButtonText": { "$ref": "#/$defs/i18nString" }
+            "addButtonText": { "$ref": "#/$defs/i18nString" },
+            "entryLabel": { "$ref": "#/$defs/i18nString" }
           }
         },
         "meta": {

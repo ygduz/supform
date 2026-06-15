@@ -100,6 +100,23 @@ async def create_form(
     return form
 
 
+async def duplicate_form(db: AsyncSession, form_id: uuid.UUID, user_id: uuid.UUID) -> Form:
+    """Create a copy of the form's draft in the same project. Editor+ only."""
+    source = await get_owned_form(db, form_id, user_id, min_role="editor")
+    content = FormSchema.model_validate(source.draft_content)
+    # Give the copy a distinct name so both can live in the form list.
+    content.name = f"{content.name} (copy)"
+    copy = Form(
+        project_id=source.project_id,
+        name=content.name,
+        title=_plain(content.title),
+        draft_content=content.model_dump(by_alias=True, mode="json"),
+    )
+    db.add(copy)
+    await db.flush()
+    return copy
+
+
 async def update_draft(
     db: AsyncSession, form_id: uuid.UUID, content: FormSchema, user_id: uuid.UUID
 ) -> Form:

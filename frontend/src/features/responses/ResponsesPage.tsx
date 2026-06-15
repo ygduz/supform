@@ -1,15 +1,33 @@
 import { type SubmissionRow, type ValidationStatus, api, isAuthenticated } from "@/api/client";
 import type { FormSchema } from "@/types/form-schema";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { AnalyticsPanel } from "./AnalyticsPanel";
 import { MapPanel } from "./MapPanel";
 import { buildColumns } from "./columns";
 
 type Status = "loading" | "ready" | "unauth" | "error";
-type Format = "csv" | "xlsx" | "json";
+type Format = "csv" | "xlsx" | "json" | "geojson" | "kml" | "spss";
 type View = "analytics" | "table" | "map";
 type StatusFilter = "all" | ValidationStatus;
+
+interface EditState {
+  row: SubmissionRow;
+  draft: string; // JSON text edited in the textarea
+  saving: boolean;
+  error: string | null;
+}
+
+const FLAG_LABELS: Record<string, string> = {
+  too_fast: "⚡ Too fast",
+  straight_lining: "↔ Straight-line",
+  geo_outlier: "📍 Geo outlier",
+};
+const FLAG_TITLES: Record<string, string> = {
+  too_fast: "Submitted unusually quickly — may indicate a bot or inattentive respondent",
+  straight_lining: "Same answer selected for all scale/matrix questions",
+  geo_outlier: "GPS location is outside the expected geographic area",
+};
 
 const STATUS_LABELS: Record<ValidationStatus, string> = {
   approved: "Approved",
@@ -32,6 +50,61 @@ export function ResponsesPage() {
   const [error, setError] = useState<string | null>(null);
   const [view, setView] = useState<View>("analytics");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [editState, setEditState] = useState<EditState | null>(null);
+  const [search, setSearch] = useState("");
+  const editRef = useRef<HTMLTextAreaElement>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkBusy, setBulkBusy] = useState(false);
+
+  function toggleSelect(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleSelectAll() {
+    if (selected.size === tableRows.length) {
+      setSelected(new Set());
+    } else {
+      setSelected(new Set(tableRows.map((r) => r.id)));
+    }
+  }
+
+  async function bulkSetStatus(status: ValidationStatus | null) {
+    if (!formId || selected.size === 0) return;
+    setBulkBusy(true);
+    setError(null);
+    try {
+      await Promise.all([...selected].map((id) => api.setValidationStatus(formId, id, status)));
+      setRows((prev) =>
+        prev.map((r) => (selected.has(r.id) ? { ...r, validation_status: status } : r)),
+      );
+      setSelected(new Set());
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setBulkBusy(false);
+    }
+  }
+
+  async function bulkDelete() {
+    if (!formId || selected.size === 0) return;
+    if (!window.confirm(`Delete ${selected.size} response(s)? This cannot be undone.`)) return;
+    setBulkBusy(true);
+    setError(null);
+    try {
+      await Promise.all([...selected].map((id) => api.deleteSubmission(formId, id)));
+      setRows((prev) => prev.filter((r) => !selected.has(r.id)));
+      setSelected(new Set());
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setBulkBusy(false);
+    }
+  }
 
   async function onSetStatus(row: SubmissionRow, next: ValidationStatus | null) {
     if (!formId) return;
@@ -41,6 +114,34 @@ export function ResponsesPage() {
       setRows((prev) => prev.map((r) => (r.id === row.id ? { ...r, validation_status: next } : r)));
     } catch (err) {
       setError((err as Error).message);
+    }
+  }
+
+  function openEdit(row: SubmissionRow) {
+    setEditState({
+      row,
+      draft: JSON.stringify(row.answers, null, 2),
+      saving: false,
+      error: null,
+    });
+  }
+
+  async function saveEdit() {
+    if (!formId || !editState) return;
+    let parsed: Record<string, unknown>;
+    try {
+      parsed = JSON.parse(editState.draft);
+    } catch {
+      setEditState((s) => s && { ...s, error: "Invalid JSON — please fix before saving." });
+      return;
+    }
+    setEditState((s) => s && { ...s, saving: true, error: null });
+    try {
+      const updated = await api.editSubmission(formId, editState.row.id, parsed);
+      setRows((prev) => prev.map((r) => (r.id === updated.id ? updated : r)));
+      setEditState(null);
+    } catch (err) {
+      setEditState((s) => s && { ...s, saving: false, error: (err as Error).message });
     }
   }
 
@@ -84,21 +185,53 @@ export function ResponsesPage() {
   }, [formId]);
 
   const columns = useMemo(() => (schema ? buildColumns(schema) : []), [schema]);
+  const hasMedia = useMemo(
+    () =>
+      !!schema &&
+      schema.pages.some((p) => {
+        const walk = (els: typeof p.elements): boolean =>
+          els.some(
+            (el) =>
+              el.type === "file" ||
+              el.type === "image" ||
+              el.type === "signature" ||
+              (el.elements ? walk(el.elements) : false),
+          );
+        return walk(p.elements);
+      }),
+    [schema],
+  );
   const hasGeo = useMemo(
     () =>
       !!schema &&
       schema.pages.some(function check(p): boolean {
         const walk = (els: typeof p.elements): boolean =>
-          els.some((el) => el.type === "geopoint" || (el.elements ? walk(el.elements) : false));
+          els.some(
+            (el) =>
+              el.type === "geopoint" ||
+              el.type === "geotrace" ||
+              el.type === "geoshape" ||
+              (el.elements ? walk(el.elements) : false),
+          );
         return walk(p.elements);
       }),
     [schema],
   );
-  const tableRows = useMemo(
-    () =>
-      statusFilter === "all" ? rows : rows.filter((r) => r.validation_status === statusFilter),
-    [rows, statusFilter],
-  );
+  const tableRows = useMemo(() => {
+    let filtered =
+      statusFilter === "all" ? rows : rows.filter((r) => r.validation_status === statusFilter);
+    if (search.trim()) {
+      const q = search.trim().toLowerCase();
+      filtered = filtered.filter((r) =>
+        Object.values(r.answers).some((v) =>
+          String(v ?? "")
+            .toLowerCase()
+            .includes(q),
+        ),
+      );
+    }
+    return filtered;
+  }, [rows, statusFilter, search]);
 
   const download = useCallback(
     async (format: Format) => {
@@ -161,6 +294,41 @@ export function ResponsesPage() {
           <button type="button" onClick={() => download("json")} disabled={rows.length === 0}>
             JSON
           </button>
+          {hasGeo && (
+            <button type="button" onClick={() => download("geojson")} disabled={rows.length === 0}>
+              GeoJSON
+            </button>
+          )}
+          {hasGeo && (
+            <button type="button" onClick={() => download("kml")} disabled={rows.length === 0}>
+              KML
+            </button>
+          )}
+          <button type="button" onClick={() => download("spss")} disabled={rows.length === 0}>
+            SPSS
+          </button>
+          {hasMedia && (
+            <button
+              type="button"
+              onClick={async () => {
+                if (!formId) return;
+                try {
+                  const { blob, filename } = await api.exportMediaZip(formId);
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement("a");
+                  a.href = url;
+                  a.download = filename;
+                  a.click();
+                  URL.revokeObjectURL(url);
+                } catch (err) {
+                  setError((err as Error).message);
+                }
+              }}
+              disabled={rows.length === 0}
+            >
+              Media ZIP
+            </button>
+          )}
         </div>
       </header>
 
@@ -201,6 +369,15 @@ export function ResponsesPage() {
 
           {view === "table" && (
             <>
+              <div className="responses-search">
+                <input
+                  type="search"
+                  placeholder="Search responses…"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="responses-search-input"
+                />
+              </div>
               <div className="filter-chips">
                 {STATUS_FILTERS.map((f) => (
                   <button
@@ -213,11 +390,64 @@ export function ResponsesPage() {
                   </button>
                 ))}
               </div>
+              {selected.size > 0 && (
+                <div className="bulk-bar">
+                  <span className="bulk-count">{selected.size} selected</span>
+                  <button
+                    type="button"
+                    className="button secondary"
+                    onClick={() => bulkSetStatus("approved")}
+                    disabled={bulkBusy}
+                  >
+                    Approve
+                  </button>
+                  <button
+                    type="button"
+                    className="button secondary"
+                    onClick={() => bulkSetStatus("on_hold")}
+                    disabled={bulkBusy}
+                  >
+                    On hold
+                  </button>
+                  <button
+                    type="button"
+                    className="button secondary"
+                    onClick={() => bulkSetStatus(null)}
+                    disabled={bulkBusy}
+                  >
+                    Clear status
+                  </button>
+                  <button
+                    type="button"
+                    className="link-button danger"
+                    onClick={bulkDelete}
+                    disabled={bulkBusy}
+                  >
+                    Delete
+                  </button>
+                  <button
+                    type="button"
+                    className="link-button"
+                    onClick={() => setSelected(new Set())}
+                  >
+                    Deselect all
+                  </button>
+                </div>
+              )}
               <div className="table-scroll">
                 <table className="responses-table">
                   <thead>
                     <tr>
+                      <th className="th-check">
+                        <input
+                          type="checkbox"
+                          checked={selected.size === tableRows.length && tableRows.length > 0}
+                          onChange={toggleSelectAll}
+                          aria-label="Select all"
+                        />
+                      </th>
                       <th>Status</th>
+                      <th>Flags</th>
                       <th>Submitted</th>
                       {columns.map((col) => (
                         <th key={col.key}>{col.label}</th>
@@ -227,7 +457,15 @@ export function ResponsesPage() {
                   </thead>
                   <tbody>
                     {tableRows.map((row) => (
-                      <tr key={row.id}>
+                      <tr key={row.id} className={selected.has(row.id) ? "row-selected" : ""}>
+                        <td className="td-check">
+                          <input
+                            type="checkbox"
+                            checked={selected.has(row.id)}
+                            onChange={() => toggleSelect(row.id)}
+                            aria-label="Select row"
+                          />
+                        </td>
                         <td>
                           <select
                             className={`status-select ${row.validation_status ?? "none"}`}
@@ -245,11 +483,29 @@ export function ResponsesPage() {
                             ))}
                           </select>
                         </td>
+                        <td className="quality-flags-cell">
+                          {(row.quality_flags ?? []).map((flag) => (
+                            <span
+                              key={flag}
+                              className={`quality-flag quality-flag--${flag}`}
+                              title={FLAG_TITLES[flag] ?? flag}
+                            >
+                              {FLAG_LABELS[flag] ?? flag}
+                            </span>
+                          ))}
+                        </td>
                         <td className="muted">{new Date(row.created_at).toLocaleString()}</td>
                         {columns.map((col) => (
                           <td key={col.key}>{col.value(row.answers)}</td>
                         ))}
-                        <td>
+                        <td className="row-actions">
+                          <button
+                            type="button"
+                            className="link-button"
+                            onClick={() => openEdit(row)}
+                          >
+                            Edit
+                          </button>
                           <button
                             type="button"
                             className="link-button danger"
@@ -266,6 +522,45 @@ export function ResponsesPage() {
             </>
           )}
         </>
+      )}
+      {editState && (
+        // biome-ignore lint/a11y/useKeyWithClickEvents: overlay backdrop dismiss
+        <div className="edit-overlay" onClick={() => !editState.saving && setEditState(null)}>
+          {/* biome-ignore lint/a11y/useKeyWithClickEvents: stopPropagation only */}
+          <div className="edit-modal" onClick={(e) => e.stopPropagation()}>
+            <h2>Edit response</h2>
+            <p className="muted">Submitted {new Date(editState.row.created_at).toLocaleString()}</p>
+            <textarea
+              ref={editRef}
+              className="edit-json"
+              value={editState.draft}
+              onChange={(e) =>
+                setEditState((s) => s && { ...s, draft: e.target.value, error: null })
+              }
+              rows={20}
+              spellCheck={false}
+            />
+            {editState.error && <p className="error">{editState.error}</p>}
+            <div className="edit-footer">
+              <button
+                type="button"
+                className="button"
+                onClick={saveEdit}
+                disabled={editState.saving}
+              >
+                {editState.saving ? "Saving…" : "Save changes"}
+              </button>
+              <button
+                type="button"
+                className="link-button"
+                onClick={() => setEditState(null)}
+                disabled={editState.saving}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </section>
   );
