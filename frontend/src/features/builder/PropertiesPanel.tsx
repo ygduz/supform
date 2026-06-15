@@ -1,6 +1,7 @@
 import { localize } from "@/lib/i18n";
 import { useBuilderStore } from "@/stores/builderStore";
 import type { Choice, Element, I18nString, Validation } from "@/types/form-schema";
+import { FormulaBuilder } from "./FormulaBuilder";
 import { LogicBuilder } from "./LogicBuilder";
 import { hasOptionList } from "./model";
 import { ELEMENT_PALETTE } from "./palette";
@@ -265,18 +266,12 @@ export function PropertiesPanel({ element }: { element: Element }) {
           />
         )}
         {type === "calculated" && (
-          <>
-            <LogicProp
-              label="Calculate value"
-              value={element.calculate}
-              placeholder="e.g. price * quantity"
-              onChange={(v) => update(name, { calculate: v })}
-            />
-            <p className="prop-caption">
-              Reference other questions by their field key. Supports <code>+ − * /</code> and
-              parentheses — e.g. <code>{"qty * unit_price"}</code>.
-            </p>
-          </>
+          <FormulaBuilder
+            label="Calculate value"
+            value={element.calculate}
+            excludeName={name}
+            onChange={(v) => update(name, { calculate: v })}
+          />
         )}
       </fieldset>
     </div>
@@ -393,26 +388,6 @@ function NumberProp(props: {
           const raw = e.target.value;
           props.onChange(raw === "" ? undefined : Number(raw));
         }}
-      />
-    </label>
-  );
-}
-
-function LogicProp(props: {
-  label: string;
-  value: string | undefined;
-  placeholder?: string;
-  onChange: (v: string | undefined) => void;
-}) {
-  return (
-    <label className="prop">
-      <span>{props.label}</span>
-      <input
-        type="text"
-        className="logic-input"
-        value={props.value ?? ""}
-        placeholder={props.placeholder}
-        onChange={(e) => props.onChange(e.target.value || undefined)}
       />
     </label>
   );
