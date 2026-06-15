@@ -19,8 +19,24 @@ export function evaluateBool(
     // ReferenceError for unanswered fields. Skip JS keywords/literals so we don't try
     // to pass `true`, `null`, `return`, etc. as Function parameter names.
     const JS_KEYWORDS = new Set([
-      "true","false","null","undefined","return","if","else","and","or","not",
-      "selected","in","instanceof","typeof","void","delete","new","this",
+      "true",
+      "false",
+      "null",
+      "undefined",
+      "return",
+      "if",
+      "else",
+      "and",
+      "or",
+      "not",
+      "selected",
+      "in",
+      "instanceof",
+      "typeof",
+      "void",
+      "delete",
+      "new",
+      "this",
     ]);
     const idents = new Set(expression.match(/[A-Za-z_]\w*/g) ?? []);
     const scope: Record<string, unknown> = { selected };
