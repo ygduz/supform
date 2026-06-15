@@ -1,3 +1,4 @@
+import { Button } from "@/components";
 import { localize } from "@/lib/i18n";
 import { useBuilderStore } from "@/stores/builderStore";
 import type { ElementType, FormSchema } from "@/types/form-schema";
@@ -282,70 +283,91 @@ export function BuilderPage() {
           aria-label="Form title"
         />
         <div className="toolbar-actions">
-          <button
-            type="button"
+          <Button
+            variant="ghost"
+            size="sm"
             title="Undo (Ctrl+Z)"
             onClick={() => store.undo()}
             disabled={store.past.length === 0}
           >
             ↶
-          </button>
-          <button
-            type="button"
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
             title="Redo (Ctrl+Shift+Z)"
             onClick={() => store.redo()}
             disabled={store.future.length === 0}
           >
             ↷
-          </button>
+          </Button>
           {error ? <span className="error">{error}</span> : null}
           <span className="muted">
             {status === "saving" ? "Saving…" : dirty ? "Unsaved changes" : "Saved ✓"}
           </span>
           {store.formId ? (
-            <button
-              type="button"
+            <Button
+              variant="ghost"
+              size="sm"
               title="Public link, embed code, and QR"
               onClick={() => setShareLink(true)}
             >
               Share link
-            </button>
+            </Button>
           ) : null}
           {store.projectId ? (
-            <button
-              type="button"
+            <Button
+              variant="ghost"
+              size="sm"
               title="Manage who can collaborate on this project"
               onClick={() => setSharing(true)}
             >
               Share access
-            </button>
+            </Button>
           ) : null}
           {store.formId ? (
-            <button
-              type="button"
+            <Button
+              variant="ghost"
+              size="sm"
               title="Send submissions to external URLs"
               onClick={() => setIntegrations(true)}
             >
               Integrations
-            </button>
+            </Button>
           ) : null}
           {store.formId ? <Link to={`/forms/${store.formId}/responses`}>Responses</Link> : null}
-          <button type="button" title="Save as a personal template" onClick={saveAsTemplate}>
+          <Button
+            variant="ghost"
+            size="sm"
+            title="Save as a personal template"
+            onClick={saveAsTemplate}
+          >
             Save as template
-          </button>
-          <button type="button" title="Download this form's JSON schema" onClick={exportJson}>
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            title="Download this form's JSON schema"
+            onClick={exportJson}
+          >
             Export JSON
-          </button>
-          <button type="button" title="Download as editable Word/text markers" onClick={exportText}>
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            title="Download as editable Word/text markers"
+            onClick={exportText}
+          >
             Export text
-          </button>
-          <button
-            type="button"
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
             title="Load a form from a JSON file"
             onClick={() => importRef.current?.click()}
           >
             Import JSON
-          </button>
+          </Button>
           <input
             ref={importRef}
             type="file"
@@ -357,17 +379,22 @@ export function BuilderPage() {
               e.target.value = "";
             }}
           />
-          <button type="button" onClick={() => store.save()} disabled={status === "saving"}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => store.save()}
+            disabled={status === "saving"}
+          >
             {status === "saving" ? "Saving…" : "Save draft"}
-          </button>
-          <button
-            type="button"
-            className="button"
+          </Button>
+          <Button
+            variant="primary"
+            size="sm"
             onClick={() => store.publish()}
             disabled={status === "publishing"}
           >
             {status === "publishing" ? "Publishing…" : "Publish"}
-          </button>
+          </Button>
         </div>
       </header>
 
@@ -387,20 +414,22 @@ export function BuilderPage() {
           {/* Palette */}
           <aside className="palette">
             <div className="palette-tabs">
-              <button
-                type="button"
+              <Button
+                variant="ghost"
+                size="sm"
                 className={!showLibrary ? "palette-tab active" : "palette-tab"}
                 onClick={() => setShowLibrary(false)}
               >
                 Fields
-              </button>
-              <button
-                type="button"
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
                 className={showLibrary ? "palette-tab active" : "palette-tab"}
                 onClick={() => setShowLibrary(true)}
               >
                 Library
-              </button>
+              </Button>
             </div>
             {showLibrary ? (
               <QuestionLibraryPanel onClose={() => setShowLibrary(false)} />
@@ -423,18 +452,24 @@ export function BuilderPage() {
           <section className={`canvas${groupingSource ? " linking" : ""}`}>
             <div className="page-bar">
               {schema.pages.map((p, i) => (
-                <button
+                <Button
                   key={p.name}
-                  type="button"
+                  variant="ghost"
+                  size="sm"
                   className={i === activePage ? "page-tab active" : "page-tab"}
                   onClick={() => store.setActivePage(i)}
                 >
                   {localize(p.title) || `Page ${i + 1}`}
-                </button>
+                </Button>
               ))}
-              <button type="button" className="page-add" onClick={() => store.addPage()}>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="page-add"
+                onClick={() => store.addPage()}
+              >
                 + Page
-              </button>
+              </Button>
             </div>
 
             {schema.pages.length > 1 && (
@@ -447,9 +482,9 @@ export function BuilderPage() {
                     placeholder={`Page ${activePage + 1}`}
                     onChange={(e) => store.renamePage(activePage, e.target.value)}
                   />
-                  <button type="button" onClick={() => store.removePage(activePage)}>
+                  <Button variant="danger" size="sm" onClick={() => store.removePage(activePage)}>
                     Delete page
-                  </button>
+                  </Button>
                 </div>
                 <LogicBuilder
                   label="Show this page only if…"
@@ -509,9 +544,10 @@ export function BuilderPage() {
                   "preview",
                 ] as Tab[]
               ).map((t) => (
-                <button
+                <Button
                   key={t}
-                  type="button"
+                  variant="ghost"
+                  size="sm"
                   className={tab === t ? "tab active" : "tab"}
                   onClick={() => setTab(t)}
                 >
@@ -520,7 +556,7 @@ export function BuilderPage() {
                     : t === "translate"
                       ? "🌐"
                       : t.charAt(0).toUpperCase() + t.slice(1)}
-                </button>
+                </Button>
               ))}
             </div>
 
