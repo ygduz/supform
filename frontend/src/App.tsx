@@ -8,6 +8,7 @@ import { BuilderPage } from "./features/builder/BuilderPage";
 import { EmbedPage } from "./features/embed/EmbedPage";
 import { FormsPage } from "./features/forms/FormsPage";
 import { ImportPage } from "./features/import/ImportPage";
+import { InboxPage } from "./features/inbox/InboxPage";
 import { OfflineIndicator } from "./features/offline/OfflineIndicator";
 import { RendererPage } from "./features/renderer/RendererPage";
 import { ResponsesPage } from "./features/responses/ResponsesPage";
@@ -45,6 +46,7 @@ function Shell() {
           <Link to="/templates">Templates</Link>
           <Link to="/builder/new">Builder</Link>
           <Link to="/import">Import</Link>
+          <Link to="/inbox">Inbox</Link>
           <Link to="/login">Sign in</Link>
         </nav>
       </header>
@@ -59,6 +61,7 @@ function Shell() {
           <Route path="/verify-email" element={<VerifyEmailPage />} />
           <Route path="/templates" element={<TemplatesPage />} />
           <Route path="/import" element={<ImportPage />} />
+          <Route path="/inbox" element={<InboxPage />} />
           <Route path="/builder/:formId" element={<BuilderPage />} />
           <Route path="/f/:formId" element={<RendererPage />} />
           <Route path="/forms/:formId/responses" element={<ResponsesPage />} />

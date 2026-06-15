@@ -8,6 +8,7 @@ from app.api.v1 import (
     exports,
     forms,
     imports,
+    inbox,
     media,
     members,
     projects,
@@ -27,4 +28,5 @@ api_router.include_router(exports.router)
 api_router.include_router(imports.router)
 api_router.include_router(media.router)
 api_router.include_router(webhooks.router)
+api_router.include_router(inbox.router)
 api_router.include_router(question_library.router)

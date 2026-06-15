@@ -30,6 +30,8 @@ class Submission(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     respondent_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"), nullable=True)
     source: Mapped[str] = mapped_column(String(30), default="web")  # web|api|import|offline
 
+    read_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
     # Review workflow: a reviewer can mark a record approved / not_approved / on_hold.
     validation_status: Mapped[str | None] = mapped_column(String(20), nullable=True, index=True)
     validated_by: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"), nullable=True)

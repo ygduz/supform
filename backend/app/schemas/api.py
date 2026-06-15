@@ -154,6 +154,7 @@ class SubmissionOut(BaseModel):
     form_version: int
     answers: dict[str, Any]
     created_at: datetime
+    read_at: datetime | None = None
     validation_status: str | None = None
     score: float | None = None
     quality_flags: list[str] = []

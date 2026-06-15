@@ -662,7 +662,6 @@ const DateRangeField: Renderer = ({ element, value, onChange }) => {
   const val = (value as { start?: string; end?: string }) ?? {};
   return (
     <div className="field-date-range">
-      {/* biome-ignore lint/a11y/noLabelWithoutControl: htmlFor targets sibling input */}
       <label className="dr-label" htmlFor={`${element.name}-start`}>
         From
       </label>
@@ -673,7 +672,6 @@ const DateRangeField: Renderer = ({ element, value, onChange }) => {
         disabled={element.readOnly}
         onChange={(e) => onChange({ ...val, start: e.target.value })}
       />
-      {/* biome-ignore lint/a11y/noLabelWithoutControl: htmlFor targets sibling input */}
       <label className="dr-label" htmlFor={`${element.name}-end`}>
         To
       </label>
