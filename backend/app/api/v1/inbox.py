@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import get_current_user
 from app.db.session import get_db
 from app.models.form import Form
+from app.models.project import Project
 from app.models.submission import Submission
 from app.schemas.api import SubmissionOut
 from app.models.user import User
@@ -26,7 +27,11 @@ async def list_inbox(
     user: User = Depends(get_current_user),
 ) -> list[SubmissionOut]:
     """Return the caller's recent submissions across all owned forms, newest first."""
-    form_ids_stmt = select(Form.id).where(Form.owner_id == user.id)
+    form_ids_stmt = (
+        select(Form.id)
+        .join(Project, Form.project_id == Project.id)
+        .where(Project.owner_id == user.id)
+    )
     form_ids = list(await db.scalars(form_ids_stmt))
 
     if not form_ids:
@@ -75,7 +80,11 @@ async def mark_all_read(
 ) -> dict:
     """Mark all submissions across owned forms as read."""
     from sqlalchemy import update
-    form_ids_stmt = select(Form.id).where(Form.owner_id == user.id)
+    form_ids_stmt = (
+        select(Form.id)
+        .join(Project, Form.project_id == Project.id)
+        .where(Project.owner_id == user.id)
+    )
     form_ids = list(await db.scalars(form_ids_stmt))
     if form_ids:
         now = datetime.now(timezone.utc)

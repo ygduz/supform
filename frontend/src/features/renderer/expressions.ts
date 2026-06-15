@@ -13,10 +13,13 @@ export function evaluateBool(
 ): boolean {
   if (!expression) return true;
   try {
-    // Inject `selected()` so visibleIf built with the contains op works client-side.
     const selected = (value: unknown, option: unknown): boolean =>
       Array.isArray(value) ? value.includes(option) : value === option;
-    const scope = { selected, ...context };
+    // Seed every identifier mentioned in the expression so the Function call never
+    // throws ReferenceError for unanswered fields — they evaluate as undefined/null.
+    const idents = new Set(expression.match(/[A-Za-z_]\w*/g) ?? []);
+    const scope: Record<string, unknown> = { selected };
+    for (const id of idents) scope[id] = id in context ? context[id] : undefined;
     const fn = new Function(...Object.keys(scope), `return (${toJs(expression)});`);
     return Boolean(fn(...Object.values(scope)));
   } catch {
