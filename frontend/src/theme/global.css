@@ -4584,16 +4584,16 @@ body,
 .inbox-answer-row dt,
 .inbox-answer-row dd {
   padding: 8px 12px;
-  border-bottom: 1px solid #f1f3f5;
+  border-bottom: 1px solid var(--surface-sunken);
   margin: 0;
 }
 .inbox-answer-row dt {
   font-weight: 500;
-  background: #f8f9fa;
-  color: #495057;
+  background: var(--surface-sunken);
+  color: var(--text-secondary);
 }
 .inbox-answer-row dd {
-  color: #212529;
+  color: var(--text);
   word-break: break-word;
 }
 .inbox-detail-empty {
@@ -4615,7 +4615,7 @@ body,
 .wf-column {
   min-width: 220px;
   max-width: 260px;
-  background: #f8f9fa;
+  background: var(--surface-sunken);
   border-radius: 10px;
   display: flex;
   flex-direction: column;
@@ -4654,7 +4654,7 @@ body,
 }
 .wf-card-id {
   font-weight: 600;
-  color: #495057;
+  color: var(--text-secondary);
   margin-bottom: 2px;
 }
 .wf-card-time {
@@ -4761,7 +4761,7 @@ body,
   color: var(--subtle);
 }
 .rpt-remove:hover {
-  color: #e74c3c;
+  color: var(--danger);
 }
 .rpt-field-select {
   font-size: 12px;
@@ -4784,7 +4784,7 @@ body,
   font-size: 12px;
 }
 .rpt-bar-label {
-  color: #495057;
+  color: var(--text-secondary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
