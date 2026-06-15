@@ -1884,6 +1884,25 @@ body,
 .props h3 {
   margin: 0;
 }
+/* The inspector reuses the design-system <Input>/<Select>, whose labels are sized
+   for a respondent form (15px/600). In this dense properties panel that reads as
+   shouty — quiet them down and tighten the rhythm. */
+.inspector .field {
+  margin-bottom: 0;
+}
+.inspector .field-label {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 5px;
+}
+.inspector .field-input {
+  min-height: 36px;
+  font-size: var(--text-base);
+}
+.inspector .field-hint {
+  font-size: var(--text-xs);
+}
 .props-header {
   display: flex;
   align-items: center;
