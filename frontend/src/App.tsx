@@ -28,14 +28,18 @@ export function App() {
 }
 
 function Shell() {
-  const bare = useLocation().pathname.startsWith("/embed/");
+  const path = useLocation().pathname;
+  // Respondent-facing surfaces render bare — no owner chrome leaks onto a public form.
+  const bare = path.startsWith("/embed/") || path.startsWith("/f/");
   if (bare) {
     return (
       <Routes>
         <Route path="/embed/:formId" element={<EmbedPage />} />
+        <Route path="/f/:formId" element={<RendererPage />} />
       </Routes>
     );
   }
+  const authed = isAuthenticated();
   return (
     <>
       <header className="app-header">
@@ -43,12 +47,20 @@ function Shell() {
           Supform
         </Link>
         <nav>
-          <Link to="/forms">My forms</Link>
-          <Link to="/templates">Templates</Link>
-          <Link to="/builder/new">Builder</Link>
-          <Link to="/import">Import</Link>
-          <Link to="/inbox">Inbox</Link>
-          <Link to="/login">Sign in</Link>
+          {authed ? (
+            <>
+              <Link to="/forms">My forms</Link>
+              <Link to="/templates">Templates</Link>
+              <Link to="/builder/new">Builder</Link>
+              <Link to="/import">Import</Link>
+              <Link to="/inbox">Inbox</Link>
+            </>
+          ) : (
+            <>
+              <Link to="/templates">Templates</Link>
+              <Link to="/login">Sign in</Link>
+            </>
+          )}
         </nav>
       </header>
       <OfflineIndicator />
@@ -64,7 +76,6 @@ function Shell() {
           <Route path="/import" element={<ImportPage />} />
           <Route path="/inbox" element={<InboxPage />} />
           <Route path="/builder/:formId" element={<BuilderPage />} />
-          <Route path="/f/:formId" element={<RendererPage />} />
           <Route path="/forms/:formId/responses" element={<ResponsesPage />} />
           <Route path="/forms/:formId/report" element={<ReportPage />} />
         </Routes>
