@@ -986,10 +986,14 @@ body,
   align-items: center;
   gap: 8px;
   flex-wrap: nowrap;
-  overflow-x: auto;
+  /* No overflow clipping: utility actions live in the "More" disclosure, so the
+     row fits, and the dropdown menu can escape downward without being cut off. */
 }
-.toolbar-actions button,
-.toolbar-actions a {
+/* Fallback styling for any raw button/link still in the toolbar. Design-system
+   <Button> elements (.btn) keep their own variant styling — :not(.btn) keeps this
+   rule from clobbering them, which previously flattened Publish into a plain box. */
+.toolbar-actions button:not(.btn),
+.toolbar-actions a:not(.btn) {
   padding: 6px 12px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -1000,18 +1004,85 @@ body,
   text-decoration: none;
   color: var(--text);
 }
-.toolbar-actions .button {
-  background: var(--primary);
-  border-color: var(--primary);
-  color: #fff;
-  font-weight: 600;
-}
-.toolbar-actions .button:hover {
-  background: var(--primary-hover);
-}
-.toolbar-actions button:disabled {
+.toolbar-actions button:not(.btn):disabled {
   opacity: 0.45;
   cursor: default;
+}
+/* Keep the toolbar buttons on one line; the secondary group scrolls if needed
+   but the primary actions (Save / Publish) never shrink out of reach. */
+.toolbar-actions .btn {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.toolbar-link {
+  flex-shrink: 0;
+  font-size: 13px;
+  color: var(--text);
+  text-decoration: none;
+  padding: 6px 12px;
+  border-radius: var(--radius);
+  white-space: nowrap;
+}
+.toolbar-link:hover {
+  background: var(--surface-sunken);
+}
+
+/* "More ▾" utility disclosure */
+.toolbar-more {
+  position: relative;
+  flex-shrink: 0;
+}
+.toolbar-more > summary {
+  list-style: none;
+  cursor: pointer;
+  font-size: 13px;
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: #fff;
+  color: var(--text);
+  white-space: nowrap;
+  user-select: none;
+}
+.toolbar-more > summary::-webkit-details-marker {
+  display: none;
+}
+.toolbar-more > summary:hover {
+  border-color: var(--border-strong);
+  background: var(--surface-sunken);
+}
+.toolbar-more[open] > summary {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+.toolbar-more-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  min-width: 180px;
+  padding: 6px;
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+}
+.toolbar-more-menu button {
+  text-align: left;
+  padding: 8px 10px;
+  border: none;
+  background: none;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  color: var(--text);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.toolbar-more-menu button:hover {
+  background: var(--primary-light);
+  color: var(--primary);
 }
 
 /* ── Three-column body: only the canvas column scrolls ────────── */
@@ -1138,6 +1209,7 @@ body,
   background: #fff;
   border: 1px solid var(--border);
   border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
 }
 .el-row {
   display: flex;
@@ -1241,7 +1313,8 @@ body,
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 .el-card:hover {
-  border-color: #c7d2fe;
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow);
 }
 .el-row:active .drag-handle,
 .drag-handle:active {
