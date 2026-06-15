@@ -67,7 +67,7 @@ export function opsForType(type: string): { op: LogicOp; label: string }[] {
 
 // --- parsing ---
 
-const CONDITION_RE = /^([A-Za-z_]\w*)\s*(==|!=|>=|<=|>|<)\s*(.+)$/;
+const CONDITION_RE = /^([A-Za-z_]\w*)\s*(==|!=|>=|<=|>|<|=)\s*(.+)$/;
 const NULL_EQ_RE = /^([A-Za-z_]\w*)\s*(==|!=)\s*None$/;
 const SELECTED_RE = /^selected\(\s*([A-Za-z_]\w*)\s*,\s*(.+?)\s*\)$/;
 const NOT_SELECTED_RE = /^not\s+selected\(\s*([A-Za-z_]\w*)\s*,\s*(.+?)\s*\)$/;
@@ -105,7 +105,8 @@ function parseCondition(src: string): LogicCondition | null {
   if (!m) return null;
   const value = parseLiteral(m[3].trim());
   if (value === undefined) return null;
-  return { field: m[1], op: m[2] as LogicOp, value };
+  const op = (m[2] === "=" ? "==" : m[2]) as LogicOp;
+  return { field: m[1], op, value };
 }
 
 function parseLiteral(src: string): string | number | boolean | undefined {
