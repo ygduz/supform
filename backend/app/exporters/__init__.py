@@ -11,6 +11,7 @@ from app.exporters.geojson_exporter import export_geojson
 from app.exporters.json_exporter import export_json
 from app.exporters.kml_exporter import export_kml
 from app.exporters.spss_exporter import export_spss
+from app.exporters.xlsform_exporter import export_xlsform
 from app.exporters.xlsx_exporter import export_xlsx
 
 __all__ = [
@@ -21,5 +22,6 @@ __all__ = [
     "export_kml",
     "export_spss",
     "export_xlsx",
+    "export_xlsform",
     "flatten_rows",
 ]

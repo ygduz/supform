@@ -7,7 +7,7 @@ import { MapPanel } from "./MapPanel";
 import { buildColumns } from "./columns";
 
 type Status = "loading" | "ready" | "unauth" | "error";
-type Format = "csv" | "xlsx" | "json" | "geojson" | "kml" | "spss";
+type Format = "csv" | "xlsx" | "json" | "geojson" | "kml" | "spss" | "xlsform";
 type View = "analytics" | "table" | "map";
 type StatusFilter = "all" | ValidationStatus;
 
@@ -306,6 +306,9 @@ export function ResponsesPage() {
           )}
           <button type="button" onClick={() => download("spss")} disabled={rows.length === 0}>
             SPSS
+          </button>
+          <button type="button" onClick={() => download("xlsform")}>
+            XLSForm
           </button>
           {hasMedia && (
             <button

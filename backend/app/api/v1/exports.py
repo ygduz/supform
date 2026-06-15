@@ -22,6 +22,7 @@ from app.exporters import (
     export_json,
     export_kml,
     export_spss,
+    export_xlsform,
     export_xlsx,
 )
 from app.models.media import MediaFile
@@ -52,6 +53,7 @@ _FORMATS = {
     "geojson": (export_geojson, "application/geo+json", "geojson"),
     "kml": (export_kml, "application/vnd.google-earth.kml+xml", "kml"),
     "spss": (export_spss, _SPSS_MIME, "sav"),
+    "xlsform": (export_xlsform, _XLSX_MIME, "xlsx"),
 }
 
 
