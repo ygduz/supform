@@ -104,9 +104,7 @@ export function InboxPage() {
       <div className="inbox-detail">
         {selected ? (
           <>
-            <h3 className="inbox-detail-title">
-              {selected.form_title ?? "Submission detail"}
-            </h3>
+            <h3 className="inbox-detail-title">{selected.form_title ?? "Submission detail"}</h3>
             <p className="inbox-detail-time">
               Received {new Date(selected.created_at).toLocaleString()}
             </p>
