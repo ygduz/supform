@@ -13,10 +13,12 @@ export function evaluateBool(
 ): boolean {
   if (!expression) return true;
   try {
-    // Minimal, safe-enough shim: only supports `field <op> literal` and and/or chains.
-    // Deliberately conservative — unknown syntax defaults to visible.
-    const fn = new Function(...Object.keys(context), `return (${toJs(expression)});`);
-    return Boolean(fn(...Object.values(context)));
+    // Inject `selected()` so visibleIf built with the contains op works client-side.
+    const selected = (value: unknown, option: unknown): boolean =>
+      Array.isArray(value) ? value.includes(option) : value === option;
+    const scope = { selected, ...context };
+    const fn = new Function(...Object.keys(scope), `return (${toJs(expression)});`);
+    return Boolean(fn(...Object.values(scope)));
   } catch {
     return true;
   }

@@ -2,7 +2,7 @@ import { localize } from "@/lib/i18n";
 import { useBuilderStore } from "@/stores/builderStore";
 import type { Element } from "@/types/form-schema";
 import { useState } from "react";
-import { LOGIC_OPS, type LogicCondition, parseLogic, serializeLogic } from "./logic";
+import { type LogicCondition, NO_VALUE_OPS, opsForType, parseLogic, serializeLogic } from "./logic";
 import { allElements, isContainerType } from "./model";
 
 const NO_VALUE_TYPES = new Set(["note", "section", "html", "group", "repeat"]);
@@ -28,11 +28,9 @@ export function LogicBuilder({
 }) {
   const schema = useBuilderStore((s) => s.schema);
   const parsed = value ? parseLogic(value) : { connective: "and" as const, conditions: [] };
-  // Raw editor is forced when an existing expression is too complex to parse.
   const [rawMode, setRawMode] = useState(false);
   const advanced = rawMode || (value !== undefined && value !== "" && parsed === null);
 
-  // Questions this rule may reference: anything answerable, except the question itself.
   const fields = allElements(schema).filter(
     (el) => el.name !== excludeName && !NO_VALUE_TYPES.has(el.type) && !isContainerType(el.type),
   );
@@ -93,7 +91,8 @@ export function LogicBuilder({
 
       {conditions.map((cond, i) => (
         <ConditionRow
-          key={`${cond.field}-${i}`}
+          // biome-ignore lint/suspicious/noArrayIndexKey: conditions have no stable id
+          key={i}
           cond={cond}
           fields={fields}
           onChange={(next) =>
@@ -118,8 +117,9 @@ export function LogicBuilder({
         title={fields.length === 0 ? "Add other questions first" : undefined}
         onClick={() => {
           const first = fields[0];
+          const ops = opsForType(first.type);
           commit(
-            [...conditions, { field: first.name, op: "==", value: defaultValueFor(first) }],
+            [...conditions, { field: first.name, op: ops[0].op, value: defaultValueFor(first) }],
             connective,
           );
         }}
@@ -149,22 +149,31 @@ function ConditionRow({
   onRemove: () => void;
 }) {
   const target = fields.find((f) => f.name === cond.field);
+  const ops = opsForType(target?.type ?? "text");
+  const noValue = NO_VALUE_OPS.has(cond.op);
+
+  function handleFieldChange(name: string) {
+    const next = fields.find((f) => f.name === name);
+    const nextOps = opsForType(next?.type ?? "text");
+    const keepOp = nextOps.some((o) => o.op === cond.op) ? cond.op : nextOps[0].op;
+    onChange({
+      field: name,
+      op: keepOp,
+      value: next ? defaultValueFor(next) : cond.value,
+    });
+  }
+
+  function handleOpChange(op: LogicCondition["op"]) {
+    onChange({ ...cond, op });
+  }
 
   return (
     <div className="logic-cond">
       <select
         aria-label="Question"
         value={cond.field}
-        onChange={(e) => {
-          const next = fields.find((f) => f.name === e.target.value);
-          onChange({
-            field: e.target.value,
-            op: cond.op,
-            value: next ? defaultValueFor(next) : cond.value,
-          });
-        }}
+        onChange={(e) => handleFieldChange(e.target.value)}
       >
-        {/* Keep an unknown reference visible rather than silently rewriting it. */}
         {!target && <option value={cond.field}>{cond.field}</option>}
         {fields.map((f) => (
           <option key={f.name} value={f.name}>
@@ -176,16 +185,16 @@ function ConditionRow({
       <select
         aria-label="Operator"
         value={cond.op}
-        onChange={(e) => onChange({ ...cond, op: e.target.value as LogicCondition["op"] })}
+        onChange={(e) => handleOpChange(e.target.value as LogicCondition["op"])}
       >
-        {LOGIC_OPS.map((o) => (
+        {ops.map((o) => (
           <option key={o.op} value={o.op}>
             {o.label}
           </option>
         ))}
       </select>
 
-      <ValueInput cond={cond} target={target} onChange={onChange} />
+      {!noValue && <ValueInput cond={cond} target={target} onChange={onChange} />}
 
       <button type="button" title="Remove condition" onClick={onRemove}>
         ✕
@@ -203,7 +212,7 @@ function ValueInput({
   target: Element | undefined;
   onChange: (c: LogicCondition) => void;
 }) {
-  // Choice questions: pick from their options instead of free-typing values.
+  // contains/not_contains or choice == : pick from the field's options.
   if (target?.options?.length) {
     const known = target.options.some((o) => o.value === cond.value);
     return (
