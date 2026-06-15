@@ -75,6 +75,7 @@ export interface SubmissionRow {
   created_at: string;
   validation_status: ValidationStatus | null;
   quality_flags: string[];
+  started_at?: string;
 }
 
 /** Reference a file field stores as its answer after upload. */

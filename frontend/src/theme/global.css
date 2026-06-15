@@ -1895,6 +1895,32 @@ body,
   flex-direction: column;
   gap: 16px;
 }
+.analytics-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 12px;
+}
+.analytics-stat {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.analytics-stat-value {
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.5px;
+}
+.analytics-stat-label {
+  font-size: 12px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
 .analytics-card {
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -1935,6 +1961,9 @@ body,
   background: var(--primary);
   border-radius: 999px;
   min-width: 2px;
+}
+.bar-fill--flag {
+  background: #e67e22;
 }
 
 /* Free-text response analytics */

@@ -225,6 +225,76 @@ export function responsesByDay(rows: Array<{ created_at: string }>): DayCount[] 
   return series;
 }
 
+export interface SummaryStats {
+  total: number;
+  last7Days: number;
+  flaggedCount: number;
+  flagRate: number; // 0–100
+  flagBreakdown: Array<{ flag: string; count: number; pct: number }>;
+}
+
+/** Top-level counts and quality flag breakdown for the summary card. */
+export function summaryStats(
+  rows: Array<{ created_at: string; quality_flags: string[] }>,
+): SummaryStats {
+  const now = Date.now();
+  const cutoff = now - 7 * 24 * 60 * 60 * 1000;
+  let last7Days = 0;
+  const flagCounts = new Map<string, number>();
+
+  for (const row of rows) {
+    if (new Date(row.created_at).getTime() >= cutoff) last7Days++;
+    for (const f of row.quality_flags) flagCounts.set(f, (flagCounts.get(f) ?? 0) + 1);
+  }
+
+  const total = rows.length;
+  const flaggedCount = rows.filter((r) => r.quality_flags.length > 0).length;
+  const flagRate = total > 0 ? Math.round((flaggedCount / total) * 100) : 0;
+  const flagBreakdown = [...flagCounts.entries()]
+    .map(([flag, count]) => ({ flag, count, pct: total > 0 ? Math.round((count / total) * 100) : 0 }))
+    .sort((a, b) => b.count - a.count);
+
+  return { total, last7Days, flaggedCount, flagRate, flagBreakdown };
+}
+
+export interface CompletionTimeStat {
+  count: number;
+  mean: number; // seconds
+  median: number;
+  min: number;
+  max: number;
+}
+
+/** Completion time statistics derived from the client-sent _started_at timestamp. */
+export function completionTimeStats(
+  rows: Array<{ created_at: string; started_at?: string }>,
+): CompletionTimeStat | null {
+  const durations: number[] = [];
+  for (const row of rows) {
+    if (!row.started_at) continue;
+    try {
+      const start = new Date(row.started_at).getTime();
+      const end = new Date(row.created_at).getTime();
+      const secs = (end - start) / 1000;
+      // Discard nonsensical values (negative or absurdly long > 4 hours)
+      if (secs > 0 && secs < 14400) durations.push(secs);
+    } catch {
+      /* skip */
+    }
+  }
+  if (durations.length === 0) return null;
+  durations.sort((a, b) => a - b);
+  const sum = durations.reduce((a, b) => a + b, 0);
+  const mid = Math.floor(durations.length / 2);
+  return {
+    count: durations.length,
+    mean: sum / durations.length,
+    median: durations.length % 2 === 0 ? (durations[mid - 1] + durations[mid]) / 2 : durations[mid],
+    min: durations[0],
+    max: durations[durations.length - 1],
+  };
+}
+
 function dayKey(d: Date): string {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, "0");
