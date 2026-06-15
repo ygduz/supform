@@ -1,3 +1,4 @@
+import { api } from "@/api/client";
 import { languageLabel, localize } from "@/lib/i18n";
 import { useBuilderStore } from "@/stores/builderStore";
 import type { Element, FormSchema, I18nString } from "@/types/form-schema";
@@ -128,6 +129,8 @@ export function TranslatePanel() {
   const defaultLang = schema.defaultLanguage ?? "en";
   const otherLangs = (schema.languages ?? []).filter((l) => l !== defaultLang);
   const [targetLang, setTargetLang] = useState(otherLangs[0] ?? "");
+  const [translating, setTranslating] = useState(false);
+  const [translateError, setTranslateError] = useState<string | null>(null);
 
   if (otherLangs.length === 0) {
     return (
@@ -141,8 +144,32 @@ export function TranslatePanel() {
 
   const activeLang = targetLang || otherLangs[0];
   const rows = collectRows(schema, defaultLang, useBuilderStore.getState());
-  const filled = rows.filter((r) => translationFor(r.value, activeLang, defaultLang) !== "").length;
+  const untranslatedRows = rows.filter((r) => {
+    const src = translationFor(r.value, defaultLang, defaultLang);
+    const tgt = translationFor(r.value, activeLang, defaultLang);
+    return src && !tgt;
+  });
+  const filled = rows.length - untranslatedRows.length;
   const pct = rows.length > 0 ? Math.round((filled / rows.length) * 100) : 0;
+
+  async function handleAiTranslate() {
+    if (untranslatedRows.length === 0) return;
+    setTranslating(true);
+    setTranslateError(null);
+    try {
+      const texts = untranslatedRows.map((r) => translationFor(r.value, defaultLang, defaultLang));
+      const { translations } = await api.aiTranslate(texts, defaultLang, activeLang);
+      for (let i = 0; i < untranslatedRows.length; i++) {
+        const row = untranslatedRows[i];
+        const text = translations[i];
+        if (text) row.save(withTranslation(row.value, activeLang, text, defaultLang));
+      }
+    } catch (err) {
+      setTranslateError((err as Error).message);
+    } finally {
+      setTranslating(false);
+    }
+  }
 
   return (
     <div className="translate-panel">
@@ -161,7 +188,17 @@ export function TranslatePanel() {
         <span className={`translate-progress ${pct === 100 ? "complete" : ""}`}>
           {filled}/{rows.length} — {pct}%
         </span>
+        <button
+          type="button"
+          className="button button-sm"
+          onClick={handleAiTranslate}
+          disabled={translating || untranslatedRows.length === 0}
+          title={untranslatedRows.length === 0 ? "All strings translated" : `Translate ${untranslatedRows.length} missing strings with AI`}
+        >
+          {translating ? "Translating…" : "✦ Translate with AI"}
+        </button>
       </div>
+      {translateError && <p className="error translate-ai-error">{translateError}</p>}
 
       <div className="translate-cols-head">
         <span>{languageLabel(defaultLang)}</span>

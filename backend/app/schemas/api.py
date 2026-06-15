@@ -37,6 +37,17 @@ class AIGenerateRequest(BaseModel):
     prompt: str = Field(min_length=1, max_length=2000)
 
 
+class AITranslateRequest(BaseModel):
+    texts: list[str] = Field(min_length=1, max_length=200)
+    source_lang: str = Field(alias="sourceLang", min_length=2, max_length=10)
+    target_lang: str = Field(alias="targetLang", min_length=2, max_length=10)
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class AITranslateResponse(BaseModel):
+    translations: list[str]
+
+
 class EmailRequest(BaseModel):
     email: EmailStr
 
@@ -145,6 +156,7 @@ class SubmissionOut(BaseModel):
     created_at: datetime
     validation_status: str | None = None
     score: float | None = None
+    quality_flags: list[str] = []
 
 
 class ValidationUpdate(BaseModel):

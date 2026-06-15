@@ -3,7 +3,7 @@ import { LanguageContext, formLanguages, languageLabel, localize } from "@/lib/i
 import { isNetworkError, queueSubmission } from "@/lib/offline";
 import type { Element, FormSchema, I18nString } from "@/types/form-schema";
 import type { JSX } from "react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { evaluate, evaluateBool } from "./expressions";
 import { renderField } from "./fields/registry";
 import { elementIndex, pipe } from "./piping";
@@ -100,6 +100,7 @@ export function FormRenderer({ schema, formId }: { schema: FormSchema; formId: s
   const [queuedOffline, setQueuedOffline] = useState(false);
   const [step, setStep] = useState(0);
   const [started, setStarted] = useState(false);
+  const startedAt = useRef(new Date().toISOString());
 
   // Multi-language support: offer a switcher when the form declares >1 language.
   const languages = formLanguages(schema.languages, schema.defaultLanguage);
@@ -343,7 +344,7 @@ export function FormRenderer({ schema, formId }: { schema: FormSchema; formId: s
       return;
     }
     try {
-      await api.submit(formId, answers);
+      await api.submit(formId, answers, { _started_at: startedAt.current });
       setSubmitted(true);
     } catch (err) {
       // The server re-validates: map any field-level 422 details back onto the fields.

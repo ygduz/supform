@@ -1,6 +1,6 @@
 import { languageLabel, localize } from "@/lib/i18n";
 import { useBuilderStore } from "@/stores/builderStore";
-import type { Outcome } from "@/types/form-schema";
+import type { Outcome, QualityChecks } from "@/types/form-schema";
 import { useState } from "react";
 
 const COMMON_LANGUAGES = [
@@ -37,6 +37,10 @@ export function SettingsPanel() {
   const languages = schema.languages ?? [];
   const defaultLanguage = schema.defaultLanguage ?? "en";
   const [newLang, setNewLang] = useState("");
+
+  const qc = settings.qualityChecks ?? {};
+  const setQC = (patch: Partial<QualityChecks>) =>
+    setSettings({ qualityChecks: { ...qc, ...patch } });
 
   const outcomes = settings.outcomes ?? [];
   const setOutcome = (i: number, patch: Partial<Outcome>) =>
@@ -271,6 +275,48 @@ export function SettingsPanel() {
             placeholder="(optional)"
             onChange={(e) => setSettings({ welcomeMessage: e.target.value || undefined })}
           />
+        </label>
+      </fieldset>
+
+      <fieldset className="prop-fieldset">
+        <legend>Data quality checks</legend>
+        <small className="hint">
+          Automatically flag suspicious submissions. Flags appear in the responses table.
+        </small>
+        <label className="prop">
+          <span>Min completion time (seconds)</span>
+          <input
+            type="number"
+            min={0}
+            value={qc.minDurationSeconds ?? ""}
+            placeholder="30"
+            onChange={(e) =>
+              setQC({ minDurationSeconds: e.target.value === "" ? undefined : Number(e.target.value) })
+            }
+          />
+          <small className="hint">Flag as "too fast" if submitted faster than this. Default: 30 s.</small>
+        </label>
+        <label className="prop">
+          <span>Expected geo bounding box</span>
+          <div className="bbox-row">
+            {(["minLat", "minLng", "maxLat", "maxLng"] as const).map((k, i) => (
+              <input
+                key={k}
+                type="number"
+                step="any"
+                placeholder={k}
+                value={qc.expectedGeoBbox?.[i] ?? ""}
+                onChange={(e) => {
+                  const bbox: [number, number, number, number] = [
+                    ...(qc.expectedGeoBbox ?? [0, 0, 0, 0]),
+                  ] as [number, number, number, number];
+                  bbox[i] = e.target.value === "" ? 0 : Number(e.target.value);
+                  setQC({ expectedGeoBbox: bbox });
+                }}
+              />
+            ))}
+          </div>
+          <small className="hint">Flag geopoints outside [minLat, minLng, maxLat, maxLng]. Leave blank to skip.</small>
         </label>
       </fieldset>
 

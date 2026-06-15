@@ -74,6 +74,7 @@ export interface SubmissionRow {
   answers: Record<string, unknown>;
   created_at: string;
   validation_status: ValidationStatus | null;
+  quality_flags: string[];
 }
 
 /** Reference a file field stores as its answer after upload. */
@@ -162,6 +163,12 @@ export const api = {
       body: JSON.stringify({ prompt }),
     }),
 
+  aiTranslate: (texts: string[], sourceLang: string, targetLang: string) =>
+    request<{ translations: string[] }>("/api/v1/ai/translate", {
+      method: "POST",
+      body: JSON.stringify({ texts, sourceLang, targetLang }),
+    }),
+
   // projects
   listProjects: () => request<Array<{ id: string; name: string }>>("/api/v1/projects"),
 
@@ -244,10 +251,10 @@ export const api = {
     }),
 
   // submissions
-  submit: (formId: string, answers: Record<string, unknown>) =>
+  submit: (formId: string, answers: Record<string, unknown>, metadata?: Record<string, unknown>) =>
     request(`/api/v1/forms/${formId}/submissions`, {
       method: "POST",
-      body: JSON.stringify({ answers }),
+      body: JSON.stringify({ answers, metadata: metadata ?? {} }),
     }),
 
   listSubmissions: (formId: string) =>

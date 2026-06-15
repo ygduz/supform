@@ -3311,6 +3311,7 @@ body,
 .translate-header {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 8px;
   padding: 8px 0;
   flex-shrink: 0;
@@ -3400,5 +3401,58 @@ body,
 }
 .select-sm {
   padding: 3px 6px;
+  font-size: 12px;
+}
+
+/* ── Translate panel: AI button & error ──────────────────────── */
+.button-sm {
+  padding: 4px 10px;
+  font-size: 12px;
+  border-radius: 6px;
+}
+.translate-ai-error {
+  font-size: 12px;
+  color: var(--error, #c00);
+  margin: 0 0 8px;
+}
+
+/* ── Quality flags ───────────────────────────────────────────── */
+.quality-flags-cell {
+  white-space: nowrap;
+}
+.quality-flag {
+  display: inline-block;
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 10px;
+  margin-right: 4px;
+  background: #fff3cd;
+  color: #856404;
+  border: 1px solid #ffe69c;
+  cursor: default;
+}
+.quality-flag--too_fast {
+  background: #ffe5e5;
+  color: #991b1b;
+  border-color: #fca5a5;
+}
+.quality-flag--straight_lining {
+  background: #fef9c3;
+  color: #713f12;
+  border-color: #fde047;
+}
+.quality-flag--geo_outlier {
+  background: #e0f2fe;
+  color: #0c4a6e;
+  border-color: #7dd3fc;
+}
+
+/* ── Bounding box row ────────────────────────────────────────── */
+.bbox-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+}
+.bbox-row input {
   font-size: 12px;
 }

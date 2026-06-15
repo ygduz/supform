@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import AuthError, PermissionDeniedError, ValidationError
 from app.form_engine import compute_score, validate_submission
+from app.form_engine.quality import run_quality_checks
 from app.models.submission import Submission
 from app.schemas.form_schema import FormSettings
 from app.services.forms import get_form, get_published_schema
@@ -74,6 +75,10 @@ async def create_submission(
     if schema.settings.quiz_mode:
         # Server-computed so a client can't inflate its own score.
         meta["_score"] = compute_score(schema, result.cleaned)
+
+    flags = run_quality_checks(schema, result.cleaned, meta, now)
+    if flags:
+        meta["_quality_flags"] = flags
 
     submission = Submission(
         form_id=form_id,

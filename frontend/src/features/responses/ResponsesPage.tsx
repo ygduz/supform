@@ -18,6 +18,17 @@ interface EditState {
   error: string | null;
 }
 
+const FLAG_LABELS: Record<string, string> = {
+  too_fast: "⚡ Too fast",
+  straight_lining: "↔ Straight-line",
+  geo_outlier: "📍 Geo outlier",
+};
+const FLAG_TITLES: Record<string, string> = {
+  too_fast: "Submitted unusually quickly — may indicate a bot or inattentive respondent",
+  straight_lining: "Same answer selected for all scale/matrix questions",
+  geo_outlier: "GPS location is outside the expected geographic area",
+};
+
 const STATUS_LABELS: Record<ValidationStatus, string> = {
   approved: "Approved",
   on_hold: "On hold",
@@ -436,6 +447,7 @@ export function ResponsesPage() {
                         />
                       </th>
                       <th>Status</th>
+                      <th>Flags</th>
                       <th>Submitted</th>
                       {columns.map((col) => (
                         <th key={col.key}>{col.label}</th>
@@ -470,6 +482,13 @@ export function ResponsesPage() {
                               </option>
                             ))}
                           </select>
+                        </td>
+                        <td className="quality-flags-cell">
+                          {(row.quality_flags ?? []).map((flag) => (
+                            <span key={flag} className={`quality-flag quality-flag--${flag}`} title={FLAG_TITLES[flag] ?? flag}>
+                              {FLAG_LABELS[flag] ?? flag}
+                            </span>
+                          ))}
                         </td>
                         <td className="muted">{new Date(row.created_at).toLocaleString()}</td>
                         {columns.map((col) => (
