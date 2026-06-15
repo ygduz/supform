@@ -188,14 +188,14 @@ export function FormRenderer({
                   <span className="repeat-instance-label">
                     {entryLabel ? `${entryLabel} ${i + 1}` : `Entry ${i + 1}`}
                   </span>
-                  <button
-                    type="button"
-                    className="link-button danger"
+                  <Button
+                    variant="danger"
+                    size="sm"
                     onClick={() => removeInstance(i)}
                     disabled={instances.length <= min}
                   >
                     Remove
-                  </button>
+                  </Button>
                 </div>
                 {(el.elements ?? []).map((child) => {
                   if (PRESENTATIONAL.has(child.type) || child.type === "hidden") return null;
@@ -225,14 +225,14 @@ export function FormRenderer({
               </div>
             );
           })}
-          <button
-            type="button"
-            className="link-button repeat-add"
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={addInstance}
             disabled={max != null && instances.length >= max}
           >
             {addLabel}
-          </button>
+          </Button>
           {max != null && (
             <small className="repeat-count muted">
               {instances.length} / {max}
