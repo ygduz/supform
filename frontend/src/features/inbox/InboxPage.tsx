@@ -1,4 +1,5 @@
 import { type SubmissionRow, api } from "@/api/client";
+import { Badge, Button, EmptyState, Spinner } from "@/components";
 import { useCallback, useEffect, useState } from "react";
 
 export function InboxPage() {
@@ -43,7 +44,7 @@ export function InboxPage() {
       <div className="inbox-sidebar">
         <div className="inbox-toolbar">
           <h2 className="inbox-title">
-            Inbox {unreadCount > 0 && <span className="inbox-badge">{unreadCount}</span>}
+            Inbox {unreadCount > 0 && <Badge tone="primary">{unreadCount}</Badge>}
           </h2>
           <div className="inbox-actions">
             <label className="inbox-toggle">
@@ -55,18 +56,29 @@ export function InboxPage() {
               Unread only
             </label>
             {unreadCount > 0 && (
-              <button type="button" className="link-button" onClick={handleMarkAllRead}>
+              <Button variant="ghost" size="sm" onClick={handleMarkAllRead}>
                 Mark all read
-              </button>
+              </Button>
             )}
           </div>
         </div>
 
-        {loading && <p className="inbox-msg">Loading…</p>}
+        {loading && (
+          <div
+            className="inbox-msg"
+            style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}
+          >
+            <Spinner size="sm" />
+            <span>Loading…</span>
+          </div>
+        )}
         {!loading && items.length === 0 && (
-          <p className="inbox-msg inbox-empty">
-            {unreadOnly ? "No unread submissions." : "No submissions yet."}
-          </p>
+          <EmptyState
+            icon="📬"
+            title={unreadOnly ? "No unread submissions" : "No submissions yet"}
+            description={unreadOnly ? "All caught up!" : "Submissions will appear here."}
+            className="inbox-msg inbox-empty"
+          />
         )}
 
         <ul className="inbox-list">
@@ -106,7 +118,12 @@ export function InboxPage() {
             </dl>
           </>
         ) : (
-          <p className="inbox-detail-empty">Select a submission to view it.</p>
+          <EmptyState
+            icon="👆"
+            title="Select a submission"
+            description="Click a submission on the left to view its details."
+            className="inbox-detail-empty"
+          />
         )}
       </div>
     </div>

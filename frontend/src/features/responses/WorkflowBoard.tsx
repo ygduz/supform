@@ -1,4 +1,5 @@
 import { type SubmissionRow, api } from "@/api/client";
+import { EmptyState, Select } from "@/components";
 import type { FormSchema } from "@/types/form-schema";
 
 interface Props {
@@ -11,7 +12,10 @@ export function WorkflowBoard({ schema, submissions, onUpdate }: Props) {
   const steps = schema.settings?.workflowSteps ?? [];
   if (steps.length === 0) {
     return (
-      <p className="wf-no-steps">No workflow configured. Add steps in the builder Settings tab.</p>
+      <EmptyState
+        title="No workflow configured"
+        description="Add steps in the builder Settings tab."
+      />
     );
   }
 
@@ -42,17 +46,17 @@ export function WorkflowBoard({ schema, submissions, onUpdate }: Props) {
               <div key={sub.id} className="wf-card">
                 <div className="wf-card-id">#{sub.id.slice(0, 8)}</div>
                 <div className="wf-card-time">{new Date(sub.created_at).toLocaleDateString()}</div>
-                <select
-                  className="wf-move-select"
+                <Select
                   value={step}
                   onChange={(e) => moveTo(sub, e.target.value)}
+                  aria-label="Move to step"
                 >
                   {steps.map((s) => (
                     <option key={s} value={s}>
                       {s}
                     </option>
                   ))}
-                </select>
+                </Select>
               </div>
             ))}
             {grouped[step].length === 0 && <p className="wf-empty-col">Empty</p>}
