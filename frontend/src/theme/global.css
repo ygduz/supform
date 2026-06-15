@@ -653,13 +653,22 @@ button:focus-visible {
 
 /* Forms */
 .form-renderer {
-  max-width: 640px;
-  margin: 0 auto;
+  max-width: 600px;
+  margin: 40px auto;
+  padding: 40px 44px;
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
 }
 .form-renderer > h1 {
-  font-size: 26px;
+  font-size: var(--text-2xl);
+  font-weight: 700;
   line-height: 1.25;
-  margin: 0 0 8px;
+  margin: 0 0 28px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
 }
 .form-renderer .group {
   border: 1px solid var(--border);
@@ -745,9 +754,9 @@ button:focus-visible {
 .field-label {
   display: block;
   font-weight: 600;
-  font-size: 15px;
+  font-size: var(--text-md);
   line-height: 1.4;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
   color: var(--text);
 }
 .field input[type="text"],
@@ -782,25 +791,33 @@ button:focus-visible {
   border-color: var(--primary);
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
 }
+.choices {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
 .choices label {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin: 8px 0;
-  padding: 11px 14px;
+  gap: 12px;
+  margin: 0;
+  padding: 12px 14px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   cursor: pointer;
-  font-size: 15px;
-  transition: border-color 0.12s ease, background 0.12s ease;
+  font-size: var(--text-md);
+  font-weight: 400;
+  color: var(--text-secondary);
+  transition: border-color 0.12s ease, background 0.12s ease, color 0.12s ease;
 }
 .choices label:hover {
-  border-color: var(--primary);
-  background: rgba(37, 99, 235, 0.03);
+  border-color: var(--border-strong);
+  background: var(--surface-sunken);
 }
 .choices label:has(input:checked) {
   border-color: var(--primary);
-  background: rgba(37, 99, 235, 0.07);
+  background: var(--primary-light);
+  color: var(--text);
   font-weight: 500;
 }
 .choices input[type="radio"],
@@ -969,10 +986,14 @@ body,
   align-items: center;
   gap: 8px;
   flex-wrap: nowrap;
-  overflow-x: auto;
+  /* No overflow clipping: utility actions live in the "More" disclosure, so the
+     row fits, and the dropdown menu can escape downward without being cut off. */
 }
-.toolbar-actions button,
-.toolbar-actions a {
+/* Fallback styling for any raw button/link still in the toolbar. Design-system
+   <Button> elements (.btn) keep their own variant styling — :not(.btn) keeps this
+   rule from clobbering them, which previously flattened Publish into a plain box. */
+.toolbar-actions button:not(.btn),
+.toolbar-actions a:not(.btn) {
   padding: 6px 12px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -983,18 +1004,85 @@ body,
   text-decoration: none;
   color: var(--text);
 }
-.toolbar-actions .button {
-  background: var(--primary);
-  border-color: var(--primary);
-  color: #fff;
-  font-weight: 600;
-}
-.toolbar-actions .button:hover {
-  background: var(--primary-hover);
-}
-.toolbar-actions button:disabled {
+.toolbar-actions button:not(.btn):disabled {
   opacity: 0.45;
   cursor: default;
+}
+/* Keep the toolbar buttons on one line; the secondary group scrolls if needed
+   but the primary actions (Save / Publish) never shrink out of reach. */
+.toolbar-actions .btn {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.toolbar-link {
+  flex-shrink: 0;
+  font-size: 13px;
+  color: var(--text);
+  text-decoration: none;
+  padding: 6px 12px;
+  border-radius: var(--radius);
+  white-space: nowrap;
+}
+.toolbar-link:hover {
+  background: var(--surface-sunken);
+}
+
+/* "More ▾" utility disclosure */
+.toolbar-more {
+  position: relative;
+  flex-shrink: 0;
+}
+.toolbar-more > summary {
+  list-style: none;
+  cursor: pointer;
+  font-size: 13px;
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: #fff;
+  color: var(--text);
+  white-space: nowrap;
+  user-select: none;
+}
+.toolbar-more > summary::-webkit-details-marker {
+  display: none;
+}
+.toolbar-more > summary:hover {
+  border-color: var(--border-strong);
+  background: var(--surface-sunken);
+}
+.toolbar-more[open] > summary {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+.toolbar-more-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  min-width: 180px;
+  padding: 6px;
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+}
+.toolbar-more-menu button {
+  text-align: left;
+  padding: 8px 10px;
+  border: none;
+  background: none;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  color: var(--text);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.toolbar-more-menu button:hover {
+  background: var(--primary-light);
+  color: var(--primary);
 }
 
 /* ── Three-column body: only the canvas column scrolls ────────── */
@@ -1121,6 +1209,7 @@ body,
   background: #fff;
   border: 1px solid var(--border);
   border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
 }
 .el-row {
   display: flex;
@@ -1224,7 +1313,8 @@ body,
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 .el-card:hover {
-  border-color: #c7d2fe;
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow);
 }
 .el-row:active .drag-handle,
 .drag-handle:active {
@@ -1793,6 +1883,25 @@ body,
 }
 .props h3 {
   margin: 0;
+}
+/* The inspector reuses the design-system <Input>/<Select>, whose labels are sized
+   for a respondent form (15px/600). In this dense properties panel that reads as
+   shouty — quiet them down and tighten the rhythm. */
+.inspector .field {
+  margin-bottom: 0;
+}
+.inspector .field-label {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 5px;
+}
+.inspector .field-input {
+  min-height: 36px;
+  font-size: var(--text-base);
+}
+.inspector .field-hint {
+  font-size: var(--text-xs);
 }
 .props-header {
   display: flex;
@@ -2489,21 +2598,52 @@ body,
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 56px;
-  height: 56px;
-  margin: 0 auto 16px;
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 20px;
   border-radius: 50%;
-  background: rgba(37, 99, 235, 0.12);
-  color: var(--primary);
-  font-size: 28px;
+  background: var(--success-light);
+  color: var(--success);
+  font-size: 32px;
   font-weight: 700;
+  box-shadow: 0 0 0 6px rgba(22, 163, 74, 0.06);
+}
+.confirmation--offline::before {
+  content: "📡";
+  background: var(--surface-sunken);
+  box-shadow: 0 0 0 6px rgba(100, 116, 139, 0.06);
+}
+.confirmation-title {
+  margin: 0 0 8px;
+  font-size: var(--text-2xl);
+  font-weight: 700;
+  color: var(--text);
 }
 .confirmation p {
-  font-size: 17px;
+  font-size: var(--text-lg);
+  line-height: 1.5;
   margin: 0 0 8px;
+  color: var(--text-secondary);
 }
 .confirmation .quiz-score {
   color: var(--muted);
+}
+.confirmation-again {
+  margin-top: 20px;
+  padding: 10px 18px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--surface-raised);
+  color: var(--text);
+  font-size: var(--text-base);
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color 0.12s ease, background 0.12s ease;
+}
+.confirmation-again:hover {
+  border-color: var(--primary);
+  background: var(--primary-light);
+  color: var(--primary);
 }
 .analytics {
   display: flex;
@@ -4693,30 +4833,64 @@ body,
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 20px;
+  margin-bottom: 24px;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 12px;
+  padding: 16px 20px;
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+.rpt-toolbar-head {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 .rpt-page-title {
   margin: 0;
-  font-size: 20px;
+  font-size: var(--text-xl);
+  font-weight: 700;
+}
+.rpt-page-sub {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--muted);
 }
 .rpt-toolbar-actions {
   display: flex;
-  gap: 8px;
+  gap: 10px;
   align-items: center;
   flex-wrap: wrap;
 }
+.rpt-add-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px 4px 4px;
+  background: var(--surface-sunken);
+  border-radius: var(--radius);
+}
+.rpt-add-label {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  padding: 0 4px 0 8px;
+}
 .rpt-add-btn {
-  padding: 5px 12px;
+  padding: 6px 12px;
   border: 1px solid var(--border);
-  border-radius: 6px;
-  background: #fff;
+  border-radius: var(--radius-sm);
+  background: var(--surface-raised);
   cursor: pointer;
   font-size: 13px;
+  transition: border-color 0.12s ease, background 0.12s ease;
 }
 .rpt-add-btn:hover {
-  background: #f1f3f5;
+  border-color: var(--primary);
+  background: var(--primary-light);
 }
 .rpt-grid {
   display: grid;

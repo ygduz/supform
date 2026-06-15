@@ -306,68 +306,44 @@ export function BuilderPage() {
             {status === "saving" ? "Saving…" : dirty ? "Unsaved changes" : "Saved ✓"}
           </span>
           {store.formId ? (
-            <Button
-              variant="ghost"
-              size="sm"
-              title="Public link, embed code, and QR"
-              onClick={() => setShareLink(true)}
-            >
-              Share link
-            </Button>
+            <Link className="toolbar-link" to={`/forms/${store.formId}/responses`}>
+              Responses
+            </Link>
           ) : null}
-          {store.projectId ? (
-            <Button
-              variant="ghost"
-              size="sm"
-              title="Manage who can collaborate on this project"
-              onClick={() => setSharing(true)}
-            >
-              Share access
-            </Button>
-          ) : null}
-          {store.formId ? (
-            <Button
-              variant="ghost"
-              size="sm"
-              title="Send submissions to external URLs"
-              onClick={() => setIntegrations(true)}
-            >
-              Integrations
-            </Button>
-          ) : null}
-          {store.formId ? <Link to={`/forms/${store.formId}/responses`}>Responses</Link> : null}
-          <Button
-            variant="ghost"
-            size="sm"
-            title="Save as a personal template"
-            onClick={saveAsTemplate}
-          >
-            Save as template
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            title="Download this form's JSON schema"
-            onClick={exportJson}
-          >
-            Export JSON
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            title="Download as editable Word/text markers"
-            onClick={exportText}
-          >
-            Export text
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            title="Load a form from a JSON file"
-            onClick={() => importRef.current?.click()}
-          >
-            Import JSON
-          </Button>
+          {/* Utility actions collapse into a disclosure so the primary actions
+              (Save draft / Publish) are always visible, never scrolled off. */}
+          <details className="toolbar-more">
+            <summary aria-label="More actions">More ▾</summary>
+            <div className="toolbar-more-menu">
+              {store.formId ? (
+                <button type="button" onClick={() => setShareLink(true)}>
+                  Share link
+                </button>
+              ) : null}
+              {store.projectId ? (
+                <button type="button" onClick={() => setSharing(true)}>
+                  Share access
+                </button>
+              ) : null}
+              {store.formId ? (
+                <button type="button" onClick={() => setIntegrations(true)}>
+                  Integrations
+                </button>
+              ) : null}
+              <button type="button" onClick={saveAsTemplate}>
+                Save as template
+              </button>
+              <button type="button" onClick={exportJson}>
+                Export JSON
+              </button>
+              <button type="button" onClick={exportText}>
+                Export text
+              </button>
+              <button type="button" onClick={() => importRef.current?.click()}>
+                Import JSON
+              </button>
+            </div>
+          </details>
           <input
             ref={importRef}
             type="file"

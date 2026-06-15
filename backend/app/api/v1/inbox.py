@@ -50,7 +50,7 @@ async def list_inbox(
         return []
 
     stmt = (
-        select(Submission, Form.content["title"].label("form_content_title"))
+        select(Submission, Form.title.label("form_title"))
         .join(Form, Submission.form_id == Form.id)
         .where(Submission.form_id.in_(owned_form_ids))
         .order_by(Submission.created_at.desc())
