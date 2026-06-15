@@ -396,21 +396,42 @@ export function FormRenderer({
   if (submitted) {
     if (queuedOffline) {
       return (
-        <p className="confirmation">
-          You appear to be offline. Your response was saved on this device and will be submitted
-          automatically when you're back online.
-        </p>
+        <div className="confirmation confirmation--offline">
+          <h2 className="confirmation-title">Saved offline</h2>
+          <p>
+            You appear to be offline. Your response was saved on this device and will be submitted
+            automatically when you're back online.
+          </p>
+        </div>
       );
     }
+    const startOver = () => {
+      setAnswers(buildInitialAnswers(schema, ""));
+      setErrors({});
+      setFormError(null);
+      setStep(0);
+      setStarted(false);
+      startedAt.current = new Date().toISOString();
+      setSubmitted(false);
+    };
     return (
       <div className="confirmation">
+        <h2 className="confirmation-title">Thank you!</h2>
         {settings?.quizMode && (
           <p className="quiz-score">
             Your score: <strong>{quizScore}</strong>
           </p>
         )}
-        <p>{L(outcome?.message) || L(settings?.confirmationMessage) || "Thanks!"}</p>
-        {redirectUrl && !isLocal && <span className="muted redirect-note">Redirecting…</span>}
+        <p>
+          {L(outcome?.message) || L(settings?.confirmationMessage) || "Your response was recorded."}
+        </p>
+        {redirectUrl && !isLocal ? (
+          <span className="muted redirect-note">Redirecting…</span>
+        ) : (
+          <button type="button" className="confirmation-again" onClick={startOver}>
+            Submit another response
+          </button>
+        )}
       </div>
     );
   }
