@@ -105,6 +105,12 @@
             }
           }
         },
+        "workflow_steps": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": [],
+          "description": "Named stages for multi-step approval workflow (e.g. New, In review, Approved)."
+        },
         "qualityChecks": {
           "type": "object",
           "description": "Thresholds for automated data quality flags computed at submission time.",
@@ -147,8 +153,8 @@
           "examples": [
             "text", "longtext", "number", "integer", "decimal", "email", "url", "phone",
             "single_choice", "multi_choice", "dropdown", "rating", "ranking", "scale",
-            "date", "time", "datetime", "boolean", "matrix",
-            "file", "image", "signature", "geopoint", "barcode",
+            "date", "time", "datetime", "date_range", "boolean", "matrix",
+            "file", "image", "signature", "geopoint", "barcode", "address",
             "calculated", "hidden", "note", "section", "group", "repeat", "html", "image_block"
           ]
         },

@@ -1,4 +1,5 @@
 import { type FormListItem, api, isAuthenticated } from "@/api/client";
+import { Badge, Button, Card, EmptyState, Spinner } from "@/components";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
@@ -100,7 +101,21 @@ export function FormsPage() {
     );
   }
 
-  if (status === "loading") return <p className="muted">Loading your forms…</p>;
+  if (status === "loading") {
+    return (
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "var(--space-3)",
+          color: "var(--muted)",
+        }}
+      >
+        <Spinner size="sm" />
+        <span>Loading your forms…</span>
+      </div>
+    );
+  }
 
   return (
     <section className="forms-dashboard">
@@ -143,24 +158,31 @@ export function FormsPage() {
       {error && <p className="error">{error}</p>}
 
       {forms.length === 0 ? (
-        <div className="dashboard-empty">
-          <h2>Create your first form</h2>
-          <p className="muted">Start from a template or build from scratch.</p>
-          <div className="home-actions">
-            <Link className="button" to="/templates">
-              Browse templates
-            </Link>
-            <Link className="button secondary" to="/builder/new">
-              Start from scratch
-            </Link>
-          </div>
-        </div>
+        <EmptyState
+          icon="📋"
+          title="Create your first form"
+          description="Start from a template or build from scratch."
+          action={
+            <div className="home-actions">
+              <Link className="button" to="/templates">
+                Browse templates
+              </Link>
+              <Link className="button secondary" to="/builder/new">
+                Start from scratch
+              </Link>
+            </div>
+          }
+        />
       ) : visible.length === 0 ? (
-        <p className="muted empty">No forms match “{query}”.</p>
+        <EmptyState
+          icon="🔍"
+          title={`No forms match "${query}"`}
+          description="Try a different search term."
+        />
       ) : (
         <div className="forms-grid">
           {visible.map((form) => (
-            <article key={form.id} className="form-card">
+            <Card key={form.id} noPad className="form-card">
               <button
                 type="button"
                 className="form-card-main"
@@ -174,7 +196,9 @@ export function FormsPage() {
                   <span className="form-card-initials">{initials(form.title || "?")}</span>
                 </div>
                 <div className="form-card-body">
-                  <span className={`status-badge ${form.status}`}>{form.status}</span>
+                  <Badge tone={form.status === "published" ? "success" : "neutral"}>
+                    {form.status}
+                  </Badge>
                   <h2>{form.title || "Untitled form"}</h2>
                   <p className="form-card-meta">
                     <span className="form-card-responses">
@@ -205,11 +229,11 @@ export function FormsPage() {
                 <button type="button" className="link-button" onClick={() => onDuplicate(form)}>
                   Duplicate
                 </button>
-                <button type="button" className="link-button danger" onClick={() => onDelete(form)}>
+                <Button variant="danger" size="sm" onClick={() => onDelete(form)}>
                   Delete
-                </button>
+                </Button>
               </footer>
-            </article>
+            </Card>
           ))}
         </div>
       )}

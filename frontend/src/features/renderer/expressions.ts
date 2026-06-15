@@ -13,10 +13,36 @@ export function evaluateBool(
 ): boolean {
   if (!expression) return true;
   try {
-    // Inject `selected()` so visibleIf built with the contains op works client-side.
     const selected = (value: unknown, option: unknown): boolean =>
       Array.isArray(value) ? value.includes(option) : value === option;
-    const scope = { selected, ...context };
+    // Seed every field identifier in the expression so the Function call never throws
+    // ReferenceError for unanswered fields. Skip JS keywords/literals so we don't try
+    // to pass `true`, `null`, `return`, etc. as Function parameter names.
+    const JS_KEYWORDS = new Set([
+      "true",
+      "false",
+      "null",
+      "undefined",
+      "return",
+      "if",
+      "else",
+      "and",
+      "or",
+      "not",
+      "selected",
+      "in",
+      "instanceof",
+      "typeof",
+      "void",
+      "delete",
+      "new",
+      "this",
+    ]);
+    const idents = new Set(expression.match(/[A-Za-z_]\w*/g) ?? []);
+    const scope: Record<string, unknown> = { selected };
+    for (const id of idents) {
+      if (!JS_KEYWORDS.has(id)) scope[id] = id in context ? context[id] : undefined;
+    }
     const fn = new Function(...Object.keys(scope), `return (${toJs(expression)});`);
     return Boolean(fn(...Object.values(scope)));
   } catch {

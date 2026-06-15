@@ -30,6 +30,7 @@ export type ElementType =
   | "date"
   | "time"
   | "datetime"
+  | "date_range"
   | "boolean"
   | "matrix"
   | "group"
@@ -37,6 +38,7 @@ export type ElementType =
   | "file"
   | "image"
   | "signature"
+  | "address"
   | "geopoint"
   | "geotrace"
   | "geoshape"
@@ -153,6 +155,7 @@ export interface FormSettings {
   quizMode?: boolean;
   outcomes?: Outcome[];
   qualityChecks?: QualityChecks;
+  workflowSteps?: string[];
 }
 
 export interface QualityChecks {

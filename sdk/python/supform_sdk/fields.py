@@ -90,8 +90,23 @@ def Date(name: str, **kw: Any) -> Element:
     return _base("date", name, **kw)
 
 
+def DateRange(name: str, **kw: Any) -> Element:
+    """A date-range question (start + end dates stored as {start, end})."""
+    return _base("date_range", name, **kw)
+
+
 def Boolean(name: str, **kw: Any) -> Element:
     return _base("boolean", name, **kw)
+
+
+def Signature(name: str, **kw: Any) -> Element:
+    """A freehand signature capture question."""
+    return _base("signature", name, **kw)
+
+
+def Address(name: str, **kw: Any) -> Element:
+    """A structured address question (street, city, state, zip, country)."""
+    return _base("address", name, **kw)
 
 
 def Calculated(name: str, *, calculate: str, **kw: Any) -> Element:

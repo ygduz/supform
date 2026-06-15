@@ -1,14 +1,16 @@
 import { type SubmissionRow, type ValidationStatus, api, isAuthenticated } from "@/api/client";
+import { Alert, Button, EmptyState, Spinner, Tabs } from "@/components";
 import type { FormSchema } from "@/types/form-schema";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { AnalyticsPanel } from "./AnalyticsPanel";
 import { MapPanel } from "./MapPanel";
+import { WorkflowBoard } from "./WorkflowBoard";
 import { buildColumns } from "./columns";
 
 type Status = "loading" | "ready" | "unauth" | "error";
 type Format = "csv" | "xlsx" | "json" | "geojson" | "kml" | "spss" | "xlsform";
-type View = "analytics" | "table" | "map";
+type View = "analytics" | "table" | "map" | "workflow";
 type StatusFilter = "all" | ValidationStatus;
 
 interface EditState {
@@ -251,7 +253,12 @@ export function ResponsesPage() {
     [formId],
   );
 
-  if (status === "loading") return <p className="muted">Loading responses…</p>;
+  if (status === "loading")
+    return (
+      <div className="responses-loading">
+        <Spinner size="lg" />
+      </div>
+    );
 
   if (status === "unauth") {
     return (
@@ -268,11 +275,18 @@ export function ResponsesPage() {
     return (
       <section>
         <h1>Responses</h1>
-        <p className="error">{error}</p>
+        <Alert tone="danger">{error}</Alert>
         <p className="muted">A form must be published before its responses can be viewed.</p>
       </section>
     );
   }
+
+  const viewTabs = [
+    { key: "analytics", label: "Analytics" },
+    { key: "table", label: "Table", count: rows.length },
+    ...(hasGeo ? [{ key: "map", label: "Map" }] : []),
+    { key: "workflow", label: "Workflow" },
+  ];
 
   return (
     <section className="responses">
@@ -284,35 +298,69 @@ export function ResponsesPage() {
           </p>
         </div>
         <div className="export-actions">
+          <Link to={`/forms/${formId}/report`} className="button secondary">
+            Report
+          </Link>
           <span className="muted">Export:</span>
-          <button type="button" onClick={() => download("csv")} disabled={rows.length === 0}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => download("csv")}
+            disabled={rows.length === 0}
+          >
             CSV
-          </button>
-          <button type="button" onClick={() => download("xlsx")} disabled={rows.length === 0}>
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => download("xlsx")}
+            disabled={rows.length === 0}
+          >
             XLSX
-          </button>
-          <button type="button" onClick={() => download("json")} disabled={rows.length === 0}>
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => download("json")}
+            disabled={rows.length === 0}
+          >
             JSON
-          </button>
+          </Button>
           {hasGeo && (
-            <button type="button" onClick={() => download("geojson")} disabled={rows.length === 0}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => download("geojson")}
+              disabled={rows.length === 0}
+            >
               GeoJSON
-            </button>
+            </Button>
           )}
           {hasGeo && (
-            <button type="button" onClick={() => download("kml")} disabled={rows.length === 0}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => download("kml")}
+              disabled={rows.length === 0}
+            >
               KML
-            </button>
+            </Button>
           )}
-          <button type="button" onClick={() => download("spss")} disabled={rows.length === 0}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => download("spss")}
+            disabled={rows.length === 0}
+          >
             SPSS
-          </button>
-          <button type="button" onClick={() => download("xlsform")}>
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => download("xlsform")}>
             XLSForm
-          </button>
+          </Button>
           {hasMedia && (
-            <button
-              type="button"
+            <Button
+              variant="outline"
+              size="sm"
               onClick={async () => {
                 if (!formId) return;
                 try {
@@ -330,45 +378,34 @@ export function ResponsesPage() {
               disabled={rows.length === 0}
             >
               Media ZIP
-            </button>
+            </Button>
           )}
         </div>
       </header>
 
-      {error && <p className="error">{error}</p>}
+      {error && (
+        <Alert tone="danger" onDismiss={() => setError(null)}>
+          {error}
+        </Alert>
+      )}
 
       {rows.length === 0 ? (
-        <p className="muted empty">No responses yet. Share the form to start collecting.</p>
+        <EmptyState title="No responses yet" description="Share the form to start collecting." />
       ) : (
         <>
-          <div className="view-tabs">
-            <button
-              type="button"
-              className={view === "analytics" ? "tab active" : "tab"}
-              onClick={() => setView("analytics")}
-            >
-              Analytics
-            </button>
-            <button
-              type="button"
-              className={view === "table" ? "tab active" : "tab"}
-              onClick={() => setView("table")}
-            >
-              Table
-            </button>
-            {hasGeo && (
-              <button
-                type="button"
-                className={view === "map" ? "tab active" : "tab"}
-                onClick={() => setView("map")}
-              >
-                Map
-              </button>
-            )}
-          </div>
+          <Tabs tabs={viewTabs} active={view} onChange={(key) => setView(key as View)} />
 
           {view === "analytics" && schema && <AnalyticsPanel schema={schema} rows={rows} />}
           {view === "map" && schema && <MapPanel schema={schema} rows={rows} />}
+          {view === "workflow" && schema && (
+            <WorkflowBoard
+              schema={schema}
+              submissions={rows}
+              onUpdate={(updated) =>
+                setRows((prev) => prev.map((r) => (r.id === updated.id ? updated : r)))
+              }
+            />
+          )}
 
           {view === "table" && (
             <>
@@ -396,45 +433,36 @@ export function ResponsesPage() {
               {selected.size > 0 && (
                 <div className="bulk-bar">
                   <span className="bulk-count">{selected.size} selected</span>
-                  <button
-                    type="button"
-                    className="button secondary"
+                  <Button
+                    variant="secondary"
+                    size="sm"
                     onClick={() => bulkSetStatus("approved")}
                     disabled={bulkBusy}
                   >
                     Approve
-                  </button>
-                  <button
-                    type="button"
-                    className="button secondary"
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    size="sm"
                     onClick={() => bulkSetStatus("on_hold")}
                     disabled={bulkBusy}
                   >
                     On hold
-                  </button>
-                  <button
-                    type="button"
-                    className="button secondary"
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    size="sm"
                     onClick={() => bulkSetStatus(null)}
                     disabled={bulkBusy}
                   >
                     Clear status
-                  </button>
-                  <button
-                    type="button"
-                    className="link-button danger"
-                    onClick={bulkDelete}
-                    disabled={bulkBusy}
-                  >
+                  </Button>
+                  <Button variant="danger" size="sm" onClick={bulkDelete} disabled={bulkBusy}>
                     Delete
-                  </button>
-                  <button
-                    type="button"
-                    className="link-button"
-                    onClick={() => setSelected(new Set())}
-                  >
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={() => setSelected(new Set())}>
                     Deselect all
-                  </button>
+                  </Button>
                 </div>
               )}
               <div className="table-scroll">
@@ -502,20 +530,12 @@ export function ResponsesPage() {
                           <td key={col.key}>{col.value(row.answers)}</td>
                         ))}
                         <td className="row-actions">
-                          <button
-                            type="button"
-                            className="link-button"
-                            onClick={() => openEdit(row)}
-                          >
+                          <Button variant="ghost" size="sm" onClick={() => openEdit(row)}>
                             Edit
-                          </button>
-                          <button
-                            type="button"
-                            className="link-button danger"
-                            onClick={() => onDeleteRow(row)}
-                          >
+                          </Button>
+                          <Button variant="danger" size="sm" onClick={() => onDeleteRow(row)}>
                             Delete
-                          </button>
+                          </Button>
                         </td>
                       </tr>
                     ))}
@@ -543,24 +563,18 @@ export function ResponsesPage() {
               rows={20}
               spellCheck={false}
             />
-            {editState.error && <p className="error">{editState.error}</p>}
+            {editState.error && <Alert tone="danger">{editState.error}</Alert>}
             <div className="edit-footer">
-              <button
-                type="button"
-                className="button"
-                onClick={saveEdit}
-                disabled={editState.saving}
-              >
-                {editState.saving ? "Saving…" : "Save changes"}
-              </button>
-              <button
-                type="button"
-                className="link-button"
+              <Button variant="primary" onClick={saveEdit} loading={editState.saving}>
+                Save changes
+              </Button>
+              <Button
+                variant="ghost"
                 onClick={() => setEditState(null)}
                 disabled={editState.saving}
               >
                 Cancel
-              </button>
+              </Button>
             </div>
           </div>
         </div>

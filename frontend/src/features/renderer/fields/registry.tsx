@@ -656,6 +656,64 @@ const RankingField: Renderer = ({ element, value, onChange }) => {
   );
 };
 
+// ── DateRange field ───────────────────────────────────────────────
+
+const DateRangeField: Renderer = ({ element, value, onChange }) => {
+  const val = (value as { start?: string; end?: string }) ?? {};
+  return (
+    <div className="field-date-range">
+      <label className="dr-label" htmlFor={`${element.name}-start`}>
+        From
+      </label>
+      <input
+        id={`${element.name}-start`}
+        type="date"
+        value={val.start ?? ""}
+        disabled={element.readOnly}
+        onChange={(e) => onChange({ ...val, start: e.target.value })}
+      />
+      <label className="dr-label" htmlFor={`${element.name}-end`}>
+        To
+      </label>
+      <input
+        id={`${element.name}-end`}
+        type="date"
+        value={val.end ?? ""}
+        disabled={element.readOnly}
+        min={val.start}
+        onChange={(e) => onChange({ ...val, end: e.target.value })}
+      />
+    </div>
+  );
+};
+
+// ── Address field ─────────────────────────────────────────────────
+
+const AddressField: Renderer = ({ element, value, onChange }) => {
+  const val = (value as Record<string, string>) ?? {};
+  function f(key: string, placeholder: string, wide = false) {
+    return (
+      <input
+        className={wide ? "addr-wide" : "addr-short"}
+        type="text"
+        placeholder={placeholder}
+        value={val[key] ?? ""}
+        disabled={element.readOnly}
+        onChange={(e) => onChange({ ...val, [key]: e.target.value })}
+      />
+    );
+  }
+  return (
+    <div className="field-address">
+      {f("street", "Street address", true)}
+      {f("city", "City")}
+      {f("state", "State / Province")}
+      {f("zip", "Postal code")}
+      {f("country", "Country")}
+    </div>
+  );
+};
+
 // ── Signature pad ─────────────────────────────────────────────────
 
 const SignatureField: Renderer = ({ value, onChange }) => {
@@ -775,6 +833,8 @@ const REGISTRY: Record<string, Renderer> = {
   calculated: Calculated,
   ranking: RankingField,
   signature: SignatureField,
+  date_range: DateRangeField,
+  address: AddressField,
 };
 
 export function renderField(

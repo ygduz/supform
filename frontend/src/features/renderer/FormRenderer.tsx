@@ -1,4 +1,5 @@
 import { ApiError, api } from "@/api/client";
+import { Alert, Button } from "@/components";
 import { LanguageContext, formLanguages, languageLabel, localize } from "@/lib/i18n";
 import { isNetworkError, queueSubmission } from "@/lib/offline";
 import type { Element, FormSchema, I18nString } from "@/types/form-schema";
@@ -187,14 +188,14 @@ export function FormRenderer({
                   <span className="repeat-instance-label">
                     {entryLabel ? `${entryLabel} ${i + 1}` : `Entry ${i + 1}`}
                   </span>
-                  <button
-                    type="button"
-                    className="link-button danger"
+                  <Button
+                    variant="danger"
+                    size="sm"
                     onClick={() => removeInstance(i)}
                     disabled={instances.length <= min}
                   >
                     Remove
-                  </button>
+                  </Button>
                 </div>
                 {(el.elements ?? []).map((child) => {
                   if (PRESENTATIONAL.has(child.type) || child.type === "hidden") return null;
@@ -224,14 +225,14 @@ export function FormRenderer({
               </div>
             );
           })}
-          <button
-            type="button"
-            className="link-button repeat-add"
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={addInstance}
             disabled={max != null && instances.length >= max}
           >
             {addLabel}
-          </button>
+          </Button>
           {max != null && (
             <small className="repeat-count muted">
               {instances.length} / {max}
@@ -422,9 +423,9 @@ export function FormRenderer({
         {theme?.logo && <img className="form-logo" src={theme.logo} alt="" />}
         <h1>{L(settings?.welcomeTitle) || L(schema.title)}</h1>
         {settings?.welcomeMessage && <p className="muted">{L(settings.welcomeMessage)}</p>}
-        <button type="button" className="button" onClick={() => setStarted(true)}>
+        <Button variant="primary" size="lg" onClick={() => setStarted(true)}>
           Start
-        </button>
+        </Button>
       </div>
     );
   }
@@ -471,35 +472,30 @@ export function FormRenderer({
           {current.elements.map(renderElement)}
         </div>
 
-        {formError && <p className="error">{formError}</p>}
+        {formError && <Alert tone="danger">{formError}</Alert>}
 
         {steps.length > 1 ? (
           <div className="step-nav">
-            <button
-              type="button"
-              className="button secondary"
-              onClick={goBack}
-              disabled={stepIndex === 0}
-            >
+            <Button variant="outline" onClick={goBack} disabled={stepIndex === 0}>
               Back
-            </button>
+            </Button>
             <span className="muted step-count">
               {stepIndex + 1} / {steps.length}
             </span>
             {isLastStep ? (
-              <button type="submit" className="button">
+              <Button variant="primary" type="submit">
                 {L(settings?.submitButtonText) || "Submit"}
-              </button>
+              </Button>
             ) : (
-              <button type="button" className="button" onClick={goNext}>
+              <Button variant="primary" type="button" onClick={goNext}>
                 Next
-              </button>
+              </Button>
             )}
           </div>
         ) : (
-          <button type="submit" className="button">
+          <Button variant="primary" type="submit">
             {L(settings?.submitButtonText) || "Submit"}
-          </button>
+          </Button>
         )}
       </form>
     </LanguageContext.Provider>

@@ -1,6 +1,8 @@
+import { Button, Input } from "@/components";
 import { localize } from "@/lib/i18n";
 import { useBuilderStore } from "@/stores/builderStore";
 import type { Choice, Element, I18nString, Validation } from "@/types/form-schema";
+import { FormulaBuilder } from "./FormulaBuilder";
 import { LogicBuilder } from "./LogicBuilder";
 import { hasOptionList } from "./model";
 import { ELEMENT_PALETTE } from "./palette";
@@ -131,10 +133,9 @@ export function PropertiesPanel({ element }: { element: Element }) {
       {type === "repeat" && (
         <fieldset className="prop-fieldset">
           <legend>Repeat</legend>
-          <label className="prop-label">
-            Entry label
-            <input
-              className="prop-input"
+          <div className="prop-label">
+            <Input
+              label="Entry label"
               type="text"
               placeholder="e.g. Member, Asset, Incident"
               value={
@@ -146,7 +147,7 @@ export function PropertiesPanel({ element }: { element: Element }) {
                 update(name, { repeat: { ...element.repeat, entryLabel: e.target.value } })
               }
             />
-          </label>
+          </div>
           <div className="prop-group">
             <NumberProp
               label="Min entries"
@@ -163,10 +164,9 @@ export function PropertiesPanel({ element }: { element: Element }) {
               }
             />
           </div>
-          <label className="prop-label">
-            "Add" button text
-            <input
-              className="prop-input"
+          <div className="prop-label">
+            <Input
+              label='"Add" button text'
               type="text"
               placeholder="e.g. Add another member"
               value={
@@ -181,7 +181,7 @@ export function PropertiesPanel({ element }: { element: Element }) {
                 })
               }
             />
-          </label>
+          </div>
         </fieldset>
       )}
 
@@ -265,18 +265,12 @@ export function PropertiesPanel({ element }: { element: Element }) {
           />
         )}
         {type === "calculated" && (
-          <>
-            <LogicProp
-              label="Calculate value"
-              value={element.calculate}
-              placeholder="e.g. price * quantity"
-              onChange={(v) => update(name, { calculate: v })}
-            />
-            <p className="prop-caption">
-              Reference other questions by their field key. Supports <code>+ − * /</code> and
-              parentheses — e.g. <code>{"qty * unit_price"}</code>.
-            </p>
-          </>
+          <FormulaBuilder
+            label="Calculate value"
+            value={element.calculate}
+            excludeName={name}
+            onChange={(v) => update(name, { calculate: v })}
+          />
         )}
       </fieldset>
     </div>
@@ -295,15 +289,14 @@ function TextProp(props: {
   onChange: (v: string) => void;
 }) {
   return (
-    <label className="prop">
-      <span>{props.label}</span>
-      <input
-        type="text"
+    <div className="prop">
+      <Input
+        label={props.label}
         value={props.value}
         placeholder={props.placeholder}
         onChange={(e) => props.onChange(e.target.value)}
       />
-    </label>
+    </div>
   );
 }
 
@@ -384,9 +377,9 @@ function NumberProp(props: {
   onChange: (v: number | undefined) => void;
 }) {
   return (
-    <label className="prop">
-      <span>{props.label}</span>
-      <input
+    <div className="prop">
+      <Input
+        label={props.label}
         type="number"
         value={props.value ?? ""}
         onChange={(e) => {
@@ -394,27 +387,7 @@ function NumberProp(props: {
           props.onChange(raw === "" ? undefined : Number(raw));
         }}
       />
-    </label>
-  );
-}
-
-function LogicProp(props: {
-  label: string;
-  value: string | undefined;
-  placeholder?: string;
-  onChange: (v: string | undefined) => void;
-}) {
-  return (
-    <label className="prop">
-      <span>{props.label}</span>
-      <input
-        type="text"
-        className="logic-input"
-        value={props.value ?? ""}
-        placeholder={props.placeholder}
-        onChange={(e) => props.onChange(e.target.value || undefined)}
-      />
-    </label>
+    </div>
   );
 }
 
@@ -449,14 +422,14 @@ function ListEditor(props: {
               }
             />
           )}
-          <button type="button" title="Remove" onClick={() => props.onRemove(i)}>
+          <Button variant="ghost" size="sm" title="Remove" onClick={() => props.onRemove(i)}>
             ✕
-          </button>
+          </Button>
         </div>
       ))}
-      <button type="button" className="link-button" onClick={props.onAdd}>
+      <Button variant="ghost" size="sm" onClick={props.onAdd}>
         + Add {props.title.replace(/s$/, "").toLowerCase()}
-      </button>
+      </Button>
     </div>
   );
 }

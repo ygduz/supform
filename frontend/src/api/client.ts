@@ -70,12 +70,16 @@ export type ValidationStatus = "approved" | "not_approved" | "on_hold";
 
 export interface SubmissionRow {
   id: string;
+  form_id: string;
   form_version: number;
   answers: Record<string, unknown>;
   created_at: string;
   validation_status: ValidationStatus | null;
+  workflow_step?: string | null;
   quality_flags: string[];
   started_at?: string;
+  read_at?: string | null;
+  form_title?: string | null;
 }
 
 /** Reference a file field stores as its answer after upload. */
@@ -314,6 +318,12 @@ export const api = {
   deleteSubmission: (formId: string, submissionId: string) =>
     request<void>(`/api/v1/forms/${formId}/submissions/${submissionId}`, { method: "DELETE" }),
 
+  setWorkflowStep: (submissionId: string, step: string): Promise<SubmissionRow> =>
+    request<SubmissionRow>(
+      `/api/v1/submissions/${submissionId}/workflow-step?step=${encodeURIComponent(step)}`,
+      { method: "PATCH" },
+    ),
+
   /** Import an XLSForm or ODK XForm file into a new draft form on a project. */
   importForm: async (
     kind: "xlsform" | "xform",
@@ -358,6 +368,15 @@ export const api = {
     }
     return res.json();
   },
+
+  // inbox
+  listInbox: (unreadOnly = false): Promise<SubmissionRow[]> =>
+    request<SubmissionRow[]>(`/api/v1/inbox${unreadOnly ? "?unread_only=true" : ""}`),
+
+  markRead: (id: string): Promise<SubmissionRow> =>
+    request<SubmissionRow>(`/api/v1/inbox/${id}/read`, { method: "PATCH" }),
+
+  markAllRead: (): Promise<void> => request<void>("/api/v1/inbox/read-all", { method: "PATCH" }),
 
   /** Question library */
   listQuestionTemplates: (): Promise<QuestionTemplate[]> => request("/api/v1/question-library"),
