@@ -4856,7 +4856,7 @@ body,
 }
 .rpt-text-body {
   font-size: 13px;
-  color: #495057;
+  color: var(--text-secondary);
   margin: 0;
   line-height: 1.6;
 }
