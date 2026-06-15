@@ -1,4 +1,5 @@
 """Saved report configurations per form."""
+
 from __future__ import annotations
 
 import uuid

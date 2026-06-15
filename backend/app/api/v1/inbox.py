@@ -1,4 +1,5 @@
 """Cross-form submission inbox with mark-as-read."""
+
 from __future__ import annotations
 
 import uuid
