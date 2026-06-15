@@ -2,33 +2,7 @@ import { languageLabel, localize } from "@/lib/i18n";
 import { useBuilderStore } from "@/stores/builderStore";
 import type { Outcome, QualityChecks } from "@/types/form-schema";
 import { useState } from "react";
-
-const COMMON_LANGUAGES = [
-  { code: "en", label: "English" },
-  { code: "fr", label: "French" },
-  { code: "es", label: "Spanish" },
-  { code: "ar", label: "Arabic" },
-  { code: "zh", label: "Chinese (Simplified)" },
-  { code: "de", label: "German" },
-  { code: "pt", label: "Portuguese" },
-  { code: "ru", label: "Russian" },
-  { code: "sw", label: "Swahili" },
-  { code: "tr", label: "Turkish" },
-  { code: "hi", label: "Hindi" },
-  { code: "fr-CA", label: "French (Canada)" },
-  { code: "so", label: "Somali" },
-  { code: "am", label: "Amharic" },
-  { code: "uk", label: "Ukrainian" },
-  { code: "fa", label: "Farsi / Persian" },
-  { code: "it", label: "Italian" },
-  { code: "nl", label: "Dutch" },
-  { code: "pl", label: "Polish" },
-  { code: "ja", label: "Japanese" },
-  { code: "ko", label: "Korean" },
-  { code: "ha", label: "Hausa" },
-  { code: "yo", label: "Yoruba" },
-  { code: "bn", label: "Bengali" },
-];
+import { COMMON_LANGUAGES } from "./languages";
 
 /** Form-level collection settings. Enforced server-side on the public submit endpoint. */
 export function SettingsPanel() {
@@ -291,12 +265,16 @@ export function SettingsPanel() {
             value={qc.minDurationSeconds ?? ""}
             placeholder="30"
             onChange={(e) =>
-              setQC({ minDurationSeconds: e.target.value === "" ? undefined : Number(e.target.value) })
+              setQC({
+                minDurationSeconds: e.target.value === "" ? undefined : Number(e.target.value),
+              })
             }
           />
-          <small className="hint">Flag as "too fast" if submitted faster than this. Default: 30 s.</small>
+          <small className="hint">
+            Flag as "too fast" if submitted faster than this. Default: 30 s.
+          </small>
         </label>
-        <label className="prop">
+        <div className="prop">
           <span>Expected geo bounding box</span>
           <div className="bbox-row">
             {(["minLat", "minLng", "maxLat", "maxLng"] as const).map((k, i) => (
@@ -304,6 +282,7 @@ export function SettingsPanel() {
                 key={k}
                 type="number"
                 step="any"
+                aria-label={k}
                 placeholder={k}
                 value={qc.expectedGeoBbox?.[i] ?? ""}
                 onChange={(e) => {
@@ -316,8 +295,10 @@ export function SettingsPanel() {
               />
             ))}
           </div>
-          <small className="hint">Flag geopoints outside [minLat, minLng, maxLat, maxLng]. Leave blank to skip.</small>
-        </label>
+          <small className="hint">
+            Flag geopoints outside [minLat, minLng, maxLat, maxLng]. Leave blank to skip.
+          </small>
+        </div>
       </fieldset>
 
       <fieldset className="prop-fieldset">

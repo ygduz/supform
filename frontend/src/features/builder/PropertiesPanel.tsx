@@ -140,8 +140,7 @@ export function PropertiesPanel({ element }: { element: Element }) {
               value={
                 typeof element.repeat?.entryLabel === "string"
                   ? element.repeat.entryLabel
-                  : ((element.repeat?.entryLabel as Record<string, string> | undefined)?.["en"] ??
-                    "")
+                  : ((element.repeat?.entryLabel as Record<string, string> | undefined)?.en ?? "")
               }
               onChange={(e) =>
                 update(name, { repeat: { ...element.repeat, entryLabel: e.target.value } })
@@ -173,9 +172,8 @@ export function PropertiesPanel({ element }: { element: Element }) {
               value={
                 typeof element.repeat?.addButtonText === "string"
                   ? element.repeat.addButtonText
-                  : ((element.repeat?.addButtonText as Record<string, string> | undefined)?.[
-                      "en"
-                    ] ?? "")
+                  : ((element.repeat?.addButtonText as Record<string, string> | undefined)?.en ??
+                    "")
               }
               onChange={(e) =>
                 update(name, {

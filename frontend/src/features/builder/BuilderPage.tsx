@@ -1,4 +1,4 @@
-import { languageLabel, localize } from "@/lib/i18n";
+import { localize } from "@/lib/i18n";
 import { useBuilderStore } from "@/stores/builderStore";
 import type { ElementType, FormSchema } from "@/types/form-schema";
 import {
@@ -20,9 +20,9 @@ import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { formToText } from "../import/textForm";
-import { FormRenderer } from "../renderer/FormRenderer";
 import { saveMyTemplate } from "../templates/myTemplates";
 import { BuilderCanvas, type DropLocation } from "./BuilderCanvas";
+import { LanguagePreview } from "./LanguagePreview";
 import { LogicBuilder } from "./LogicBuilder";
 import { OverviewPanel } from "./OverviewPanel";
 import { PaletteItem } from "./PaletteItem";
@@ -50,7 +50,6 @@ export function BuilderPage() {
   const [shareLink, setShareLink] = useState(false);
   const [integrations, setIntegrations] = useState(false);
   const [showLibrary, setShowLibrary] = useState(false);
-  const [previewLang, setPreviewLang] = useState("");
   const importRef = useRef<HTMLInputElement>(null);
   const isMultilingual = (schema.languages?.length ?? 0) >= 2;
 
@@ -525,23 +524,6 @@ export function BuilderPage() {
               ))}
             </div>
 
-            {isMultilingual && (
-              <div className="preview-lang-bar">
-                <span className="muted">Preview in:</span>
-                <select
-                  className="select select-sm"
-                  value={previewLang}
-                  onChange={(e) => setPreviewLang(e.target.value)}
-                >
-                  {(schema.languages ?? []).map((l) => (
-                    <option key={l} value={l}>
-                      {languageLabel(l)}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-
             {tab === "overview" && <OverviewPanel />}
             {tab === "properties" &&
               (selected ? (
@@ -552,11 +534,7 @@ export function BuilderPage() {
             {tab === "theme" && <ThemePanel />}
             {tab === "settings" && <SettingsPanel />}
             {tab === "translate" && <TranslatePanel />}
-            {tab === "preview" && (
-              <div className="preview-pane">
-                <FormRenderer schema={schema} formId="preview" />
-              </div>
-            )}
+            {tab === "preview" && <LanguagePreview schema={schema} />}
           </aside>
         </div>
 

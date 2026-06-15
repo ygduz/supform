@@ -485,7 +485,11 @@ export function ResponsesPage() {
                         </td>
                         <td className="quality-flags-cell">
                           {(row.quality_flags ?? []).map((flag) => (
-                            <span key={flag} className={`quality-flag quality-flag--${flag}`} title={FLAG_TITLES[flag] ?? flag}>
+                            <span
+                              key={flag}
+                              className={`quality-flag quality-flag--${flag}`}
+                              title={FLAG_TITLES[flag] ?? flag}
+                            >
                               {FLAG_LABELS[flag] ?? flag}
                             </span>
                           ))}

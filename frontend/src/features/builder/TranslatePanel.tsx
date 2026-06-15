@@ -1,127 +1,8 @@
 import { api } from "@/api/client";
-import { languageLabel, localize } from "@/lib/i18n";
+import { languageLabel } from "@/lib/i18n";
 import { useBuilderStore } from "@/stores/builderStore";
-import type { Element, FormSchema, I18nString } from "@/types/form-schema";
 import { useState } from "react";
-
-// ── i18n helpers (mirrors PropertiesPanel — kept local to avoid circular deps) ──
-
-function translationFor(value: I18nString | undefined, lang: string, defaultLang: string): string {
-  if (value == null) return "";
-  if (typeof value === "string") return lang === defaultLang ? value : "";
-  return value[lang] ?? "";
-}
-
-function withTranslation(
-  value: I18nString | undefined,
-  lang: string,
-  text: string,
-  defaultLang: string,
-): I18nString | undefined {
-  const obj: Record<string, string> =
-    typeof value === "object" && value !== null
-      ? { ...value }
-      : typeof value === "string" && value
-        ? { [defaultLang]: value }
-        : {};
-  if (text) obj[lang] = text;
-  else delete obj[lang];
-  const keys = Object.keys(obj);
-  if (keys.length === 0) return undefined;
-  if (keys.length === 1 && keys[0] === defaultLang) return obj[defaultLang];
-  return obj;
-}
-
-// ── Row collection ───────────────────────────────────────────────
-
-interface TRow {
-  key: string;
-  path: string;
-  value: I18nString | undefined;
-  save: (v: I18nString | undefined) => void;
-}
-
-function collectRows(
-  schema: FormSchema,
-  defaultLang: string,
-  store: ReturnType<typeof useBuilderStore.getState>,
-): TRow[] {
-  const rows: TRow[] = [];
-
-  const push = (
-    key: string,
-    path: string,
-    value: I18nString | undefined,
-    save: (v: I18nString | undefined) => void,
-  ) => {
-    if (value == null || value === "") return;
-    rows.push({ key, path, value, save });
-  };
-
-  push("form.title", "Form title", schema.title, (v) => store.setTitle(v ?? ""));
-  push("form.desc", "Form description", schema.description, () => {});
-
-  const s = schema.settings;
-  if (s) {
-    push("s.submit", "Submit button", s.submitButtonText, (v) =>
-      store.setSettings({ submitButtonText: v }),
-    );
-    push("s.confirm", "Confirmation message", s.confirmationMessage, (v) =>
-      store.setSettings({ confirmationMessage: v }),
-    );
-    push("s.wTitle", "Welcome title", s.welcomeTitle, (v) =>
-      store.setSettings({ welcomeTitle: v }),
-    );
-    push("s.wMsg", "Welcome message", s.welcomeMessage, (v) =>
-      store.setSettings({ welcomeMessage: v }),
-    );
-  }
-
-  schema.pages.forEach((page, pi) => {
-    push(`p${pi}.title`, `Page ${pi + 1} title`, page.title, (v) =>
-      store.setPageTitle(pi, v ?? ""),
-    );
-
-    const walkEls = (els: Element[], pfx: string) => {
-      for (const el of els) {
-        const displayLabel = localize(el.label, defaultLang) || el.name;
-        push(`${pfx}${el.name}.label`, `${displayLabel}`, el.label, (v) =>
-          store.update(el.name, { label: v }),
-        );
-        push(`${pfx}${el.name}.hint`, `${displayLabel} — hint`, el.hint, (v) =>
-          store.update(el.name, { hint: v }),
-        );
-        push(`${pfx}${el.name}.placeholder`, `${displayLabel} — placeholder`, el.placeholder, (v) =>
-          store.update(el.name, { placeholder: v }),
-        );
-        (el.options ?? []).forEach((opt, oi) => {
-          push(
-            `${pfx}${el.name}.opt${oi}`,
-            `${displayLabel} › ${localize(opt.label, defaultLang) || String(opt.value)}`,
-            opt.label,
-            (v) => store.updateOption(el.name, oi, { label: v }),
-          );
-        });
-        (el.rows ?? []).forEach((r, ri) => {
-          push(`${pfx}${el.name}.row${ri}`, `${displayLabel} › row ${ri + 1}`, r.label, (v) =>
-            store.updateRow(el.name, ri, { label: v }),
-          );
-        });
-        (el.columns ?? []).forEach((c, ci) => {
-          push(`${pfx}${el.name}.col${ci}`, `${displayLabel} › col ${ci + 1}`, c.label, (v) =>
-            store.updateColumn(el.name, ci, { label: v }),
-          );
-        });
-        if (el.elements) walkEls(el.elements, `${pfx}${el.name}.`);
-      }
-    };
-    walkEls(page.elements, `p${pi}.`);
-  });
-
-  return rows;
-}
-
-// ── Component ────────────────────────────────────────────────────
+import { collectRows, translationFor, translationProgress, withTranslation } from "./i18nRows";
 
 export function TranslatePanel() {
   const store = useBuilderStore();
@@ -149,8 +30,7 @@ export function TranslatePanel() {
     const tgt = translationFor(r.value, activeLang, defaultLang);
     return src && !tgt;
   });
-  const filled = rows.length - untranslatedRows.length;
-  const pct = rows.length > 0 ? Math.round((filled / rows.length) * 100) : 0;
+  const { filled, total, pct } = translationProgress(rows, activeLang, defaultLang);
 
   async function handleAiTranslate() {
     if (untranslatedRows.length === 0) return;
@@ -186,14 +66,18 @@ export function TranslatePanel() {
           ))}
         </select>
         <span className={`translate-progress ${pct === 100 ? "complete" : ""}`}>
-          {filled}/{rows.length} — {pct}%
+          {filled}/{total} — {pct}%
         </span>
         <button
           type="button"
           className="button button-sm"
           onClick={handleAiTranslate}
           disabled={translating || untranslatedRows.length === 0}
-          title={untranslatedRows.length === 0 ? "All strings translated" : `Translate ${untranslatedRows.length} missing strings with AI`}
+          title={
+            untranslatedRows.length === 0
+              ? "All strings translated"
+              : `Translate ${untranslatedRows.length} missing strings with AI`
+          }
         >
           {translating ? "Translating…" : "✦ Translate with AI"}
         </button>

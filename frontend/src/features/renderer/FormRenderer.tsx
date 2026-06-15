@@ -90,7 +90,11 @@ function buildInitialAnswers(schema: FormSchema, search: string): Answers {
  * field widgets come from a type registry, and visibility honors `visibleIf` live.
  * Answers can be prefilled from URL query params (e.g. embeds, campaign links).
  */
-export function FormRenderer({ schema, formId }: { schema: FormSchema; formId: string }) {
+export function FormRenderer({
+  schema,
+  formId,
+  previewLang,
+}: { schema: FormSchema; formId: string; previewLang?: string }) {
   const [answers, setAnswers] = useState<Answers>(() =>
     buildInitialAnswers(schema, typeof window !== "undefined" ? window.location.search : ""),
   );
@@ -105,6 +109,11 @@ export function FormRenderer({ schema, formId }: { schema: FormSchema; formId: s
   // Multi-language support: offer a switcher when the form declares >1 language.
   const languages = formLanguages(schema.languages, schema.defaultLanguage);
   const [lang, setLang] = useState(languages[0] ?? schema.defaultLanguage ?? "en");
+  // An admin preview can drive the displayed language from outside.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: only react to previewLang changes
+  useEffect(() => {
+    if (previewLang && previewLang !== lang) setLang(previewLang);
+  }, [previewLang]);
   const L = (value: Parameters<typeof localize>[0]) => localize(value, lang);
   // Answer piping: localize, then substitute {field} tokens. `scope` lets repeat
   // instances pipe their own row's values; defaults to the top-level answers.

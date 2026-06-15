@@ -27,7 +27,6 @@ from typing import Any
 
 from app.schemas.form_schema import Element, ElementType, FormSchema
 
-
 # ── helpers ────────────────────────────────────────────────────────────────────
 
 def _all_elements(schema: FormSchema) -> list[Element]:
@@ -101,7 +100,9 @@ def _check_geo_outlier(
                 lng = ans.get("lng")
                 if lat is not None and lng is not None:
                     try:
-                        if not (min_lat <= float(lat) <= max_lat and min_lng <= float(lng) <= max_lng):
+                        in_lat = min_lat <= float(lat) <= max_lat
+                        in_lng = min_lng <= float(lng) <= max_lng
+                        if not (in_lat and in_lng):
                             return True
                     except (ValueError, TypeError):
                         pass
