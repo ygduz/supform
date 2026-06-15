@@ -285,6 +285,9 @@ export function ResponsesPage() {
           </p>
         </div>
         <div className="export-actions">
+          <Link to={`/forms/${formId}/report`} className="button secondary">
+            Report
+          </Link>
           <span className="muted">Export:</span>
           <button type="button" onClick={() => download("csv")} disabled={rows.length === 0}>
             CSV

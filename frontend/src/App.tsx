@@ -11,6 +11,7 @@ import { ImportPage } from "./features/import/ImportPage";
 import { InboxPage } from "./features/inbox/InboxPage";
 import { OfflineIndicator } from "./features/offline/OfflineIndicator";
 import { RendererPage } from "./features/renderer/RendererPage";
+import { ReportPage } from "./features/reports/ReportPage";
 import { ResponsesPage } from "./features/responses/ResponsesPage";
 import { TemplatesPage } from "./features/templates/TemplatesPage";
 
@@ -65,6 +66,7 @@ function Shell() {
           <Route path="/builder/:formId" element={<BuilderPage />} />
           <Route path="/f/:formId" element={<RendererPage />} />
           <Route path="/forms/:formId/responses" element={<ResponsesPage />} />
+          <Route path="/forms/:formId/report" element={<ReportPage />} />
         </Routes>
       </main>
     </>
