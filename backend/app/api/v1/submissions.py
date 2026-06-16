@@ -14,7 +14,6 @@ from app.core.exceptions import NotFoundError, ValidationError
 from app.core.ratelimit import rate_limit
 from app.db.session import get_db
 from app.form_engine import validate_submission
-from app.models.form import Form
 from app.models.submission import VALIDATION_STATUSES, Submission
 from app.models.user import User
 from app.schemas.api import (
@@ -156,13 +155,13 @@ async def set_workflow_step(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> SubmissionOut:
-    """Move a submission to a specific workflow step."""
+    """Move a submission to a specific workflow step. Editor+ on the owning project."""
     sub = await db.get(Submission, submission_id)
     if sub is None:
         raise NotFoundError("Submission not found")
-    form = await db.get(Form, sub.form_id)
-    if form is None or form.owner_id != user.id:
-        raise NotFoundError("Submission not found")
+    # Authorize through the project-membership model (editor+), consistent with the
+    # other submission mutations. A non-member gets a 404 (existence is never leaked).
+    await forms_service.get_owned_form(db, sub.form_id, user.id, min_role="editor")
     sub.workflow_step = step
     await db.commit()
     await db.refresh(sub)
