@@ -177,8 +177,10 @@ export const useBuilderStore = create<BuilderState>((rawSet, get) => {
     rawSet(partial);
     if (!recording || !prev) return;
     const next = get();
-    if (next.schema !== prev.schema && next.dirty) {
-      rawSet({ past: [...prev.past, prev.schema].slice(-HISTORY_LIMIT), future: [] });
+    // A changed schema reference is what "dirty" means: mark it, snapshot history for
+    // undo, and queue an autosave. Actions no longer need to pass `dirty: true` by hand.
+    if (next.schema !== prev.schema) {
+      rawSet({ dirty: true, past: [...prev.past, prev.schema].slice(-HISTORY_LIMIT), future: [] });
       scheduleAutosave();
     }
   };
@@ -353,7 +355,7 @@ export const useBuilderStore = create<BuilderState>((rawSet, get) => {
 
     clearSelection: () => rawSet({ selectedName: null, selectedNames: new Set<string>() }),
 
-    setTitle: (title) => set((s) => ({ schema: { ...s.schema, title }, dirty: true })),
+    setTitle: (title) => set((s) => ({ schema: { ...s.schema, title } })),
 
     setLanguages: (languages, defaultLanguage) =>
       set((s) => {
@@ -364,7 +366,6 @@ export const useBuilderStore = create<BuilderState>((rawSet, get) => {
         const base = needsMigration ? model.migrateStringsToI18n(s.schema, defLang) : s.schema;
         return {
           schema: { ...base, languages, defaultLanguage: defLang },
-          dirty: true,
         };
       }),
 
@@ -374,20 +375,19 @@ export const useBuilderStore = create<BuilderState>((rawSet, get) => {
           ...s.schema,
           pages: s.schema.pages.map((p, i) => (i === index ? { ...p, title } : p)),
         },
-        dirty: true,
       })),
 
     setTheme: (patch) =>
       set((s) => {
         // Drop keys set back to empty so the theme object stays clean.
         const merged = pruneEmpty({ ...s.schema.theme, ...patch });
-        return { schema: { ...s.schema, theme: merged }, dirty: true };
+        return { schema: { ...s.schema, theme: merged } };
       }),
 
     setSettings: (patch) =>
       set((s) => {
         const merged = pruneEmpty({ ...s.schema.settings, ...patch });
-        return { schema: { ...s.schema, settings: merged }, dirty: true };
+        return { schema: { ...s.schema, settings: merged } };
       }),
 
     add: (type) =>
@@ -400,7 +400,7 @@ export const useBuilderStore = create<BuilderState>((rawSet, get) => {
           pageIndex: s.activePage,
           parentName,
         });
-        return { schema, selectedName: name, selectedNames: new Set([name]), dirty: true };
+        return { schema, selectedName: name, selectedNames: new Set([name]) };
       }),
 
     insertElement: (el) =>
@@ -414,18 +414,16 @@ export const useBuilderStore = create<BuilderState>((rawSet, get) => {
           schema: { ...s.schema, pages },
           selectedName: name,
           selectedNames: new Set([name]),
-          dirty: true,
         };
       }),
 
     addAt: (type, target, index) =>
       set((s) => {
         const { schema, name } = model.addElementAt(s.schema, type, target, index);
-        return { schema, selectedName: name, selectedNames: new Set([name]), dirty: true };
+        return { schema, selectedName: name, selectedNames: new Set([name]) };
       }),
 
-    update: (name, patch) =>
-      set((s) => ({ schema: model.updateElement(s.schema, name, patch), dirty: true })),
+    update: (name, patch) => set((s) => ({ schema: model.updateElement(s.schema, name, patch) })),
 
     remove: (name) =>
       set((s) => ({
@@ -436,7 +434,6 @@ export const useBuilderStore = create<BuilderState>((rawSet, get) => {
           next.delete(name);
           return next;
         })(),
-        dirty: true,
       })),
 
     duplicate: (name) =>
@@ -446,7 +443,6 @@ export const useBuilderStore = create<BuilderState>((rawSet, get) => {
           schema: result.schema,
           selectedName: result.name,
           selectedNames: new Set([result.name]),
-          dirty: true,
         };
       }),
 
@@ -459,7 +455,6 @@ export const useBuilderStore = create<BuilderState>((rawSet, get) => {
           schema,
           selectedName: groupName,
           selectedNames: new Set([groupName]),
-          dirty: true,
         };
       }),
 
@@ -474,7 +469,6 @@ export const useBuilderStore = create<BuilderState>((rawSet, get) => {
           selectedName: childNames[0] ?? null,
           selectedNames: new Set(childNames),
           collapsedNames: collapsed,
-          dirty: true,
         };
       }),
 
@@ -502,7 +496,6 @@ export const useBuilderStore = create<BuilderState>((rawSet, get) => {
       const expr = buildConnectorExpression(pendingConnection.from, op, value);
       set((s) => ({
         schema: model.updateElement(s.schema, pendingConnection.to, { visibleIf: expr }),
-        dirty: true,
       }));
       rawSet({ pendingConnection: null });
     },
@@ -517,7 +510,7 @@ export const useBuilderStore = create<BuilderState>((rawSet, get) => {
           schema = result.schema;
           newNames.push(result.name);
         }
-        return { schema, selectedNames: new Set(newNames), selectedName: newNames[0], dirty: true };
+        return { schema, selectedNames: new Set(newNames), selectedName: newNames[0] };
       }),
 
     removeSelected: () =>
@@ -527,7 +520,7 @@ export const useBuilderStore = create<BuilderState>((rawSet, get) => {
         for (const name of s.selectedNames) {
           schema = model.removeElement(schema, name);
         }
-        return { schema, selectedName: null, selectedNames: new Set<string>(), dirty: true };
+        return { schema, selectedName: null, selectedNames: new Set<string>() };
       }),
 
     setRequiredSelected: (required) =>
@@ -537,40 +530,37 @@ export const useBuilderStore = create<BuilderState>((rawSet, get) => {
         for (const name of s.selectedNames) {
           schema = model.updateElement(schema, name, { required });
         }
-        return { schema, dirty: true };
+        return { schema };
       }),
 
-    moveBy: (name, delta) =>
-      set((s) => ({ schema: model.moveBy(s.schema, name, delta), dirty: true })),
+    moveBy: (name, delta) => set((s) => ({ schema: model.moveBy(s.schema, name, delta) })),
 
-    moveTo: (name, index) =>
-      set((s) => ({ schema: model.moveElement(s.schema, name, index), dirty: true })),
+    moveTo: (name, index) => set((s) => ({ schema: model.moveElement(s.schema, name, index) })),
 
     moveInto: (name, target, index) =>
       set((s) => {
         const schema = model.moveElementTo(s.schema, name, target, index);
-        return schema === s.schema ? {} : { schema, dirty: true };
+        return schema === s.schema ? {} : { schema };
       }),
 
-    addOption: (name) => set((s) => ({ schema: model.addOption(s.schema, name), dirty: true })),
+    addOption: (name) => set((s) => ({ schema: model.addOption(s.schema, name) })),
 
     updateOption: (name, index, patch) =>
-      set((s) => ({ schema: model.updateOption(s.schema, name, index, patch), dirty: true })),
+      set((s) => ({ schema: model.updateOption(s.schema, name, index, patch) })),
 
     removeOption: (name, index) =>
-      set((s) => ({ schema: model.removeOption(s.schema, name, index), dirty: true })),
+      set((s) => ({ schema: model.removeOption(s.schema, name, index) })),
 
-    addRow: (name) => set((s) => ({ schema: model.addRow(s.schema, name), dirty: true })),
+    addRow: (name) => set((s) => ({ schema: model.addRow(s.schema, name) })),
     updateRow: (name, index, patch) =>
-      set((s) => ({ schema: model.updateRow(s.schema, name, index, patch), dirty: true })),
-    removeRow: (name, index) =>
-      set((s) => ({ schema: model.removeRow(s.schema, name, index), dirty: true })),
+      set((s) => ({ schema: model.updateRow(s.schema, name, index, patch) })),
+    removeRow: (name, index) => set((s) => ({ schema: model.removeRow(s.schema, name, index) })),
 
-    addColumn: (name) => set((s) => ({ schema: model.addColumn(s.schema, name), dirty: true })),
+    addColumn: (name) => set((s) => ({ schema: model.addColumn(s.schema, name) })),
     updateColumn: (name, index, patch) =>
-      set((s) => ({ schema: model.updateColumn(s.schema, name, index, patch), dirty: true })),
+      set((s) => ({ schema: model.updateColumn(s.schema, name, index, patch) })),
     removeColumn: (name, index) =>
-      set((s) => ({ schema: model.removeColumn(s.schema, name, index), dirty: true })),
+      set((s) => ({ schema: model.removeColumn(s.schema, name, index) })),
 
     setActivePage: (index) =>
       set({ activePage: index, selectedName: null, selectedNames: new Set<string>() }),
@@ -578,7 +568,7 @@ export const useBuilderStore = create<BuilderState>((rawSet, get) => {
     addPage: () =>
       set((s) => {
         const { schema, index } = model.addPage(s.schema);
-        return { schema, activePage: index, selectedName: null, dirty: true };
+        return { schema, activePage: index, selectedName: null };
       }),
 
     removePage: (index) =>
@@ -589,15 +579,14 @@ export const useBuilderStore = create<BuilderState>((rawSet, get) => {
           activePage: Math.min(s.activePage, schema.pages.length - 1),
           selectedName: null,
           selectedNames: new Set<string>(),
-          dirty: true,
         };
       }),
 
     renamePage: (index, title) =>
-      set((s) => ({ schema: model.renamePage(s.schema, index, title), dirty: true })),
+      set((s) => ({ schema: model.renamePage(s.schema, index, title) })),
 
     setPageVisibleIf: (index, visibleIf) =>
-      set((s) => ({ schema: model.setPageVisibleIf(s.schema, index, visibleIf), dirty: true })),
+      set((s) => ({ schema: model.setPageVisibleIf(s.schema, index, visibleIf) })),
 
     save: async () => {
       const { formId, schema } = get();
