@@ -1667,6 +1667,23 @@ body,
 .pv-tall {
   min-height: 56px;
 }
+.pv-range {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.pv-range-sep {
+  color: var(--muted);
+}
+.pv-address {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-width: 420px;
+}
+.pv-address .pv-input {
+  width: 100%;
+}
 .pv-caret {
   float: right;
 }

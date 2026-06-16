@@ -14,90 +14,8 @@ import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-
 import { CSS } from "@dnd-kit/utilities";
 import { useState } from "react";
 import { collectConnectors } from "./connectors";
+import { fieldAbbr, fieldColor } from "./fieldMeta";
 import { findElement, isContainerType } from "./model";
-
-// ── type metadata ────────────────────────────────────────────────
-
-const TYPE_COLOR: Partial<Record<ElementType, string>> = {
-  text: "#3b82f6",
-  longtext: "#3b82f6",
-  email: "#3b82f6",
-  url: "#3b82f6",
-  phone: "#3b82f6",
-  single_choice: "#10b981",
-  multi_choice: "#10b981",
-  dropdown: "#10b981",
-  ranking: "#10b981",
-  number: "#f59e0b",
-  integer: "#f59e0b",
-  decimal: "#f59e0b",
-  date: "#8b5cf6",
-  boolean: "#06b6d4",
-  rating: "#eab308",
-  scale: "#eab308",
-  matrix: "#6366f1",
-  file: "#6b7280",
-  image: "#6b7280",
-  signature: "#6b7280",
-  geopoint: "#ef4444",
-  geotrace: "#ef4444",
-  geoshape: "#ef4444",
-  barcode: "#6b7280",
-  start: "#94a3b8",
-  end: "#94a3b8",
-  today: "#94a3b8",
-  deviceid: "#94a3b8",
-  username: "#94a3b8",
-  note: "#94a3b8",
-  html: "#94a3b8",
-  group: "#059669",
-  repeat: "#7c3aed",
-  calculated: "#d97706",
-};
-
-const TYPE_ABBR: Partial<Record<ElementType, string>> = {
-  text: "Aa",
-  longtext: "§",
-  email: "@",
-  url: "//",
-  phone: "☎",
-  single_choice: "◉",
-  multi_choice: "☑",
-  dropdown: "▾",
-  ranking: "↕",
-  number: "1",
-  integer: "#",
-  decimal: "0.",
-  date: "d",
-  boolean: "Y/N",
-  rating: "★",
-  scale: "—",
-  matrix: "⊞",
-  file: "f",
-  image: "img",
-  signature: "sig",
-  geopoint: "⌖",
-  geotrace: "〰",
-  geoshape: "⬡",
-  barcode: "▥",
-  start: "⏱",
-  end: "⏹",
-  today: "📅",
-  deviceid: "📱",
-  username: "👤",
-  note: "i",
-  html: "<>",
-  group: "§",
-  repeat: "↻",
-  calculated: "ƒ",
-};
-
-function typeColor(type: ElementType) {
-  return TYPE_COLOR[type] ?? "#94a3b8";
-}
-function typeAbbr(type: ElementType) {
-  return TYPE_ABBR[type] ?? "?";
-}
 
 // ── chip for a single element ─────────────────────────────────────
 
@@ -105,9 +23,9 @@ function TypeChip({ type }: { type: ElementType }) {
   return (
     <span
       className="ov-chip"
-      style={{ background: `${typeColor(type)}18`, color: typeColor(type) }}
+      style={{ background: `${fieldColor(type)}18`, color: fieldColor(type) }}
     >
-      {typeAbbr(type)}
+      {fieldAbbr(type)}
     </span>
   );
 }

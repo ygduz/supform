@@ -17,25 +17,7 @@ import type {
   I18nString,
   Page,
 } from "@/types/form-schema";
-
-export const DEFAULT_LABELS: Partial<Record<ElementType, string>> = {
-  text: "Short text question",
-  longtext: "Long answer question",
-  email: "Email question",
-  single_choice: "Single choice question",
-  multi_choice: "Multiple choice question",
-  dropdown: "Dropdown question",
-  rating: "Rating question",
-  scale: "Scale question",
-  number: "Number question",
-  date: "Date question",
-  boolean: "Yes / no question",
-  matrix: "Matrix question",
-  file: "File upload",
-  calculated: "Calculated value",
-  group: "Section",
-  repeat: "Repeating group",
-};
+import { defaultLabelFor } from "./fieldMeta";
 
 const CHOICE_TYPES: ReadonlySet<string> = new Set([
   "single_choice",
@@ -157,7 +139,7 @@ function transformSiblings(
 }
 
 function makeElement(type: ElementType, name: string): Element {
-  const el: Element = { type, name, label: DEFAULT_LABELS[type] ?? "Question" };
+  const el: Element = { type, name, label: defaultLabelFor(type) };
   if (hasOptionList(type)) {
     el.options =
       type === "scale"
@@ -247,7 +229,7 @@ export function groupElements(
     const group: Element = {
       type: "group",
       name: newGroupName,
-      label: DEFAULT_LABELS.group ?? "Section",
+      label: defaultLabelFor("group"),
       elements: ordered,
     };
     groupName = newGroupName;
