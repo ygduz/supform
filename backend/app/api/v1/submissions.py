@@ -149,7 +149,7 @@ async def delete_submission(
     await db.commit()
 
 
-@router.patch("/{submission_id}/workflow-step")
+@router.patch("/submissions/{submission_id}/workflow-step")
 async def set_workflow_step(
     submission_id: uuid.UUID,
     step: str,
