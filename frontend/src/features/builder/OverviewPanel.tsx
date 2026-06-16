@@ -15,7 +15,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { useState } from "react";
 import { collectConnectors } from "./connectors";
 import { fieldAbbr, fieldColor } from "./fieldMeta";
-import { findElement, isContainerType } from "./model";
+import { confirmDeleteContainer, findElement, isContainerType } from "./model";
 
 // ── chip for a single element ─────────────────────────────────────
 
@@ -127,12 +127,7 @@ function OverviewRow({
             title="Delete"
             onClick={(e) => {
               e.stopPropagation();
-              if (container && childCount > 0) {
-                const ok = window.confirm(
-                  `Delete this section and the ${childCount} ${childCount === 1 ? "question" : "questions"} inside it?`,
-                );
-                if (!ok) return;
-              }
+              if (!confirmDeleteContainer(element.type, childCount)) return;
               store.remove(element.name);
             }}
           >

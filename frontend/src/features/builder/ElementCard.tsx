@@ -8,7 +8,7 @@ import { useEffect, useRef, useState } from "react";
 import type { DropLocation } from "./BuilderCanvas";
 import { CanvasList } from "./CanvasList";
 import { CardPreview } from "./CardPreview";
-import { isContainerType } from "./model";
+import { confirmDeleteContainer, isContainerType } from "./model";
 
 /** Tooltip text for the ⚡ badge: which rules this question carries. */
 function logicSummary(element: Element): string {
@@ -246,14 +246,7 @@ export function ElementCard({
             type="button"
             title="Delete"
             onClick={() => {
-              if (container && childCount > 0) {
-                const ok = window.confirm(
-                  `Delete this section and the ${childCount} ${
-                    childCount === 1 ? "question" : "questions"
-                  } inside it?\n\nTip: use Ungroup (⊟) to keep the questions.`,
-                );
-                if (!ok) return;
-              }
+              if (!confirmDeleteContainer(element.type, childCount)) return;
               remove(element.name);
             }}
           >

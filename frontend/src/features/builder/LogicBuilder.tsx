@@ -3,9 +3,8 @@ import { useBuilderStore } from "@/stores/builderStore";
 import type { Element } from "@/types/form-schema";
 import { useState } from "react";
 import { type LogicCondition, NO_VALUE_OPS, opsForType, parseLogic, serializeLogic } from "./logic";
-import { allElements, isContainerType } from "./model";
+import { allElements, isNoValueType } from "./model";
 
-const NO_VALUE_TYPES = new Set(["note", "section", "html", "group", "repeat"]);
 const NUMERIC_TYPES = new Set(["number", "integer", "decimal", "rating", "scale"]);
 
 /**
@@ -32,7 +31,7 @@ export function LogicBuilder({
   const advanced = rawMode || (value !== undefined && value !== "" && parsed === null);
 
   const fields = allElements(schema).filter(
-    (el) => el.name !== excludeName && !NO_VALUE_TYPES.has(el.type) && !isContainerType(el.type),
+    (el) => el.name !== excludeName && !isNoValueType(el.type),
   );
 
   function commit(conditions: LogicCondition[], connective: "and" | "or") {

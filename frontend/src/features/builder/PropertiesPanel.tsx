@@ -4,18 +4,13 @@ import { useBuilderStore } from "@/stores/builderStore";
 import type { Choice, Element, I18nString, Validation } from "@/types/form-schema";
 import { FormulaBuilder } from "./FormulaBuilder";
 import { LogicBuilder } from "./LogicBuilder";
-import { hasOptionList } from "./model";
-import { ELEMENT_PALETTE } from "./palette";
+import { fieldMeta } from "./fieldMeta";
+import { hasOptionList, isContainerType, isPresentationalType } from "./model";
 
-const PRESENTATIONAL = new Set(["note", "section", "html"]);
+// Local to this panel — these classifications drive which validation inputs show, and are
+// not the same concept as the operator/value sets in logic.ts.
 const NUMERIC = new Set(["number", "integer", "decimal"]);
 const TEXTUAL = new Set(["text", "longtext", "email"]);
-
-/** Icon + human label for a question type, from the palette (falls back gracefully). */
-function typeMeta(type: string): { icon: string; label: string } {
-  const hit = ELEMENT_PALETTE.find((p) => p.type === type);
-  return { icon: hit?.icon ?? "▢", label: hit?.label ?? type.replace(/_/g, " ") };
-}
 
 /** Right-hand inspector for editing the currently-selected question. */
 export function PropertiesPanel({ element }: { element: Element }) {
@@ -26,13 +21,12 @@ export function PropertiesPanel({ element }: { element: Element }) {
   const languages = store.schema.languages ?? [];
   const defaultLang = store.schema.defaultLanguage ?? "en";
 
-  const canRequire =
-    !PRESENTATIONAL.has(type) && type !== "group" && type !== "repeat" && type !== "calculated";
+  const canRequire = !isPresentationalType(type) && !isContainerType(type) && type !== "calculated";
 
   const setValidation = (patch: Partial<Validation>) =>
     update(name, { validation: { ...(element.validation ?? {}), ...patch } });
 
-  const meta = typeMeta(type);
+  const meta = fieldMeta(type);
 
   return (
     <div className="props">

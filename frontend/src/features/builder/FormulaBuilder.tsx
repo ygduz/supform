@@ -1,10 +1,11 @@
 import { localize } from "@/lib/i18n";
 import { useBuilderStore } from "@/stores/builderStore";
 import { useState } from "react";
-import { allElements, isContainerType } from "./model";
+import { allElements, isNoValueType } from "./model";
 
+// Includes `calculated` (a computed numeric value) — intentionally broader than the
+// numeric set in logic.ts, which is about comparison operators, not formula operands.
 const NUMERIC_TYPES = new Set(["number", "integer", "decimal", "rating", "scale", "calculated"]);
-const NO_VALUE_TYPES = new Set(["note", "section", "html", "group", "repeat"]);
 
 type ArithOp = "+" | "-" | "*" | "/";
 
@@ -148,15 +149,11 @@ export function FormulaBuilder({
   const [rawMode, setRawMode] = useState(false);
 
   const fields = allElements(schema).filter(
-    (el) =>
-      el.name !== excludeName &&
-      !NO_VALUE_TYPES.has(el.type) &&
-      !isContainerType(el.type) &&
-      NUMERIC_TYPES.has(el.type),
+    (el) => el.name !== excludeName && !isNoValueType(el.type) && NUMERIC_TYPES.has(el.type),
   );
 
   const allFieldsForPick = allElements(schema).filter(
-    (el) => el.name !== excludeName && !NO_VALUE_TYPES.has(el.type) && !isContainerType(el.type),
+    (el) => el.name !== excludeName && !isNoValueType(el.type),
   );
 
   const fieldsMeta = (fields.length > 0 ? fields : allFieldsForPick).map((el) => ({

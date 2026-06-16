@@ -28,6 +28,9 @@ const CHOICE_TYPES: ReadonlySet<string> = new Set([
 
 const CONTAINER_TYPES: ReadonlySet<string> = new Set(["group", "repeat"]);
 
+/** Display-only types that collect no answer value (info text, raw HTML). */
+const PRESENTATIONAL_TYPES: ReadonlySet<string> = new Set(["note", "section", "html"]);
+
 export function isChoiceType(type: ElementType): boolean {
   return CHOICE_TYPES.has(type);
 }
@@ -36,9 +39,32 @@ export function isContainerType(type: ElementType): boolean {
   return CONTAINER_TYPES.has(type);
 }
 
+/** Display-only types (note / html) that never carry a respondent answer. */
+export function isPresentationalType(type: ElementType): boolean {
+  return PRESENTATIONAL_TYPES.has(type);
+}
+
+/** Types with no answer value of their own: presentational text and containers. */
+export function isNoValueType(type: ElementType): boolean {
+  return isPresentationalType(type) || isContainerType(type);
+}
+
 /** Types that carry an editable list of choice `options`. */
 export function hasOptionList(type: ElementType): boolean {
   return isChoiceType(type) || type === "rating" || type === "scale";
+}
+
+/**
+ * Confirm before deleting a section that still holds questions (they go with it).
+ * Returns true when the deletion should proceed.
+ */
+export function confirmDeleteContainer(type: ElementType, childCount: number): boolean {
+  if (!isContainerType(type) || childCount === 0) return true;
+  return window.confirm(
+    `Delete this section and the ${childCount} ${
+      childCount === 1 ? "question" : "questions"
+    } inside it?\n\nTip: use Ungroup (⊟) to keep the questions.`,
+  );
 }
 
 export function createEmptyForm(): FormSchema {

@@ -18,6 +18,23 @@ const NOT_SIGNED_IN = "Please sign in to save your form.";
 const HISTORY_LIMIT = 50;
 const AUTOSAVE_DELAY_MS = 2000;
 
+/** Return a new Set with `item` toggled in/out — keeps selection updates immutable. */
+function toggleSetItem<T>(source: Set<T>, item: T): Set<T> {
+  const next = new Set(source);
+  if (next.has(item)) next.delete(item);
+  else next.add(item);
+  return next;
+}
+
+/** Strip keys whose value is `undefined` or `""` so theme/settings objects stay clean. */
+function pruneEmpty<T extends object>(obj: T): T {
+  for (const k of Object.keys(obj) as (keyof T)[]) {
+    const v = obj[k];
+    if (v === undefined || v === "") delete obj[k];
+  }
+  return obj;
+}
+
 /** Find the user's first project, or create a default one to hold their forms. */
 async function resolveProjectId(): Promise<string> {
   const projects = await api.listProjects();
@@ -310,13 +327,7 @@ export const useBuilderStore = create<BuilderState>((rawSet, get) => {
       }),
 
     selectToggle: (name) => {
-      const { selectedNames } = get();
-      const next = new Set(selectedNames);
-      if (next.has(name)) {
-        next.delete(name);
-      } else {
-        next.add(name);
-      }
+      const next = toggleSetItem(get().selectedNames, name);
       rawSet({
         selectedName: next.size > 0 ? name : null,
         selectedNames: next,
@@ -369,23 +380,13 @@ export const useBuilderStore = create<BuilderState>((rawSet, get) => {
     setTheme: (patch) =>
       set((s) => {
         // Drop keys set back to empty so the theme object stays clean.
-        const merged = { ...s.schema.theme, ...patch };
-        for (const k of Object.keys(merged)) {
-          if (merged[k] === undefined || merged[k] === "") delete merged[k];
-        }
+        const merged = pruneEmpty({ ...s.schema.theme, ...patch });
         return { schema: { ...s.schema, theme: merged }, dirty: true };
       }),
 
     setSettings: (patch) =>
       set((s) => {
-        const merged = { ...s.schema.settings, ...patch };
-        for (const k of Object.keys(merged)) {
-          if (
-            merged[k as keyof FormSettings] === undefined ||
-            merged[k as keyof FormSettings] === ""
-          )
-            delete merged[k as keyof FormSettings];
-        }
+        const merged = pruneEmpty({ ...s.schema.settings, ...patch });
         return { schema: { ...s.schema, settings: merged }, dirty: true };
       }),
 
@@ -478,13 +479,7 @@ export const useBuilderStore = create<BuilderState>((rawSet, get) => {
       }),
 
     toggleCollapsed: (name) => {
-      const next = new Set(get().collapsedNames);
-      if (next.has(name)) {
-        next.delete(name);
-      } else {
-        next.add(name);
-      }
-      rawSet({ collapsedNames: next });
+      rawSet({ collapsedNames: toggleSetItem(get().collapsedNames, name) });
     },
 
     setViewportName: (name) => {

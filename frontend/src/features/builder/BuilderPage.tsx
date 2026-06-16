@@ -36,7 +36,13 @@ import { ShareLinkDialog } from "./ShareLinkDialog";
 import { ThemePanel } from "./ThemePanel";
 import { TranslatePanel } from "./TranslatePanel";
 import { WebhooksDialog } from "./WebhooksDialog";
-import { findElement, groupElements, pageElements } from "./model";
+import {
+  confirmDeleteContainer,
+  findElement,
+  groupElements,
+  isContainerType,
+  pageElements,
+} from "./model";
 import { ELEMENT_PALETTE } from "./palette";
 
 type Tab = "overview" | "properties" | "theme" | "settings" | "translate" | "preview";
@@ -111,7 +117,7 @@ export function BuilderPage() {
     // Dropping onto a section card means "into the section" (appended at the end),
     // unless the dragged item is already a direct child of that section.
     const overEl = findElement(schema, overId);
-    if (overEl && (overEl.type === "group" || overEl.type === "repeat")) {
+    if (overEl && isContainerType(overEl.type)) {
       const isOwnChild = overEl.elements?.some((c) => c.name === activeId) ?? false;
       if (!isOwnChild && overId !== activeId) {
         loc = {
@@ -139,10 +145,8 @@ export function BuilderPage() {
       !isZone(overId) &&
       activeElForGroup &&
       overElForGroup &&
-      activeElForGroup.type !== "group" &&
-      activeElForGroup.type !== "repeat" &&
-      overElForGroup.type !== "group" &&
-      overElForGroup.type !== "repeat"
+      !isContainerType(activeElForGroup.type) &&
+      !isContainerType(overElForGroup.type)
     ) {
       const { schema: next, groupName } = groupElements(schema, [activeId, overId]);
       if (groupName) {
@@ -233,13 +237,7 @@ export function BuilderPage() {
           e.preventDefault();
           // Deleting a section takes its questions with it — confirm first.
           const el = findElement(schema, selectedName);
-          const kids = el?.elements?.length ?? 0;
-          if (el && (el.type === "group" || el.type === "repeat") && kids > 0) {
-            const ok = window.confirm(
-              `Delete this section and the ${kids} ${kids === 1 ? "question" : "questions"} inside it?`,
-            );
-            if (!ok) return;
-          }
+          if (el && !confirmDeleteContainer(el.type, el.elements?.length ?? 0)) return;
           store.remove(selectedName);
         }
         return;
