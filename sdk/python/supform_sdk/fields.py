@@ -95,6 +95,11 @@ def DateRange(name: str, **kw: Any) -> Element:
     return _base("date_range", name, **kw)
 
 
+def DateTime(name: str, **kw: Any) -> Element:
+    """A combined date-and-time question."""
+    return _base("datetime", name, **kw)
+
+
 def Boolean(name: str, **kw: Any) -> Element:
     return _base("boolean", name, **kw)
 
@@ -102,6 +107,11 @@ def Boolean(name: str, **kw: Any) -> Element:
 def Signature(name: str, **kw: Any) -> Element:
     """A freehand signature capture question."""
     return _base("signature", name, **kw)
+
+
+def Image(name: str, **kw: Any) -> Element:
+    """An image upload question."""
+    return _base("image", name, **kw)
 
 
 def Address(name: str, **kw: Any) -> Element:

@@ -31,6 +31,16 @@ def _localize_title(title: object) -> str | None:
     return str(title)
 
 
+async def _owned_form_ids(db: AsyncSession, user_id: uuid.UUID) -> list[uuid.UUID]:
+    """IDs of every form owned (via project) by the given user."""
+    stmt = (
+        select(Form.id)
+        .join(Project, Form.project_id == Project.id)
+        .where(Project.owner_id == user_id)
+    )
+    return list(await db.scalars(stmt))
+
+
 @router.get("/inbox", response_model=list[SubmissionOut])
 async def list_inbox(
     unread_only: bool = False,
@@ -39,12 +49,7 @@ async def list_inbox(
     user: User = Depends(get_current_user),
 ) -> list[SubmissionOut]:
     """Return the caller's recent submissions across all owned forms, newest first."""
-    owned_form_ids_stmt = (
-        select(Form.id)
-        .join(Project, Form.project_id == Project.id)
-        .where(Project.owner_id == user.id)
-    )
-    owned_form_ids = list(await db.scalars(owned_form_ids_stmt))
+    owned_form_ids = await _owned_form_ids(db, user.id)
 
     if not owned_form_ids:
         return []
@@ -102,12 +107,7 @@ async def mark_all_read(
     """Mark all submissions across owned forms as read."""
     from sqlalchemy import update
 
-    form_ids_stmt = (
-        select(Form.id)
-        .join(Project, Form.project_id == Project.id)
-        .where(Project.owner_id == user.id)
-    )
-    form_ids = list(await db.scalars(form_ids_stmt))
+    form_ids = await _owned_form_ids(db, user.id)
     if form_ids:
         now = datetime.now(UTC)
         await db.execute(
