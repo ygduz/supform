@@ -36,13 +36,7 @@ import { ShareLinkDialog } from "./ShareLinkDialog";
 import { ThemePanel } from "./ThemePanel";
 import { TranslatePanel } from "./TranslatePanel";
 import { WebhooksDialog } from "./WebhooksDialog";
-import {
-  confirmDeleteContainer,
-  findElement,
-  groupElements,
-  isContainerType,
-  pageElements,
-} from "./model";
+import { confirmDeleteContainer, findElement, isContainerType, pageElements } from "./model";
 import { ELEMENT_PALETTE } from "./palette";
 
 type Tab = "overview" | "properties" | "theme" | "settings" | "translate" | "preview";
@@ -148,15 +142,7 @@ export function BuilderPage() {
       !isContainerType(activeElForGroup.type) &&
       !isContainerType(overElForGroup.type)
     ) {
-      const { schema: next, groupName } = groupElements(schema, [activeId, overId]);
-      if (groupName) {
-        useBuilderStore.setState({
-          schema: next,
-          selectedName: groupName,
-          selectedNames: new Set([groupName]),
-          dirty: true,
-        });
-      }
+      store.confirmGrouping(activeId, overId);
       return;
     }
 
@@ -516,19 +502,7 @@ export function BuilderPage() {
                     store.select(name);
                   } else if (groupingSource !== name) {
                     // Complete the group.
-                    const s = useBuilderStore.getState();
-                    const { schema: next, groupName } = groupElements(s.schema, [
-                      groupingSource,
-                      name,
-                    ]);
-                    if (groupName) {
-                      useBuilderStore.setState({
-                        schema: next,
-                        selectedName: groupName,
-                        selectedNames: new Set([groupName]),
-                        dirty: true,
-                      });
-                    }
+                    store.confirmGrouping(groupingSource, name);
                     setGroupingSource(null);
                   }
                 }}

@@ -102,6 +102,8 @@ interface BuilderState {
   ) => void;
   /** Wrap all selectedNames into a new group in-place. No-op if they span different parents. */
   groupSelected: () => void;
+  /** Wrap two named elements into a new group (drag-onto / group-link). No-op if same. */
+  confirmGrouping: (source: string, target: string) => void;
   /** Dissolve a group/repeat, lifting its children into the parent's list. */
   ungroup: (name: string) => void;
   /** Toggle a container card's collapsed state (UI-only; not part of the schema). */
@@ -456,6 +458,14 @@ export const useBuilderStore = create<BuilderState>((rawSet, get) => {
           selectedName: groupName,
           selectedNames: new Set([groupName]),
         };
+      }),
+
+    confirmGrouping: (source, target) =>
+      set((s) => {
+        if (source === target) return {};
+        const { schema, groupName } = model.groupElements(s.schema, [source, target]);
+        if (!groupName) return {};
+        return { schema, selectedName: groupName, selectedNames: new Set([groupName]) };
       }),
 
     ungroup: (name) =>
