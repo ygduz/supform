@@ -1470,7 +1470,7 @@ body,
   box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.25);
 }
 .el-card.group-target:hover {
-  border-color: #d97706;
+  border-color: var(--warning);
   background: #fffbeb;
 }
 .group-link-hint {
@@ -1521,7 +1521,7 @@ body,
   align-items: center;
   gap: 10px;
   background: #1e293b;
-  color: #f8fafc;
+  color: var(--surface);
   border-radius: var(--radius);
   padding: 10px 14px;
   margin-top: 12px;
@@ -1531,7 +1531,7 @@ body,
 .bulk-count {
   font-size: 13px;
   font-weight: 600;
-  color: #94a3b8;
+  color: var(--subtle);
   white-space: nowrap;
 }
 .bulk-actions {
@@ -1545,10 +1545,10 @@ body,
   align-items: center;
   gap: 5px;
   padding: 5px 10px;
-  border: 1px solid #334155;
+  border: 1px solid var(--text-secondary);
   border-radius: 6px;
-  background: #334155;
-  color: #f8fafc;
+  background: var(--text-secondary);
+  color: var(--surface);
   cursor: pointer;
   font-size: 13px;
   transition: background 0.1s;
@@ -1564,7 +1564,7 @@ body,
 .bulk-close {
   background: none;
   border: none;
-  color: #64748b;
+  color: var(--muted);
   cursor: pointer;
   font-size: 16px;
   padding: 4px 6px;
@@ -1572,7 +1572,7 @@ body,
   line-height: 1;
 }
 .bulk-close:hover {
-  color: #f8fafc;
+  color: var(--surface);
 }
 
 /* ---- insert-between slot ---- */
@@ -2296,15 +2296,6 @@ body,
 }
 
 /* Modal + share dialog */
-.modal-backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(15, 23, 42, 0.45);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 50;
-}
 .modal-backdrop-close {
   position: absolute;
   inset: 0;
@@ -3625,7 +3616,7 @@ body,
 }
 
 .ov-row.ov-selected {
-  background: #eff6ff;
+  background: var(--primary-light);
   border-color: #bfdbfe;
 }
 
@@ -3635,7 +3626,7 @@ body,
 }
 
 .ov-row.ov-container.ov-selected {
-  background: #eff6ff;
+  background: var(--primary-light);
   border-color: #bfdbfe;
 }
 
@@ -4080,7 +4071,7 @@ body,
   transition: background 0.1s, box-shadow 0.1s;
 }
 .ranking-item:hover {
-  background: #f8fafc;
+  background: var(--surface);
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
 }
 .ranking-item.ranking-dragging {
@@ -4161,7 +4152,7 @@ body,
 /* ── Note / HTML display fields ───────────────────────────────── */
 .note-field {
   padding: 10px 14px;
-  background: #f8fafc;
+  background: var(--surface);
   border-left: 3px solid var(--primary);
   border-radius: 4px;
   font-size: 14px;
@@ -4356,7 +4347,7 @@ body,
   white-space: nowrap;
 }
 .translate-progress.complete {
-  color: #16a34a;
+  color: var(--success);
   font-weight: 600;
 }
 .translate-cols-head {
@@ -4712,7 +4703,7 @@ body,
 .ql-insert {
   font-size: 11px;
   padding: 3px 8px;
-  background: var(--color-primary, #4f6ef7);
+  background: var(--primary);
   color: #fff;
   border: none;
   border-radius: 4px;
@@ -4870,7 +4861,7 @@ body,
   gap: 8px;
 }
 .inbox-badge {
-  background: var(--color-primary, #4f6ef7);
+  background: var(--primary);
   color: #fff;
   font-size: 11px;
   font-weight: 700;
@@ -4933,7 +4924,7 @@ body,
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: var(--color-primary, #4f6ef7);
+  background: var(--primary);
   flex-shrink: 0;
 }
 .inbox-msg {
@@ -5233,7 +5224,7 @@ body,
   overflow: hidden;
 }
 .rpt-bar-fill {
-  background: var(--color-primary, #4f6ef7);
+  background: var(--primary);
   height: 100%;
   border-radius: 4px;
   transition: width 0.3s;
@@ -5275,7 +5266,7 @@ body,
 .rpt-number-val {
   font-size: 48px;
   font-weight: 700;
-  color: var(--color-primary, #4f6ef7);
+  color: var(--primary);
 }
 .rpt-number-label {
   font-size: 12px;
@@ -5576,20 +5567,6 @@ body,
   flex: 1;
   background: var(--surface);
   padding: 24px;
-}
-
-.modal-close {
-  all: unset;
-  cursor: pointer;
-  padding: 4px 8px;
-  border-radius: var(--radius-sm);
-  font-size: 14px;
-  color: var(--text-secondary);
-}
-
-.modal-close:hover {
-  background: var(--border);
-  color: var(--text);
 }
 
 @media print {
