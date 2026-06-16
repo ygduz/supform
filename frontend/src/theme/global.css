@@ -1144,7 +1144,7 @@ body,
 /* ── Three-column body: only the canvas column scrolls ────────── */
 .builder-body {
   display: grid;
-  grid-template-columns: 220px 1fr 340px;
+  grid-template-columns: 200px 1fr 320px;
   gap: 0;
   flex: 1; /* fills remaining height below toolbar */
   min-height: 0; /* essential: lets the flex child shrink below content size */
@@ -1511,6 +1511,8 @@ body,
 /* ---- bulk action bar ---- */
 .canvas-inner {
   position: relative;
+  max-width: 720px;
+  margin: 0 auto;
 }
 .bulk-bar {
   position: sticky;
@@ -5414,6 +5416,163 @@ body,
   .import-section-label {
     flex-direction: column;
   }
+}
+
+/* ── Card label display/edit modes ─────────────────────────────── */
+.el-label-input.display {
+  border: none;
+  background: transparent;
+  pointer-events: none;
+  font-weight: 600;
+  color: var(--text);
+  padding: 0;
+  font-size: inherit;
+  width: 100%;
+  cursor: default;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  outline: none;
+}
+
+.el-label-input.editing {
+  border: 1px solid var(--primary);
+  background: var(--surface);
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: inherit;
+  font-weight: 600;
+  width: 100%;
+  outline: none;
+}
+
+/* ── Overflow ⋯ menu ────────────────────────────────────────────── */
+.el-overflow-wrap {
+  position: relative;
+}
+
+.el-overflow-btn {
+  font-size: 15px;
+  line-height: 1;
+  padding: 2px 5px;
+  letter-spacing: 1px;
+}
+
+.el-overflow-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+  z-index: 200;
+  min-width: 160px;
+  display: flex;
+  flex-direction: column;
+  padding: 4px 0;
+}
+
+.el-overflow-menu button {
+  all: unset;
+  display: block;
+  width: 100%;
+  padding: 8px 14px;
+  font-size: 13px;
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+  box-sizing: border-box;
+}
+
+.el-overflow-menu button:hover {
+  background: var(--primary-light);
+  color: var(--primary);
+}
+
+.el-overflow-menu button:disabled {
+  color: var(--text-secondary);
+  cursor: default;
+}
+
+.el-overflow-menu button:disabled:hover {
+  background: none;
+  color: var(--text-secondary);
+}
+
+/* ── Map panel row actions ──────────────────────────────────────── */
+.ov-row-actions {
+  display: none;
+  gap: 4px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.ov-row:hover .ov-row-actions,
+.ov-selected .ov-row-actions {
+  display: flex;
+}
+
+.ov-action-btn {
+  all: unset;
+  cursor: pointer;
+  padding: 2px 5px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+}
+
+.ov-action-btn:hover {
+  background: var(--primary-light);
+}
+
+/* ── Full-screen preview modal ──────────────────────────────────── */
+.preview-modal-box {
+  max-width: 800px;
+  width: 90vw;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  overflow: hidden;
+}
+
+.preview-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-raised);
+  flex-shrink: 0;
+}
+
+.preview-modal-title {
+  font-weight: 600;
+  font-size: 15px;
+}
+
+.preview-modal-body {
+  overflow-y: auto;
+  flex: 1;
+  background: var(--surface);
+  padding: 24px;
+}
+
+.modal-close {
+  all: unset;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.modal-close:hover {
+  background: var(--border);
+  color: var(--text);
 }
 
 @media print {

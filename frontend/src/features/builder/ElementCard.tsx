@@ -4,7 +4,7 @@ import { useBuilderStore } from "@/stores/builderStore";
 import type { Element } from "@/types/form-schema";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { DropLocation } from "./BuilderCanvas";
 import { CanvasList } from "./CanvasList";
 import { CardPreview } from "./CardPreview";
@@ -60,6 +60,9 @@ export function ElementCard({
   const container = isContainerType(element.type);
   const childCount = element.elements?.length ?? 0;
 
+  const [overflowOpen, setOverflowOpen] = useState(false);
+  const overflowRef = useRef<HTMLDivElement>(null);
+
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: element.name,
     data: { location },
@@ -79,6 +82,17 @@ export function ElementCard({
       nodeRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
     }
   }, [selected, isDragging]);
+
+  useEffect(() => {
+    if (!overflowOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (overflowRef.current && !overflowRef.current.contains(e.target as Node)) {
+        setOverflowOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [overflowOpen]);
 
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
@@ -186,21 +200,16 @@ export function ElementCard({
               ✓
             </span>
           )}
-          {editing ? (
-            <input
-              className="el-label-input"
-              value={localize(element.label)}
-              placeholder="Question text"
-              onChange={(e) => update(element.name, { label: e.target.value })}
-              onPointerDown={(e) => e.stopPropagation()}
-              onClick={(e) => e.stopPropagation()}
-            />
-          ) : (
-            <span className="el-label">
-              {localize(element.label) || element.name}
-              {element.required ? <span className="el-required">*</span> : null}
-            </span>
-          )}
+          <input
+            className={`el-label-input${editing ? " editing" : " display"}`}
+            value={localize(element.label) || ""}
+            placeholder={editing ? "Question text" : ""}
+            readOnly={!editing}
+            onChange={editing ? (e) => update(element.name, { label: e.target.value }) : undefined}
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
+          />
+          {element.required && editing ? <span className="el-required">*</span> : null}
           <span className="el-type">
             {element.type.replace(/_/g, " ")}
             {container && (
@@ -217,43 +226,6 @@ export function ElementCard({
         </button>
 
         <div className="el-actions">
-          <button
-            type="button"
-            title="Move up"
-            disabled={index === 0}
-            onClick={() => moveBy(element.name, -1)}
-          >
-            ↑
-          </button>
-          <button
-            type="button"
-            title="Move down"
-            disabled={index === count - 1}
-            onClick={() => moveBy(element.name, 1)}
-          >
-            ↓
-          </button>
-          <button type="button" title="Duplicate" onClick={() => duplicate(element.name)}>
-            ⧉
-          </button>
-          <button
-            type="button"
-            title="Save to question library"
-            onClick={async () => {
-              const label = localize(element.label) || element.name;
-              try {
-                await api.createQuestionTemplate(
-                  label,
-                  element as unknown as Record<string, unknown>,
-                );
-                alert(`"${label}" saved to your question library.`);
-              } catch {
-                alert("Failed to save to library.");
-              }
-            }}
-          >
-            ☆
-          </button>
           {!container && (
             <button
               type="button"
@@ -267,32 +239,13 @@ export function ElementCard({
               ⚡
             </button>
           )}
-          {container ? (
-            <button
-              type="button"
-              title="Ungroup — lift questions out of this section"
-              onClick={(e) => {
-                e.stopPropagation();
-                ungroup(element.name);
-              }}
-            >
-              ⊟
-            </button>
-          ) : (
-            <button
-              type="button"
-              title={multiSelect ? "Group selected questions" : "Group with another question"}
-              className={groupingSource === element.name ? "active" : ""}
-              onClick={handleGroupIconClick}
-            >
-              ⊞
-            </button>
-          )}
+          <button type="button" title="Duplicate" onClick={() => duplicate(element.name)}>
+            ⧉
+          </button>
           <button
             type="button"
             title="Delete"
             onClick={() => {
-              // Deleting a section takes its questions with it — confirm first.
               if (container && childCount > 0) {
                 const ok = window.confirm(
                   `Delete this section and the ${childCount} ${
@@ -306,13 +259,91 @@ export function ElementCard({
           >
             🗑
           </button>
+          <div className="el-overflow-wrap" ref={overflowRef}>
+            <button
+              type="button"
+              className="el-overflow-btn"
+              title="More actions"
+              onClick={(e) => {
+                e.stopPropagation();
+                setOverflowOpen((o) => !o);
+              }}
+            >
+              ⋯
+            </button>
+            {overflowOpen && (
+              <div className="el-overflow-menu">
+                <button
+                  type="button"
+                  disabled={index === 0}
+                  onClick={() => {
+                    moveBy(element.name, -1);
+                    setOverflowOpen(false);
+                  }}
+                >
+                  ↑ Move up
+                </button>
+                <button
+                  type="button"
+                  disabled={index === count - 1}
+                  onClick={() => {
+                    moveBy(element.name, 1);
+                    setOverflowOpen(false);
+                  }}
+                >
+                  ↓ Move down
+                </button>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const label = localize(element.label) || element.name;
+                    try {
+                      await api.createQuestionTemplate(
+                        label,
+                        element as unknown as Record<string, unknown>,
+                      );
+                      alert(`"${label}" saved to your question library.`);
+                    } catch {
+                      alert("Failed to save to library.");
+                    }
+                    setOverflowOpen(false);
+                  }}
+                >
+                  ☆ Save to library
+                </button>
+                {container ? (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      ungroup(element.name);
+                      setOverflowOpen(false);
+                    }}
+                  >
+                    ⊟ Ungroup section
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    className={groupingSource === element.name ? "active" : ""}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleGroupIconClick(e);
+                      setOverflowOpen(false);
+                    }}
+                  >
+                    ⊞ Group with another
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
       {!container && !isDragging && (
         <div
           className="el-preview"
-          {...(groupingSource ? {} : listeners)}
           onClick={handleCardClick}
           onKeyDown={(e) => {
             if (e.key === "Enter" || e.key === " ")

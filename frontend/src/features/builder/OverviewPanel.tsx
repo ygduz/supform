@@ -201,6 +201,26 @@ function OverviewRow({
             <span className="ov-chevron">{expanded ? "▾" : "▸"}</span>
           </button>
         )}
+
+        <div className="ov-row-actions">
+          <button
+            type="button"
+            className="ov-action-btn"
+            title="Delete"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (container && childCount > 0) {
+                const ok = window.confirm(
+                  `Delete this section and the ${childCount} ${childCount === 1 ? "question" : "questions"} inside it?`,
+                );
+                if (!ok) return;
+              }
+              store.remove(element.name);
+            }}
+          >
+            🗑
+          </button>
+        </div>
       </div>
 
       {container && expanded && <ChildRows elements={element.elements ?? []} />}

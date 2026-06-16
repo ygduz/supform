@@ -27,6 +27,7 @@ import { LanguagePreview } from "./LanguagePreview";
 import { LogicBuilder } from "./LogicBuilder";
 import { OverviewPanel } from "./OverviewPanel";
 import { PaletteItem } from "./PaletteItem";
+import { PreviewModal } from "./PreviewModal";
 import { PropertiesPanel } from "./PropertiesPanel";
 import { QuestionLibraryPanel } from "./QuestionLibraryPanel";
 import { SettingsPanel } from "./SettingsPanel";
@@ -51,6 +52,7 @@ export function BuilderPage() {
   const [shareLink, setShareLink] = useState(false);
   const [integrations, setIntegrations] = useState(false);
   const [showLibrary, setShowLibrary] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
   const importRef = useRef<HTMLInputElement>(null);
   const isMultilingual = (schema.languages?.length ?? 0) >= 2;
 
@@ -128,6 +130,32 @@ export function BuilderPage() {
     }
 
     if (activeId === overId) return;
+
+    // Drag a non-container card directly onto another non-container card → group them.
+    const isZone = (id: string) => id.startsWith("dz:") || id.startsWith("page:");
+    const activeElForGroup = findElement(schema, activeId);
+    const overElForGroup = findElement(schema, overId);
+    if (
+      !isZone(overId) &&
+      activeElForGroup &&
+      overElForGroup &&
+      activeElForGroup.type !== "group" &&
+      activeElForGroup.type !== "repeat" &&
+      overElForGroup.type !== "group" &&
+      overElForGroup.type !== "repeat"
+    ) {
+      const { schema: next, groupName } = groupElements(schema, [activeId, overId]);
+      if (groupName) {
+        useBuilderStore.setState({
+          schema: next,
+          selectedName: groupName,
+          selectedNames: new Set([groupName]),
+          dirty: true,
+        });
+      }
+      return;
+    }
+
     store.moveInto(activeId, { pageIndex: loc.pageIndex, parentName: loc.parentName }, loc.index);
   }
 
@@ -355,6 +383,9 @@ export function BuilderPage() {
               e.target.value = "";
             }}
           />
+          <Button variant="outline" size="sm" onClick={() => setPreviewOpen(true)}>
+            Preview
+          </Button>
           <Button
             variant="outline"
             size="sm"
@@ -576,6 +607,7 @@ export function BuilderPage() {
         </DragOverlay>
       </DndContext>
 
+      {previewOpen && <PreviewModal schema={schema} onClose={() => setPreviewOpen(false)} />}
       {sharing && store.projectId && (
         <ShareDialog projectId={store.projectId} onClose={() => setSharing(false)} />
       )}
