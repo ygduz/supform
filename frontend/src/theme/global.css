@@ -1126,7 +1126,7 @@ body,
   gap: 4px;
   font-size: 13px;
   white-space: nowrap;
-  transition: color var(--dur, 180ms) var(--ease, cubic-bezier(0.4, 0, 0.2, 1));
+  transition: color var(--duration) var(--ease);
 }
 .save-status[data-state="dirty"] {
   color: var(--subtle);
@@ -1136,7 +1136,7 @@ body,
 }
 .save-status[data-state="saved"] {
   color: var(--success);
-  animation: save-flash 1.8s var(--ease, cubic-bezier(0.4, 0, 0.2, 1));
+  animation: save-flash 1.8s var(--ease);
 }
 @keyframes save-flash {
   0% {
@@ -2310,7 +2310,7 @@ body,
   font-weight: 500;
   color: var(--text-secondary);
   text-decoration: none;
-  transition: background var(--dur, 180ms) var(--ease, cubic-bezier(0.4, 0, 0.2, 1));
+  transition: background var(--duration) var(--ease);
 }
 .form-context-tabs a:hover {
   background: var(--surface);
