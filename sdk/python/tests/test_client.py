@@ -136,3 +136,112 @@ def test_raises_on_http_error():
     client = make_client(handler)
     with pytest.raises(httpx.HTTPStatusError):
         client.get_form("missing")
+
+
+# ---------------------------------------------------------------------------
+# Field builder tests
+# ---------------------------------------------------------------------------
+
+from supform_sdk import fields  # noqa: E402
+
+
+def _check(el, expected_type: str, expected_name: str = "q") -> None:
+    """Assert that el is a dict with the right type and name keys."""
+    assert isinstance(el, dict)
+    assert el["type"] == expected_type
+    assert el["name"] == expected_name
+
+
+def test_field_url():
+    _check(fields.Url("q"), "url")
+
+
+def test_field_phone():
+    _check(fields.Phone("q"), "phone")
+
+
+def test_field_decimal():
+    el = fields.Decimal("q", min=0.5, max=9.9)
+    _check(el, "decimal")
+    assert el["validation"] == {"min": 0.5, "max": 9.9}
+
+
+def test_field_decimal_no_bounds():
+    el = fields.Decimal("q")
+    _check(el, "decimal")
+    assert "validation" not in el
+
+
+def test_field_scale_defaults():
+    el = fields.Scale("q")
+    _check(el, "scale")
+    values = [o["value"] for o in el["options"]]
+    assert values == [1, 2, 3, 4, 5]
+
+
+def test_field_scale_custom():
+    el = fields.Scale("q", min=1, max=3)
+    values = [o["value"] for o in el["options"]]
+    assert values == [1, 2, 3]
+
+
+def test_field_ranking():
+    el = fields.Ranking("q", options=["a", "b", "c"])
+    _check(el, "ranking")
+    assert [o["value"] for o in el["options"]] == ["a", "b", "c"]
+
+
+def test_field_time():
+    _check(fields.Time("q"), "time")
+
+
+def test_field_matrix():
+    el = fields.Matrix("q", rows=["r1", "r2"], columns=["c1", "c2"])
+    _check(el, "matrix")
+    assert [o["value"] for o in el["rows"]] == ["r1", "r2"]
+    assert [o["value"] for o in el["columns"]] == ["c1", "c2"]
+
+
+def test_field_file():
+    _check(fields.File("q"), "file")
+
+
+def test_field_geopoint():
+    _check(fields.Geopoint("q"), "geopoint")
+
+
+def test_field_geotrace():
+    _check(fields.Geotrace("q"), "geotrace")
+
+
+def test_field_geoshape():
+    _check(fields.Geoshape("q"), "geoshape")
+
+
+def test_field_barcode():
+    _check(fields.Barcode("q"), "barcode")
+
+
+def test_field_hidden_no_default():
+    el = fields.Hidden("q")
+    _check(el, "hidden")
+    # defaultValue=None is filtered out by _base
+    assert "defaultValue" not in el
+
+
+def test_field_hidden_with_default():
+    el = fields.Hidden("q", default_value="prefill")
+    _check(el, "hidden")
+    assert el["defaultValue"] == "prefill"
+
+
+def test_field_section():
+    el = fields.Section("q", label="My Section")
+    _check(el, "section")
+    assert el["label"] == "My Section"
+
+
+def test_field_html():
+    el = fields.Html("q", label="<b>Bold</b>")
+    _check(el, "html")
+    assert el["label"] == "<b>Bold</b>"

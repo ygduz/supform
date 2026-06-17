@@ -123,12 +123,87 @@ def Calculated(name: str, *, calculate: str, **kw: Any) -> Element:
     return _base("calculated", name, calculate=calculate, readOnly=True, **kw)
 
 
-def Note(name: str, *, label: str, **kw: Any) -> Element:
-    return _base("note", name, label=label, **kw)
+def Barcode(name: str, **kw: Any) -> Element:
+    """A barcode / QR-code scan question."""
+    return _base("barcode", name, **kw)
+
+
+def Decimal(name: str, *, min: float | None = None, max: float | None = None, **kw: Any) -> Element:
+    validation = {k: v for k, v in {"min": min, "max": max}.items() if v is not None} or None
+    return _base("decimal", name, validation=validation, **kw)
+
+
+def File(name: str, **kw: Any) -> Element:
+    """A file-upload question."""
+    return _base("file", name, **kw)
+
+
+def Geopoint(name: str, **kw: Any) -> Element:
+    """A single GPS point capture question."""
+    return _base("geopoint", name, **kw)
+
+
+def Geoshape(name: str, **kw: Any) -> Element:
+    """A polygon / area capture question."""
+    return _base("geoshape", name, **kw)
+
+
+def Geotrace(name: str, **kw: Any) -> Element:
+    """A GPS trace (line) capture question."""
+    return _base("geotrace", name, **kw)
 
 
 def Group(name: str, *, elements: list[Element], **kw: Any) -> Element:
     return _base("group", name, elements=elements, **kw)
+
+
+def Hidden(name: str, *, default_value: Any = None, **kw: Any) -> Element:
+    """A hidden field — never shown to the respondent; carries a default value."""
+    return _base("hidden", name, defaultValue=default_value, **kw)
+
+
+def Html(name: str, *, label: str, **kw: Any) -> Element:
+    """A read-only HTML content block displayed to the respondent."""
+    return _base("html", name, label=label, **kw)
+
+
+def Matrix(name: str, *, rows: list[Any], columns: list[Any], **kw: Any) -> Element:
+    """A matrix / grid question with labelled rows and columns."""
+    return _base("matrix", name, rows=_options(rows), columns=_options(columns), **kw)
+
+
+def Note(name: str, *, label: str, **kw: Any) -> Element:
+    return _base("note", name, label=label, **kw)
+
+
+def Phone(name: str, **kw: Any) -> Element:
+    """A phone-number input question."""
+    return _base("phone", name, **kw)
+
+
+def Ranking(name: str, *, options: list[Any], **kw: Any) -> Element:
+    """A drag-to-rank question."""
+    return _base("ranking", name, options=_options(options), **kw)
+
+
+def Scale(name: str, *, min: int = 1, max: int = 5, **kw: Any) -> Element:
+    """A numeric scale question rendered as a labelled slider or button row."""
+    return _base("scale", name, options=_options(list(range(min, max + 1))), **kw)
+
+
+def Section(name: str, *, label: str, **kw: Any) -> Element:
+    """A visual section-divider / heading block."""
+    return _base("section", name, label=label, **kw)
+
+
+def Time(name: str, **kw: Any) -> Element:
+    """A time-only question."""
+    return _base("time", name, **kw)
+
+
+def Url(name: str, **kw: Any) -> Element:
+    """A URL input question."""
+    return _base("url", name, **kw)
 
 
 def QualityChecks(
