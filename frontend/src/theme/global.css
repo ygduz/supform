@@ -705,7 +705,8 @@ button:focus-visible {
 .file-name {
   font-size: 14px;
 }
-.field-label {
+/* Scoped to the form renderer — the canonical .field-label rule lives earlier in this file. */
+.form-renderer .field-label {
   display: block;
   font-weight: 600;
   margin-bottom: 6px;
@@ -807,7 +808,7 @@ button:focus-visible {
   margin-bottom: 24px;
 }
 .field label,
-.field-label {
+.field .field-label {
   display: block;
   font-weight: 600;
   font-size: var(--text-md);

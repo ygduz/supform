@@ -4,11 +4,11 @@
  *
  * Pure functions (no React) so they're easy to unit-test and reuse.
  */
+import { isNumericType } from "@/lib/fieldTypes";
 import { localize } from "@/lib/i18n";
 import type { Element, FormSchema } from "@/types/form-schema";
 
 const elementLabel = (el: Element): string => localize(el.label) || el.name;
-const NUMERIC_TYPES = new Set(["number", "integer", "decimal", "rating", "scale"]);
 
 export interface NumericStat {
   name: string;
@@ -47,7 +47,7 @@ export function numericStats(
         walk(el.elements ?? []);
         continue;
       }
-      if (!NUMERIC_TYPES.has(el.type)) continue;
+      if (!isNumericType(el.type)) continue;
 
       const values: number[] = [];
       for (const row of rows) {

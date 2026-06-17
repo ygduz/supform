@@ -31,6 +31,20 @@ const CONTAINER_TYPES: ReadonlySet<string> = new Set(["group", "repeat"]);
 /** Display-only types that collect no answer value (info text, raw HTML). */
 const PRESENTATIONAL_TYPES: ReadonlySet<string> = new Set(["note", "section", "html"]);
 
+/**
+ * Types whose answer value is a number (or ordered scale that maps to a number).
+ * NOTE: `calculated` is intentionally excluded here — it IS numeric for formula operands
+ * (FormulaBuilder adds it locally) but is NOT user-answerable, so it doesn't belong in
+ * the shared set that drives operator selection and analytics.
+ */
+const NUMERIC_TYPES: ReadonlySet<string> = new Set([
+  "number",
+  "integer",
+  "decimal",
+  "rating",
+  "scale",
+]);
+
 export function isChoiceType(type: ElementType): boolean {
   return CHOICE_TYPES.has(type);
 }
@@ -47,6 +61,11 @@ export function isPresentationalType(type: ElementType): boolean {
 /** Types with no answer value of their own: presentational text and containers. */
 export function isNoValueType(type: ElementType): boolean {
   return isPresentationalType(type) || isContainerType(type);
+}
+
+/** Types whose answer value is numeric. See NUMERIC_TYPES comment for what is excluded. */
+export function isNumericType(type: ElementType): boolean {
+  return NUMERIC_TYPES.has(type);
 }
 
 /** Types that carry an editable list of choice `options`. */

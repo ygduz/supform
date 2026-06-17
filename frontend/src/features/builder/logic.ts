@@ -44,20 +44,22 @@ const _ALL: { op: LogicOp; label: string }[] = [
   { op: "is_empty", label: "is empty" },
 ];
 
+import { isNumericType } from "./model";
+
 const NUMERIC_OPS: LogicOp[] = ["==", "!=", ">", ">=", "<", "<=", "is_answered", "is_empty"];
 const CHOICE_OPS: LogicOp[] = ["==", "!=", "is_answered", "is_empty"];
 const MULTI_OPS: LogicOp[] = ["contains", "not_contains", "is_answered", "is_empty"];
 const BOOL_OPS: LogicOp[] = ["==", "is_answered", "is_empty"];
 const TEXT_OPS: LogicOp[] = ["==", "!=", "is_answered", "is_empty"];
 
-const NUMERIC_TYPES = new Set(["number", "integer", "decimal", "rating", "scale"]);
 const DATE_TYPES = new Set(["date", "time", "datetime"]);
+// Intentionally excludes multi_choice: it gets MULTI_OPS (contains/not_contains), not CHOICE_OPS.
 const CHOICE_TYPES = new Set(["single_choice", "dropdown", "ranking"]);
 
 /** Operators appropriate for a given field type. */
 export function opsForType(type: string): { op: LogicOp; label: string }[] {
   let allowed: LogicOp[];
-  if (NUMERIC_TYPES.has(type) || DATE_TYPES.has(type)) allowed = NUMERIC_OPS;
+  if (isNumericType(type) || DATE_TYPES.has(type)) allowed = NUMERIC_OPS;
   else if (type === "multi_choice") allowed = MULTI_OPS;
   else if (type === "boolean") allowed = BOOL_OPS;
   else if (CHOICE_TYPES.has(type)) allowed = CHOICE_OPS;

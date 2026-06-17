@@ -3,8 +3,8 @@ import { useBuilderStore } from "@/stores/builderStore";
 import { useState } from "react";
 import { allElements, isNoValueType } from "./model";
 
-// Includes `calculated` (a computed numeric value) — intentionally broader than the
-// numeric set in logic.ts, which is about comparison operators, not formula operands.
+// Extends the shared isNumericType set with `calculated` — formula operands include computed
+// fields; `calculated` is excluded from isNumericType because it is not user-answerable.
 const NUMERIC_TYPES = new Set(["number", "integer", "decimal", "rating", "scale", "calculated"]);
 
 type ArithOp = "+" | "-" | "*" | "/";

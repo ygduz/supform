@@ -7,8 +7,8 @@ import { LogicBuilder } from "./LogicBuilder";
 import { fieldMeta } from "./fieldMeta";
 import { hasOptionList, isContainerType, isPresentationalType } from "./model";
 
-// Local to this panel — these classifications drive which validation inputs show, and are
-// not the same concept as the operator/value sets in logic.ts.
+// Local to this panel — drives which validation inputs (min/max) render. Narrower than
+// isNumericType: rating/scale have no meaningful min/max validation UI.
 const NUMERIC = new Set(["number", "integer", "decimal"]);
 const TEXTUAL = new Set(["text", "longtext", "email"]);
 

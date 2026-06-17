@@ -1,5 +1,6 @@
 import { ApiError, api } from "@/api/client";
 import { Alert, Button } from "@/components";
+import { isNumericType, isPresentationalType } from "@/lib/fieldTypes";
 import { LanguageContext, formLanguages, languageLabel, localize } from "@/lib/i18n";
 import { isNetworkError, queueSubmission } from "@/lib/offline";
 import type { Element, FormSchema, I18nString } from "@/types/form-schema";
@@ -21,8 +22,6 @@ interface Step {
   description?: I18nString;
   elements: Element[];
 }
-
-const PRESENTATIONAL = new Set(["note", "section", "html"]);
 
 /** Every answer-bearing name inside an element (descending groups/repeats). */
 function collectNames(el: Element): string[] {
@@ -51,11 +50,9 @@ function scoreFor(schema: FormSchema, answers: Answers): number {
   return total;
 }
 
-const NUMERIC_TYPES = new Set(["number", "integer", "decimal", "scale", "rating"]);
-
 /** Coerce a URL-string prefill value to the shape a field of `type` expects. */
 function coercePrefill(type: string, raw: string): unknown {
-  if (NUMERIC_TYPES.has(type)) {
+  if (isNumericType(type)) {
     const n = Number(raw);
     return Number.isNaN(n) ? raw : n;
   }
@@ -198,7 +195,7 @@ export function FormRenderer({
                   </Button>
                 </div>
                 {(el.elements ?? []).map((child) => {
-                  if (PRESENTATIONAL.has(child.type) || child.type === "hidden") return null;
+                  if (isPresentationalType(child.type) || child.type === "hidden") return null;
                   if (!evaluateBool(child.visibleIf, scope)) return null;
                   const errorKey = `${el.name}[${i}].${child.name}`;
                   return (
@@ -258,7 +255,7 @@ export function FormRenderer({
       );
     }
 
-    if (PRESENTATIONAL.has(el.type)) {
+    if (isPresentationalType(el.type)) {
       return (
         <div className="field" key={el.name}>
           {el.label && <p className="presentational">{P(el.label)}</p>}
