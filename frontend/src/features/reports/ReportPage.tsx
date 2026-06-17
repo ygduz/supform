@@ -2,6 +2,7 @@ import { type SubmissionRow, api } from "@/api/client";
 import { Button, EmptyState } from "@/components";
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
+import { FormContextNav } from "../form/FormContextNav";
 
 type WidgetType = "bar" | "pie" | "number" | "text";
 interface Widget {
@@ -207,6 +208,9 @@ export function ReportPage() {
 
   return (
     <div className="rpt-page">
+      <div className="no-print">
+        <FormContextNav formId={formId ?? ""} active="responses" />
+      </div>
       <div className="rpt-toolbar no-print">
         <div className="rpt-toolbar-head">
           <h2 className="rpt-page-title">Report</h2>

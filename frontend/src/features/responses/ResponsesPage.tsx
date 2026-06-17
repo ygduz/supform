@@ -1,8 +1,10 @@
 import { type SubmissionRow, type ValidationStatus, api, isAuthenticated } from "@/api/client";
 import { Alert, Button, EmptyState, Spinner, Tabs } from "@/components";
+import { localize } from "@/lib/i18n";
 import type { FormSchema } from "@/types/form-schema";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import { FormContextNav } from "../form/FormContextNav";
 import { AnalyticsPanel } from "./AnalyticsPanel";
 import { MapPanel } from "./MapPanel";
 import { WorkflowBoard } from "./WorkflowBoard";
@@ -290,9 +292,11 @@ export function ResponsesPage() {
 
   return (
     <section className="responses">
-      <nav className="responses-breadcrumb">
-        <Link to="/forms">← My forms</Link>
-      </nav>
+      <FormContextNav
+        formId={formId ?? ""}
+        title={schema ? localize(schema.title) : undefined}
+        active="responses"
+      />
       <header className="responses-header">
         <div>
           <h1>Responses</h1>

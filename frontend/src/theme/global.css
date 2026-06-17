@@ -2192,6 +2192,54 @@ body,
 .responses-breadcrumb a:hover {
   color: var(--primary);
 }
+
+/* ── Form-context navigation (keep "I'm working on this form" anchored) ── */
+.form-context-nav {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+.form-context-back {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  text-decoration: none;
+}
+.form-context-back:hover {
+  color: var(--primary);
+}
+.form-context-title {
+  font-weight: 600;
+  color: var(--text);
+  max-width: 320px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.form-context-tabs {
+  display: flex;
+  gap: 4px;
+  margin-left: auto;
+}
+.form-context-tabs a {
+  padding: 6px 14px;
+  border-radius: var(--radius);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-decoration: none;
+  transition: background var(--dur, 180ms) var(--ease, cubic-bezier(0.4, 0, 0.2, 1));
+}
+.form-context-tabs a:hover {
+  background: var(--surface);
+}
+.form-context-tabs a.active {
+  background: var(--primary);
+  color: var(--surface-raised);
+}
 .responses-header {
   display: flex;
   align-items: flex-end;
