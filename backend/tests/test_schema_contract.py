@@ -45,6 +45,7 @@ def _aliases(model: type) -> set[str]:
 
 # ── Existing struct-field tests ──────────────────────────────────────────────
 
+
 def test_settings_fields_match_json_schema() -> None:
     json_props = set(_DEFS["settings"]["properties"])
     assert _aliases(FormSettings) == json_props, (
@@ -61,6 +62,7 @@ def test_choice_fields_match_json_schema() -> None:
 
 
 # ── ElementType four-way contract tests ──────────────────────────────────────
+
 
 def test_element_types_in_typescript() -> None:
     """Every Pydantic ElementType must appear as a string literal in form-schema.ts."""
