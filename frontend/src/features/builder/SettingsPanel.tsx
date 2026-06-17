@@ -201,6 +201,16 @@ export function SettingsPanel() {
       </label>
 
       <label className="prop">
+        <span>Confirmation title</span>
+        <input
+          type="text"
+          value={localize(settings.confirmationTitle)}
+          placeholder="Thank you!"
+          onChange={(e) => setSettings({ confirmationTitle: e.target.value || undefined })}
+        />
+      </label>
+
+      <label className="prop">
         <span>Confirmation message</span>
         <input
           type="text"

@@ -143,6 +143,8 @@ export interface FormSettings {
   closeDate?: string;
   maxResponses?: number;
   submitButtonText?: I18nString;
+  /** Heading shown on the thank-you screen (defaults to "Thank you!"). */
+  confirmationTitle?: I18nString;
   confirmationMessage?: I18nString;
   /** Optional welcome screen shown before the first step (paged / one-question modes). */
   welcomeTitle?: I18nString;

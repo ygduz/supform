@@ -396,7 +396,11 @@ export function FormRenderer({
   }
 
   const theme = schema.theme;
-  const hasWelcome = Boolean(settings?.welcomeTitle || settings?.welcomeMessage);
+  // Show a welcome/Start screen for multi-step forms even when the author didn't configure
+  // one — it frames the task and sets expectations (MS-Forms style). Single-page forms stay
+  // direct. An author can still customise the title/message via settings.
+  const hasWelcome =
+    Boolean(settings?.welcomeTitle || settings?.welcomeMessage) || steps.length > 1;
 
   // Quiz scoring: pick the matching outcome band; its redirect (if any) wins.
   const quizScore = settings?.quizMode ? scoreFor(schema, answers) : null;
@@ -440,7 +444,7 @@ export function FormRenderer({
     };
     return (
       <div className="confirmation">
-        <h2 className="confirmation-title">Thank you!</h2>
+        <h2 className="confirmation-title">{L(settings?.confirmationTitle) || "Thank you!"}</h2>
         {settings?.quizMode && (
           <p className="quiz-score">
             Your score: <strong>{quizScore}</strong>
@@ -548,6 +552,11 @@ export function FormRenderer({
             {L(settings?.submitButtonText) || "Submit"}
           </Button>
         )}
+
+        {/* Trust/safety footer (MS-Forms style): reassures respondents on unknown links. */}
+        <p className="form-trust-note">
+          🔒 Never share passwords or sensitive personal details unless you trust this form's owner.
+        </p>
       </form>
     </LanguageContext.Provider>
   );

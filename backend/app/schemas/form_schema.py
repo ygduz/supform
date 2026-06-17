@@ -180,6 +180,7 @@ class FormSettings(BaseModel):
     close_date: str | None = Field(default=None, alias="closeDate")
     max_responses: int | None = Field(default=None, alias="maxResponses")
     submit_button_text: I18nString | None = Field(default=None, alias="submitButtonText")
+    confirmation_title: I18nString | None = Field(default=None, alias="confirmationTitle")
     confirmation_message: I18nString | None = Field(default=None, alias="confirmationMessage")
     welcome_title: I18nString | None = Field(default=None, alias="welcomeTitle")
     welcome_message: I18nString | None = Field(default=None, alias="welcomeMessage")
