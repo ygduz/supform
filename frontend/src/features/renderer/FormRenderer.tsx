@@ -103,6 +103,9 @@ export function FormRenderer({
   const [step, setStep] = useState(0);
   const [started, setStarted] = useState(false);
   const startedAt = useRef(new Date().toISOString());
+  // Scroll-linked progress for long single-page forms (completion psychology: people
+  // persist when they can see how far they've come). Stepped modes use the step bar instead.
+  const [scrollProgress, setScrollProgress] = useState(0);
 
   // Multi-language support: offer a switcher when the form declares >1 language.
   const languages = formLanguages(schema.languages, schema.defaultLanguage);
@@ -306,6 +309,30 @@ export function FormRenderer({
   const current = steps[stepIndex] ?? { key: "empty", elements: [] };
   const isLastStep = stepIndex >= steps.length - 1;
 
+  // A single-step form with many questions benefits from a scroll progress bar even when
+  // the author didn't explicitly enable showProgressBar. Threshold keeps short forms clean.
+  const SCROLL_PROGRESS_THRESHOLD = 6;
+  const answerableCount = current.elements.filter((el) => !isPresentationalType(el.type)).length;
+  const showScrollProgress =
+    steps.length === 1 &&
+    settings?.showProgressBar !== false &&
+    answerableCount >= SCROLL_PROGRESS_THRESHOLD;
+
+  useEffect(() => {
+    if (!showScrollProgress) return;
+    const onScroll = () => {
+      const max = document.documentElement.scrollHeight - window.innerHeight;
+      setScrollProgress(max > 0 ? Math.min(1, window.scrollY / max) : 1);
+    };
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+    };
+  }, [showScrollProgress]);
+
   /** Jump to the first step containing any of the errored fields (after full validation). */
   function stepFor(errorKeys: string[]): number {
     return steps.findIndex((s) =>
@@ -480,6 +507,12 @@ export function FormRenderer({
             max={steps.length}
             aria-label="Form progress"
           />
+        )}
+
+        {showScrollProgress && (
+          <div className="scroll-progress" aria-hidden="true">
+            <div className="scroll-progress-bar" style={{ width: `${scrollProgress * 100}%` }} />
+          </div>
         )}
 
         <div className="form-step" key={current.key}>

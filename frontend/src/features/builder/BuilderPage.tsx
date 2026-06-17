@@ -196,6 +196,18 @@ export function BuilderPage() {
     }
   }, [store.formId, formId, navigate]);
 
+  // Loss-aversion guard: warn before leaving with unsaved edits. Autosave usually beats
+  // this, but a fast close/refresh can still race the 2s autosave timer.
+  useEffect(() => {
+    if (!dirty) return;
+    const warn = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [dirty]);
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement | null;
@@ -314,7 +326,11 @@ export function BuilderPage() {
             ↷
           </Button>
           {error ? <span className="error">{error}</span> : null}
-          <span className="muted">
+          <span
+            className="save-status"
+            data-state={status === "saving" ? "saving" : dirty ? "dirty" : "saved"}
+            aria-live="polite"
+          >
             {status === "saving" ? "Saving…" : dirty ? "Unsaved changes" : "Saved ✓"}
           </span>
           {store.formId ? (

@@ -1065,6 +1065,38 @@ body,
   opacity: 0.45;
   cursor: default;
 }
+/* Save indicator: subtle but legible, with a brief confirm flash on "saved" so the
+   user trusts that autosave fired and can stop worrying about losing work. */
+.save-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  white-space: nowrap;
+  transition: color var(--dur, 180ms) var(--ease, cubic-bezier(0.4, 0, 0.2, 1));
+}
+.save-status[data-state="dirty"] {
+  color: var(--subtle);
+}
+.save-status[data-state="saving"] {
+  color: var(--text-secondary, var(--subtle));
+}
+.save-status[data-state="saved"] {
+  color: var(--success);
+  animation: save-flash 1.8s var(--ease, cubic-bezier(0.4, 0, 0.2, 1));
+}
+@keyframes save-flash {
+  0% {
+    color: var(--success);
+    transform: scale(1.04);
+  }
+  18% {
+    transform: scale(1);
+  }
+  100% {
+    color: var(--subtle);
+  }
+}
 /* Keep the toolbar buttons on one line; the secondary group scrolls if needed
    but the primary actions (Save / Publish) never shrink out of reach. */
 .toolbar-actions .btn {
@@ -1173,8 +1205,11 @@ body,
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--surface-raised);
-  cursor: pointer;
+  cursor: grab;
   font-size: 14px;
+}
+.palette-item:active {
+  cursor: grabbing;
 }
 .palette-item:hover {
   border-color: var(--primary);
@@ -3003,6 +3038,24 @@ body,
 .form-progress::-moz-progress-bar {
   background: var(--primary);
   border-radius: 999px;
+}
+/* Scroll-linked progress for long single-page forms — sticky sliver at the top. */
+.scroll-progress {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  width: 100%;
+  height: 4px;
+  margin: 0 0 16px;
+  border-radius: 999px;
+  background: var(--surface);
+  overflow: hidden;
+}
+.scroll-progress-bar {
+  height: 100%;
+  background: var(--primary);
+  border-radius: 999px;
+  transition: width 0.1s linear;
 }
 .form-step {
   animation: stepIn 0.25s ease;
@@ -5318,6 +5371,15 @@ body,
   .import-section-label {
     flex-direction: column;
   }
+}
+
+/* Char counter under text/longtext fields (mirrors maxLength validation). */
+.char-counter {
+  display: block;
+  margin-top: 4px;
+  font-size: var(--text-xs, 11px);
+  color: var(--subtle);
+  text-align: right;
 }
 
 /* ── Card label display/edit modes ─────────────────────────────── */

@@ -30,20 +30,32 @@ const choiceLabel = (opt: Choice, lang: string): string =>
 const visibleChoices = (options: Choice[], scope: Record<string, unknown> = {}): Choice[] =>
   options.filter((opt) => evaluateBool(opt.visibleIf, scope));
 
+/**
+ * Mobile keyboard + browser-autofill hints per text subtype. These drive which on-screen
+ * keyboard a phone shows (`inputMode`) and what the browser offers to autofill
+ * (`autoComplete`) — small attributes with an outsized effect on mobile completion rates.
+ */
+const TEXT_INPUT_HINTS: Record<
+  string,
+  { type: string; inputMode?: string; autoComplete?: string }
+> = {
+  email: { type: "email", inputMode: "email", autoComplete: "email" },
+  url: { type: "url", inputMode: "url", autoComplete: "url" },
+  phone: { type: "tel", inputMode: "tel", autoComplete: "tel" },
+  text: { type: "text" },
+};
+
 const TextField: Renderer = ({ element, value, onChange }) => {
   const lang = useContext(LanguageContext);
+  const hint = TEXT_INPUT_HINTS[element.type] ?? TEXT_INPUT_HINTS.text;
   return (
     <input
       id={element.name}
-      type={
-        element.type === "email"
-          ? "email"
-          : element.type === "url"
-            ? "url"
-            : element.type === "phone"
-              ? "tel"
-              : "text"
-      }
+      type={hint.type}
+      inputMode={hint.inputMode as React.HTMLAttributes<HTMLInputElement>["inputMode"]}
+      autoComplete={hint.autoComplete}
+      enterKeyHint="next"
+      maxLength={element.validation?.maxLength}
       placeholder={localize(element.placeholder, lang)}
       value={(value as string) ?? ""}
       onChange={(e) => onChange(e.target.value)}
@@ -53,13 +65,24 @@ const TextField: Renderer = ({ element, value, onChange }) => {
 
 const LongText: Renderer = ({ element, value, onChange }) => {
   const lang = useContext(LanguageContext);
+  const max = element.validation?.maxLength;
+  const len = typeof value === "string" ? value.length : 0;
   return (
-    <textarea
-      id={element.name}
-      placeholder={localize(element.placeholder, lang)}
-      value={(value as string) ?? ""}
-      onChange={(e) => onChange(e.target.value)}
-    />
+    <>
+      <textarea
+        id={element.name}
+        enterKeyHint="enter"
+        maxLength={max}
+        placeholder={localize(element.placeholder, lang)}
+        value={(value as string) ?? ""}
+        onChange={(e) => onChange(e.target.value)}
+      />
+      {max ? (
+        <span className="char-counter" aria-live="polite">
+          {len} / {max}
+        </span>
+      ) : null}
+    </>
   );
 };
 
@@ -69,6 +92,8 @@ const NumberField: Renderer = ({ element, value, onChange }) => {
     <input
       id={element.name}
       type="number"
+      inputMode={element.type === "integer" ? "numeric" : "decimal"}
+      enterKeyHint="next"
       step={element.type === "integer" ? "1" : "any"}
       min={element.validation?.min}
       max={element.validation?.max}
