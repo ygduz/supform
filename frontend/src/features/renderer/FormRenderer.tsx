@@ -396,11 +396,11 @@ export function FormRenderer({
   }
 
   const theme = schema.theme;
-  // Show a welcome/Start screen for multi-step forms even when the author didn't configure
-  // one — it frames the task and sets expectations (MS-Forms style). Single-page forms stay
-  // direct. An author can still customise the title/message via settings.
-  const hasWelcome =
-    Boolean(settings?.welcomeTitle || settings?.welcomeMessage) || steps.length > 1;
+  // The welcome screen is opt-in and content-driven: it appears only when the author wrote
+  // a welcome title/message (editable in builder Settings). A bare Start gate with no message
+  // is pure friction, so we never force one from structure alone — the title + description at
+  // the top of the form serve as the lightweight intro, MS-Forms style.
+  const hasWelcome = Boolean(settings?.welcomeTitle || settings?.welcomeMessage);
 
   // Quiz scoring: pick the matching outcome band; its redirect (if any) wins.
   const quizScore = settings?.quizMode ? scoreFor(schema, answers) : null;

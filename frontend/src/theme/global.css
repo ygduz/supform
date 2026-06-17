@@ -3327,15 +3327,42 @@ body,
 .form-card-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
-  padding: 10px 16px 12px;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 10px 10px;
   border-top: 1px solid var(--border);
   font-size: 13px;
 }
+/* Calm, MS-Forms-style action row: text links that reveal a soft pill on hover instead
+   of busy underlines, with the destructive action pushed clear to the right. */
+.form-card-actions > a,
 .form-card-actions .link-button {
   align-self: auto;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm, 6px);
+  color: var(--text-secondary);
+  text-decoration: none;
+  font-weight: 500;
+  transition: background var(--duration-fast) var(--ease), color var(--duration-fast) var(--ease);
+}
+.form-card-actions > a:hover,
+.form-card-actions .link-button:hover {
+  background: var(--surface);
+  color: var(--primary);
+}
+/* Edit is the primary affordance — give it the accent colour at rest. */
+.form-card-actions > a:first-child {
+  color: var(--primary);
+  font-weight: 600;
 }
 .link-button.danger {
+  color: var(--danger-hover);
+}
+.form-card-actions .link-button.danger {
+  margin-left: auto;
+}
+.form-card-actions .link-button.danger:hover {
+  background: var(--danger-light, color-mix(in srgb, var(--danger) 12%, transparent));
   color: var(--danger-hover);
 }
 
