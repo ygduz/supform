@@ -1,4 +1,4 @@
-import { Button } from "@/components";
+import { Button, Modal } from "@/components";
 import { localize } from "@/lib/i18n";
 import { useBuilderStore } from "@/stores/builderStore";
 import type { ElementType, FormSchema } from "@/types/form-schema";
@@ -37,7 +37,7 @@ import { ThemePanel } from "./ThemePanel";
 import { TranslatePanel } from "./TranslatePanel";
 import { WebhooksDialog } from "./WebhooksDialog";
 import { confirmDeleteContainer, findElement, isContainerType, pageElements } from "./model";
-import { ELEMENT_PALETTE } from "./palette";
+import { ADVANCED_PALETTE, COMMON_PALETTE, ELEMENT_PALETTE } from "./palette";
 
 type Tab = "overview" | "properties" | "theme" | "settings" | "translate" | "preview";
 
@@ -53,6 +53,10 @@ export function BuilderPage() {
   const [integrations, setIntegrations] = useState(false);
   const [showLibrary, setShowLibrary] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const [hintDismissed, setHintDismissed] = useState(
+    () => localStorage.getItem("supform.builderHintDismissed") === "1",
+  );
   const importRef = useRef<HTMLInputElement>(null);
   const isMultilingual = (schema.languages?.length ?? 0) >= 2;
 
@@ -216,9 +220,18 @@ export function BuilderPage() {
         target instanceof HTMLTextAreaElement ||
         target?.isContentEditable;
 
-      // Esc: cancel group-link mode or clear selection.
+      // "?" opens the keyboard-shortcuts legend (when not typing into a field).
+      if (e.key === "?" && !inText) {
+        e.preventDefault();
+        setShortcutsOpen((o) => !o);
+        return;
+      }
+
+      // Esc: close the shortcuts help, cancel group-link mode, or clear selection.
       if (e.key === "Escape") {
-        if (groupingSource) {
+        if (shortcutsOpen) {
+          setShortcutsOpen(false);
+        } else if (groupingSource) {
           setGroupingSource(null);
         } else {
           store.clearSelection();
@@ -282,7 +295,7 @@ export function BuilderPage() {
 
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [groupingSource, selectedName, selectedNames, schema, activePage, store]);
+  }, [groupingSource, shortcutsOpen, selectedName, selectedNames, schema, activePage, store]);
 
   const elements = pageElements(schema, activePage);
   const selected = selectedName ? findElement(schema, selectedName) : null;
@@ -405,6 +418,26 @@ export function BuilderPage() {
         </div>
       </header>
 
+      {!hintDismissed && (
+        <div className="builder-hint">
+          <span>
+            <strong>1.</strong> Add a question · <strong>2.</strong> Preview · <strong>3.</strong>{" "}
+            Publish &amp; share. Press <kbd>?</kbd> for shortcuts.
+          </span>
+          <button
+            type="button"
+            className="builder-hint-close"
+            aria-label="Dismiss"
+            onClick={() => {
+              localStorage.setItem("supform.builderHintDismissed", "1");
+              setHintDismissed(true);
+            }}
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       {/* One DndContext covers both the palette (useDraggable) and the canvas (useSortable). */}
       <DndContext
         sensors={sensors}
@@ -443,7 +476,7 @@ export function BuilderPage() {
             ) : (
               <>
                 <p className="palette-heading">Add a question</p>
-                {ELEMENT_PALETTE.map((item) => (
+                {COMMON_PALETTE.map((item) => (
                   <PaletteItem
                     key={item.type}
                     type={item.type}
@@ -451,6 +484,17 @@ export function BuilderPage() {
                     icon={item.icon}
                   />
                 ))}
+                <details className="palette-more">
+                  <summary>More types</summary>
+                  {ADVANCED_PALETTE.map((item) => (
+                    <PaletteItem
+                      key={item.type}
+                      type={item.type}
+                      label={item.label}
+                      icon={item.icon}
+                    />
+                  ))}
+                </details>
               </>
             )}
           </aside>
@@ -605,6 +649,47 @@ export function BuilderPage() {
       {shareLink && store.formId && (
         <ShareLinkDialog formId={store.formId} onClose={() => setShareLink(false)} />
       )}
+      <Modal
+        open={shortcutsOpen}
+        onClose={() => setShortcutsOpen(false)}
+        title="Keyboard shortcuts"
+        width="sm"
+      >
+        <dl className="shortcuts-list">
+          <div>
+            <dt>Ctrl/⌘ + Z</dt>
+            <dd>Undo</dd>
+          </div>
+          <div>
+            <dt>Ctrl/⌘ + Shift + Z</dt>
+            <dd>Redo</dd>
+          </div>
+          <div>
+            <dt>Ctrl/⌘ + D</dt>
+            <dd>Duplicate selection</dd>
+          </div>
+          <div>
+            <dt>Ctrl/⌘ + G</dt>
+            <dd>Group selected questions</dd>
+          </div>
+          <div>
+            <dt>Ctrl/⌘ + A</dt>
+            <dd>Select all on page</dd>
+          </div>
+          <div>
+            <dt>Delete / Backspace</dt>
+            <dd>Remove selection</dd>
+          </div>
+          <div>
+            <dt>Esc</dt>
+            <dd>Clear selection</dd>
+          </div>
+          <div>
+            <dt>?</dt>
+            <dd>Toggle this help</dd>
+          </div>
+        </dl>
+      </Modal>
     </div>
   );
 }

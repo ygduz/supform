@@ -222,13 +222,20 @@ export const useBuilderStore = create<BuilderState>((rawSet, get) => {
           rawSet({ templateLoaded: false });
           return;
         }
+        // Seed one blank question so the canvas is never an intimidating blank slate —
+        // the user can start typing immediately (MS-Forms "default effect").
+        const { schema: seeded, name: firstName } = model.addElement(
+          model.createEmptyForm(),
+          "text",
+          { pageIndex: 0 },
+        );
         quiet(() =>
           rawSet({
             formId: null,
             projectId: null,
-            schema: model.createEmptyForm(),
-            selectedName: null,
-            selectedNames: new Set<string>(),
+            schema: seeded,
+            selectedName: firstName,
+            selectedNames: new Set<string>([firstName]),
             activePage: 0,
             dirty: false,
             past: [],

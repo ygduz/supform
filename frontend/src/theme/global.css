@@ -1011,6 +1011,59 @@ body,
   background: var(--surface);
 }
 
+/* First-run guidance strip — dismissible, shows the 3-step happy path. */
+.builder-hint {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-shrink: 0;
+  padding: 8px 20px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  background: var(--info-light, var(--surface));
+  border-bottom: 1px solid var(--border);
+}
+.builder-hint kbd {
+  font-family: inherit;
+  border: 1px solid var(--border-strong, var(--border));
+  border-radius: 4px;
+  padding: 0 5px;
+  background: var(--surface-raised);
+}
+.builder-hint-close {
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: var(--subtle);
+  font-size: 13px;
+  line-height: 1;
+}
+.builder-hint-close:hover {
+  color: var(--text);
+}
+
+/* Keyboard-shortcut legend rows. */
+.shortcuts-list > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border);
+}
+.shortcuts-list > div:last-child {
+  border-bottom: none;
+}
+.shortcuts-list dt {
+  font-weight: 600;
+  color: var(--text);
+}
+.shortcuts-list dd {
+  margin: 0;
+  color: var(--text-secondary);
+  text-align: right;
+}
+
 /* Sticky top toolbar — never scrolls away */
 .builder-toolbar {
   display: flex;
@@ -1214,6 +1267,32 @@ body,
 .palette-item:hover {
   border-color: var(--primary);
   background: var(--surface);
+}
+/* "More types" disclosure groups the advanced field types out of the first-run view. */
+.palette-more {
+  margin-top: 8px;
+}
+.palette-more > summary {
+  cursor: pointer;
+  list-style: none;
+  padding: 8px 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  user-select: none;
+}
+.palette-more > summary::-webkit-details-marker {
+  display: none;
+}
+.palette-more > summary::before {
+  content: "▸ ";
+  color: var(--subtle);
+}
+.palette-more[open] > summary::before {
+  content: "▾ ";
+}
+.palette-more > .palette-item {
+  margin-top: 6px;
 }
 
 /* Middle column: scrollable canvas */
