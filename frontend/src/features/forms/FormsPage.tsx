@@ -1,10 +1,23 @@
 import { type FormListItem, api, isAuthenticated } from "@/api/client";
-import { Badge, Button, Card, EmptyState, Spinner } from "@/components";
+import { Badge, Card, EmptyState, Spinner } from "@/components";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
 type Status = "loading" | "ready" | "error";
 type SortKey = "updated" | "created" | "responses" | "title";
+
+/** Human-readable relative time: "just now", "5m ago", "3h ago", "2d ago", "Jun 3". */
+function timeAgo(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const m = Math.floor(diff / 60_000);
+  if (m < 1) return "just now";
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  const d = Math.floor(h / 24);
+  if (d < 7) return `${d}d ago`;
+  return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
 
 /** Deterministic pastel gradient from a string. */
 function cardGradient(seed: string): string {
@@ -205,8 +218,11 @@ export function FormsPage() {
                       <strong>{form.response_count}</strong>{" "}
                       {form.response_count === 1 ? "response" : "responses"}
                     </span>
-                    <span className="muted">
-                      · {new Date(form.updated_at).toLocaleDateString()}
+                    <span
+                      className="form-card-updated muted"
+                      title={new Date(form.updated_at).toLocaleString()}
+                    >
+                      · Updated {timeAgo(form.updated_at)}
                     </span>
                   </p>
                 </div>
@@ -229,9 +245,9 @@ export function FormsPage() {
                 <button type="button" className="link-button" onClick={() => onDuplicate(form)}>
                   Duplicate
                 </button>
-                <Button variant="danger" size="sm" onClick={() => onDelete(form)}>
+                <button type="button" className="link-button danger" onClick={() => onDelete(form)}>
                   Delete
-                </Button>
+                </button>
               </footer>
             </Card>
           ))}

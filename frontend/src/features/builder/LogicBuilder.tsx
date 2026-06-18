@@ -3,10 +3,7 @@ import { useBuilderStore } from "@/stores/builderStore";
 import type { Element } from "@/types/form-schema";
 import { useState } from "react";
 import { type LogicCondition, NO_VALUE_OPS, opsForType, parseLogic, serializeLogic } from "./logic";
-import { allElements, isContainerType } from "./model";
-
-const NO_VALUE_TYPES = new Set(["note", "section", "html", "group", "repeat"]);
-const NUMERIC_TYPES = new Set(["number", "integer", "decimal", "rating", "scale"]);
+import { allElements, isNoValueType, isNumericType } from "./model";
 
 /**
  * Visual editor for one logic rule (visibleIf / requiredIf): condition rows of
@@ -32,7 +29,7 @@ export function LogicBuilder({
   const advanced = rawMode || (value !== undefined && value !== "" && parsed === null);
 
   const fields = allElements(schema).filter(
-    (el) => el.name !== excludeName && !NO_VALUE_TYPES.has(el.type) && !isContainerType(el.type),
+    (el) => el.name !== excludeName && !isNoValueType(el.type),
   );
 
   function commit(conditions: LogicCondition[], connective: "and" | "or") {
@@ -133,7 +130,7 @@ export function LogicBuilder({
 function defaultValueFor(el: Element): string | number | boolean {
   if (el.options?.length) return el.options[0].value as string | number | boolean;
   if (el.type === "boolean") return true;
-  if (NUMERIC_TYPES.has(el.type)) return 0;
+  if (isNumericType(el.type)) return 0;
   return "";
 }
 
@@ -247,7 +244,7 @@ function ValueInput({
     );
   }
 
-  if (target && NUMERIC_TYPES.has(target.type)) {
+  if (target && isNumericType(target.type)) {
     return (
       <input
         aria-label="Value"

@@ -2,15 +2,13 @@ import { type QuestionTemplate, api } from "@/api/client";
 import { useBuilderStore } from "@/stores/builderStore";
 import type { Element } from "@/types/form-schema";
 import { useEffect, useMemo, useState } from "react";
-import { ELEMENT_PALETTE } from "./palette";
+import { fieldMeta } from "./fieldMeta";
 
 interface Props {
   onClose: () => void;
 }
 
-function typeLabel(type: string): string {
-  return ELEMENT_PALETTE.find((p) => p.type === type)?.label ?? type.replace(/_/g, " ");
-}
+const typeLabel = (type: string): string => fieldMeta(type).label;
 
 export function QuestionLibraryPanel({ onClose }: Props) {
   const insertElement = useBuilderStore((s) => s.insertElement);

@@ -120,20 +120,18 @@ class Client:
         )
 
     def set_workflow_step(self, submission_id: str, step: str) -> dict[str, Any]:
-        return self._patch(f"/api/v1/submissions/{submission_id}/workflow-step?step={step}", {})
+        return self._patch(
+            f"/api/v1/submissions/{submission_id}/workflow-step", params={"step": step}
+        )
 
     # ---- inbox ----
     def list_inbox(self, *, unread_only: bool = False, limit: int = 50) -> list[dict[str, Any]]:
-        return self._get(
-            "/api/v1/inbox", params={"unread_only": unread_only, "limit": limit}
-        )
+        return self._get("/api/v1/inbox", params={"unread_only": unread_only, "limit": limit})
 
     # ---- exports ----
     def export(self, form_id: str, *, format: str = "csv") -> bytes:
         """Download submissions as a file (csv/xlsx/json/geojson/spss/...). Returns raw bytes."""
-        resp = self._http.get(f"/api/v1/forms/{form_id}/export", params={"format": format})
-        resp.raise_for_status()
-        return resp.content
+        return self._get_bytes(f"/api/v1/forms/{form_id}/export", params={"format": format})
 
     def export_dataframe(self, form_id: str):
         """Convenience: return submissions as a pandas DataFrame (requires pandas)."""
@@ -156,29 +154,45 @@ class Client:
         self._delete(f"/api/v1/forms/{form_id}/webhooks/{webhook_id}")
 
     # ---- internals ----
-    def _post(self, path: str, json: dict[str, Any]) -> Any:
-        resp = self._http.post(path, json=json)
+    def _request(
+        self,
+        method: str,
+        path: str,
+        *,
+        json: dict[str, Any] | None = None,
+        params: dict[str, Any] | None = None,
+    ) -> Any:
+        """Issue a request, raise on HTTP errors, and decode a JSON body when present."""
+        resp = self._http.request(method, path, json=json, params=params)
         resp.raise_for_status()
         return resp.json() if resp.content else None
+
+    def _post(self, path: str, json: dict[str, Any]) -> Any:
+        return self._request("POST", path, json=json)
 
     def _put(self, path: str, json: dict[str, Any]) -> Any:
-        resp = self._http.put(path, json=json)
-        resp.raise_for_status()
-        return resp.json() if resp.content else None
+        return self._request("PUT", path, json=json)
 
-    def _patch(self, path: str, json: dict[str, Any]) -> Any:
-        resp = self._http.patch(path, json=json)
-        resp.raise_for_status()
-        return resp.json() if resp.content else None
+    def _patch(
+        self,
+        path: str,
+        json: dict[str, Any] | None = None,
+        *,
+        params: dict[str, Any] | None = None,
+    ) -> Any:
+        return self._request("PATCH", path, json=json, params=params)
 
     def _get(self, path: str, params: dict[str, Any] | None = None) -> Any:
-        resp = self._http.get(path, params=params)
+        return self._request("GET", path, params=params)
+
+    def _get_bytes(self, path: str, *, params: dict[str, Any] | None = None) -> bytes:
+        """Like `_get`, but return the raw response body (for file downloads)."""
+        resp = self._http.request("GET", path, params=params)
         resp.raise_for_status()
-        return resp.json()
+        return resp.content
 
     def _delete(self, path: str) -> None:
-        resp = self._http.delete(path)
-        resp.raise_for_status()
+        self._request("DELETE", path)
 
     def close(self) -> None:
         self._http.close()

@@ -1,8 +1,10 @@
 import { type SubmissionRow, type ValidationStatus, api, isAuthenticated } from "@/api/client";
-import { Alert, Button, EmptyState, Spinner, Tabs } from "@/components";
+import { Alert, Button, EmptyState, Modal, Spinner, Tabs } from "@/components";
+import { localize } from "@/lib/i18n";
 import type { FormSchema } from "@/types/form-schema";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import { FormContextNav } from "../form/FormContextNav";
 import { AnalyticsPanel } from "./AnalyticsPanel";
 import { MapPanel } from "./MapPanel";
 import { WorkflowBoard } from "./WorkflowBoard";
@@ -53,6 +55,9 @@ export function ResponsesPage() {
   const [view, setView] = useState<View>("analytics");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [editState, setEditState] = useState<EditState | null>(null);
+  const [editHistory, setEditHistory] = useState<
+    Array<{ id: string; changed_fields: string[]; created_at: string }>
+  >([]);
   const [search, setSearch] = useState("");
   const editRef = useRef<HTMLTextAreaElement>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -126,6 +131,13 @@ export function ResponsesPage() {
       saving: false,
       error: null,
     });
+    setEditHistory([]);
+    if (formId) {
+      api
+        .getSubmissionEdits(formId, row.id)
+        .then(setEditHistory)
+        .catch(() => {});
+    }
   }
 
   async function saveEdit() {
@@ -290,6 +302,11 @@ export function ResponsesPage() {
 
   return (
     <section className="responses">
+      <FormContextNav
+        formId={formId ?? ""}
+        title={schema ? localize(schema.title) : undefined}
+        active="responses"
+      />
       <header className="responses-header">
         <div>
           <h1>Responses</h1>
@@ -301,85 +318,62 @@ export function ResponsesPage() {
           <Link to={`/forms/${formId}/report`} className="button secondary">
             Report
           </Link>
-          <span className="muted">Export:</span>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => download("csv")}
-            disabled={rows.length === 0}
-          >
-            CSV
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => download("xlsx")}
-            disabled={rows.length === 0}
-          >
-            XLSX
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => download("json")}
-            disabled={rows.length === 0}
-          >
-            JSON
-          </Button>
-          {hasGeo && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => download("geojson")}
-              disabled={rows.length === 0}
-            >
-              GeoJSON
-            </Button>
-          )}
-          {hasGeo && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => download("kml")}
-              disabled={rows.length === 0}
-            >
-              KML
-            </Button>
-          )}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => download("spss")}
-            disabled={rows.length === 0}
-          >
-            SPSS
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => download("xlsform")}>
-            XLSForm
-          </Button>
-          {hasMedia && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={async () => {
-                if (!formId) return;
-                try {
-                  const { blob, filename } = await api.exportMediaZip(formId);
-                  const url = URL.createObjectURL(blob);
-                  const a = document.createElement("a");
-                  a.href = url;
-                  a.download = filename;
-                  a.click();
-                  URL.revokeObjectURL(url);
-                } catch (err) {
-                  setError((err as Error).message);
-                }
-              }}
-              disabled={rows.length === 0}
-            >
-              Media ZIP
-            </Button>
-          )}
+          <details className="export-dropdown">
+            <summary className="button outline">Export ▾</summary>
+            <div className="export-menu">
+              <button type="button" onClick={() => download("csv")} disabled={rows.length === 0}>
+                CSV
+              </button>
+              <button type="button" onClick={() => download("xlsx")} disabled={rows.length === 0}>
+                XLSX
+              </button>
+              <button type="button" onClick={() => download("json")} disabled={rows.length === 0}>
+                JSON
+              </button>
+              <button type="button" onClick={() => download("spss")} disabled={rows.length === 0}>
+                SPSS
+              </button>
+              <button type="button" onClick={() => download("xlsform")}>
+                XLSForm
+              </button>
+              {hasGeo && (
+                <button
+                  type="button"
+                  onClick={() => download("geojson")}
+                  disabled={rows.length === 0}
+                >
+                  GeoJSON
+                </button>
+              )}
+              {hasGeo && (
+                <button type="button" onClick={() => download("kml")} disabled={rows.length === 0}>
+                  KML
+                </button>
+              )}
+              {hasMedia && (
+                <button
+                  type="button"
+                  onClick={async () => {
+                    if (!formId) return;
+                    try {
+                      const { blob, filename } = await api.exportMediaZip(formId);
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement("a");
+                      a.href = url;
+                      a.download = filename;
+                      a.click();
+                      URL.revokeObjectURL(url);
+                    } catch (err) {
+                      setError((err as Error).message);
+                    }
+                  }}
+                  disabled={rows.length === 0}
+                >
+                  Media ZIP
+                </button>
+              )}
+            </div>
+          </details>
         </div>
       </header>
 
@@ -390,7 +384,23 @@ export function ResponsesPage() {
       )}
 
       {rows.length === 0 ? (
-        <EmptyState title="No responses yet" description="Share the form to start collecting." />
+        <EmptyState
+          icon="📬"
+          title="No responses yet"
+          description="Share the form link to start collecting responses."
+          action={
+            formId ? (
+              <Button
+                variant="primary"
+                onClick={() => {
+                  navigator.clipboard.writeText(`${window.location.origin}/f/${formId}`);
+                }}
+              >
+                Copy share link
+              </Button>
+            ) : undefined
+          }
+        />
       ) : (
         <>
           <Tabs tabs={viewTabs} active={view} onChange={(key) => setView(key as View)} />
@@ -546,12 +556,14 @@ export function ResponsesPage() {
           )}
         </>
       )}
-      {editState && (
-        // biome-ignore lint/a11y/useKeyWithClickEvents: overlay backdrop dismiss
-        <div className="edit-overlay" onClick={() => !editState.saving && setEditState(null)}>
-          {/* biome-ignore lint/a11y/useKeyWithClickEvents: stopPropagation only */}
-          <div className="edit-modal" onClick={(e) => e.stopPropagation()}>
-            <h2>Edit response</h2>
+      <Modal
+        open={!!editState}
+        onClose={() => !editState?.saving && setEditState(null)}
+        title="Edit response"
+        width="lg"
+      >
+        {editState && (
+          <>
             <p className="muted">Submitted {new Date(editState.row.created_at).toLocaleString()}</p>
             <textarea
               ref={editRef}
@@ -564,6 +576,25 @@ export function ResponsesPage() {
               spellCheck={false}
             />
             {editState.error && <Alert tone="danger">{editState.error}</Alert>}
+            {editHistory.length > 0 && (
+              <details className="edit-history">
+                <summary className="edit-history-summary">
+                  Edit history ({editHistory.length})
+                </summary>
+                <div className="edit-history-list">
+                  {editHistory.map((e) => (
+                    <div key={e.id} className="edit-history-entry">
+                      <span className="edit-history-time">
+                        {new Date(e.created_at).toLocaleString()}
+                      </span>
+                      <span className="edit-history-fields">
+                        {e.changed_fields.join(", ")} changed
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </details>
+            )}
             <div className="edit-footer">
               <Button variant="primary" onClick={saveEdit} loading={editState.saving}>
                 Save changes
@@ -576,9 +607,9 @@ export function ResponsesPage() {
                 Cancel
               </Button>
             </div>
-          </div>
-        </div>
-      )}
+          </>
+        )}
+      </Modal>
     </section>
   );
 }

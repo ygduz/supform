@@ -115,11 +115,18 @@ export interface Element {
   meta?: Record<string, unknown>;
 }
 
+export interface NextPageRule {
+  condition: Expression;
+  page: string;
+}
+
 export interface Page {
   name: string;
   title?: I18nString;
   description?: I18nString;
   visibleIf?: Expression;
+  /** Conditional branching: first matching rule wins; falls back to sequential if none match. */
+  nextPageIf?: NextPageRule[];
   elements: Element[];
 }
 
@@ -143,6 +150,8 @@ export interface FormSettings {
   closeDate?: string;
   maxResponses?: number;
   submitButtonText?: I18nString;
+  /** Heading shown on the thank-you screen (defaults to "Thank you!"). */
+  confirmationTitle?: I18nString;
   confirmationMessage?: I18nString;
   /** Optional welcome screen shown before the first step (paged / one-question modes). */
   welcomeTitle?: I18nString;

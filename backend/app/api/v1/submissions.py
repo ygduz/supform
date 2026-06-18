@@ -14,12 +14,13 @@ from app.core.exceptions import NotFoundError, ValidationError
 from app.core.ratelimit import rate_limit
 from app.db.session import get_db
 from app.form_engine import validate_submission
-from app.models.form import Form
 from app.models.submission import VALIDATION_STATUSES, Submission
+from app.models.submission_edit import SubmissionEdit
 from app.models.user import User
 from app.schemas.api import (
     SubmissionAnswersUpdate,
     SubmissionCreate,
+    SubmissionEditOut,
     SubmissionOut,
     ValidationUpdate,
 )
@@ -131,7 +132,21 @@ async def edit_submission(
     result = validate_submission(schema, payload.answers)
     if not result.is_valid:
         raise ValidationError("Edited answers failed validation", details=result.errors)
-    submission.answers = result.cleaned
+    old_answers = dict(submission.answers)
+    new_answers = result.cleaned
+    all_keys = set(list(old_answers) + list(new_answers))
+    changed = [k for k in all_keys if old_answers.get(k) != new_answers.get(k)]
+    if changed:
+        db.add(
+            SubmissionEdit(
+                submission_id=submission.id,
+                edited_by=user.id,
+                answers_before=old_answers,
+                answers_after=new_answers,
+                changed_fields=changed,
+            )
+        )
+    submission.answers = new_answers
     await db.commit()
     return submission
 
@@ -149,21 +164,52 @@ async def delete_submission(
     await db.commit()
 
 
-@router.patch("/{submission_id}/workflow-step")
+@router.patch("/submissions/{submission_id}/workflow-step")
 async def set_workflow_step(
     submission_id: uuid.UUID,
     step: str,
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> SubmissionOut:
-    """Move a submission to a specific workflow step."""
+    """Move a submission to a specific workflow step. Editor+ on the owning project."""
     sub = await db.get(Submission, submission_id)
     if sub is None:
         raise NotFoundError("Submission not found")
-    form = await db.get(Form, sub.form_id)
-    if form is None or form.owner_id != user.id:
-        raise NotFoundError("Submission not found")
+    # Authorize through the project-membership model (editor+), consistent with the
+    # other submission mutations. A non-member gets a 404 (existence is never leaked).
+    await forms_service.get_owned_form(db, sub.form_id, user.id, min_role="editor")
     sub.workflow_step = step
     await db.commit()
     await db.refresh(sub)
     return SubmissionOut.model_validate(sub)
+
+
+@router.get(
+    "/forms/{form_id}/submissions/{submission_id}/edits",
+    response_model=list[SubmissionEditOut],
+)
+async def get_submission_edits(
+    form_id: uuid.UUID,
+    submission_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Return the edit history for a single submission. Editor+."""
+    await _owned_submission(db, form_id, submission_id, user, min_role="editor")
+    result = await db.execute(
+        select(SubmissionEdit)
+        .where(SubmissionEdit.submission_id == submission_id)
+        .order_by(SubmissionEdit.created_at.desc())
+    )
+    edits = list(result.scalars())
+    return [
+        SubmissionEditOut(
+            id=e.id,
+            edited_by=e.edited_by,
+            answers_before=e.answers_before,
+            answers_after=e.answers_after,
+            changed_fields=e.changed_fields,
+            created_at=e.created_at,
+        )
+        for e in edits
+    ]

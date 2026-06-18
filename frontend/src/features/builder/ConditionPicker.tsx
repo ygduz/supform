@@ -42,10 +42,17 @@ export function ConditionPicker() {
     <div className="condition-overlay" onClick={() => cancelConnect()}>
       {/* biome-ignore lint/a11y/useKeyWithClickEvents: stopPropagation only, no semantic action */}
       <div className="condition-picker" onClick={(e) => e.stopPropagation()}>
-        <p className="condition-picker-heading">
-          Show <strong>{tgtLabel}</strong> when <strong>{srcLabel}</strong>{" "}
-          {negate ? "is not…" : "is…"}
-        </p>
+        <div className="condition-picker-header">
+          <span className="condition-picker-icon">⚡</span>
+          <div>
+            <p className="condition-picker-heading">
+              Show <strong>{tgtLabel}</strong>
+            </p>
+            <p className="condition-picker-sub">
+              when <strong>{srcLabel}</strong> …
+            </p>
+          </div>
+        </div>
 
         <fieldset className="condition-op" aria-label="Match mode">
           <button
@@ -72,7 +79,7 @@ export function ConditionPicker() {
               <button
                 key={String(opt.value)}
                 type="button"
-                className="button"
+                className="option-chip"
                 onClick={() => confirmConnect(opt.value, op)}
               >
                 {opt.label}
@@ -84,7 +91,7 @@ export function ConditionPicker() {
             <input
               value={custom}
               onChange={(e) => setCustom(e.target.value)}
-              placeholder="value to match (e.g. yes)"
+              placeholder="value to match…"
               onKeyDown={(e) => {
                 if (e.key === "Enter" && custom) confirmConnect(custom, op);
               }}

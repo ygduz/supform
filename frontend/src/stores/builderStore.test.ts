@@ -29,13 +29,14 @@ describe("builder history (undo/redo)", () => {
   });
 
   it("undo restores the previous schema and redo reapplies the change", () => {
+    // A fresh "new" form is seeded with one starter question, so adding makes two.
     store().add("text");
     const withField = store().schema;
-    expect(withField.pages[0].elements).toHaveLength(1);
+    expect(withField.pages[0].elements).toHaveLength(2);
     expect(store().past.length).toBe(1);
 
     store().undo();
-    expect(store().schema.pages[0].elements).toHaveLength(0);
+    expect(store().schema.pages[0].elements).toHaveLength(1);
 
     store().redo();
     expect(store().schema).toBe(withField);
@@ -54,7 +55,8 @@ describe("builder history (undo/redo)", () => {
     store().add("text");
     await store().init("new");
     expect(store().past).toEqual([]);
-    expect(store().schema.pages[0].elements).toHaveLength(0);
+    // init("new") re-seeds the single starter question and clears history.
+    expect(store().schema.pages[0].elements).toHaveLength(1);
   });
 });
 

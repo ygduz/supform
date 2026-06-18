@@ -1,7 +1,9 @@
 import { ApiError, api } from "@/api/client";
 import { Alert, Button } from "@/components";
+import { isNumericType, isPresentationalType } from "@/lib/fieldTypes";
 import { LanguageContext, formLanguages, languageLabel, localize } from "@/lib/i18n";
 import { isNetworkError, queueSubmission } from "@/lib/offline";
+import { hasSubmitted, markSubmitted } from "@/lib/submissionToken";
 import type { Element, FormSchema, I18nString } from "@/types/form-schema";
 import type { JSX } from "react";
 import { useEffect, useRef, useState } from "react";
@@ -21,8 +23,6 @@ interface Step {
   description?: I18nString;
   elements: Element[];
 }
-
-const PRESENTATIONAL = new Set(["note", "section", "html"]);
 
 /** Every answer-bearing name inside an element (descending groups/repeats). */
 function collectNames(el: Element): string[] {
@@ -51,11 +51,9 @@ function scoreFor(schema: FormSchema, answers: Answers): number {
   return total;
 }
 
-const NUMERIC_TYPES = new Set(["number", "integer", "decimal", "scale", "rating"]);
-
 /** Coerce a URL-string prefill value to the shape a field of `type` expects. */
 function coercePrefill(type: string, raw: string): unknown {
-  if (NUMERIC_TYPES.has(type)) {
+  if (isNumericType(type)) {
     const n = Number(raw);
     return Number.isNaN(n) ? raw : n;
   }
@@ -101,11 +99,21 @@ export function FormRenderer({
   );
   const [errors, setErrors] = useState<FieldErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
-  const [submitted, setSubmitted] = useState(false);
+  // If the respondent already submitted this form anonymously within the last 24h and
+  // the form disallows multiple submissions, skip straight to the thank-you screen.
+  const [submitted, setSubmitted] = useState(() => {
+    if (formId && schema.settings?.allowMultipleSubmissions === false) {
+      return hasSubmitted(formId);
+    }
+    return false;
+  });
   const [queuedOffline, setQueuedOffline] = useState(false);
   const [step, setStep] = useState(0);
   const [started, setStarted] = useState(false);
   const startedAt = useRef(new Date().toISOString());
+  // Scroll-linked progress for long single-page forms (completion psychology: people
+  // persist when they can see how far they've come). Stepped modes use the step bar instead.
+  const [scrollProgress, setScrollProgress] = useState(0);
 
   // Multi-language support: offer a switcher when the form declares >1 language.
   const languages = formLanguages(schema.languages, schema.defaultLanguage);
@@ -198,7 +206,7 @@ export function FormRenderer({
                   </Button>
                 </div>
                 {(el.elements ?? []).map((child) => {
-                  if (PRESENTATIONAL.has(child.type) || child.type === "hidden") return null;
+                  if (isPresentationalType(child.type) || child.type === "hidden") return null;
                   if (!evaluateBool(child.visibleIf, scope)) return null;
                   const errorKey = `${el.name}[${i}].${child.name}`;
                   return (
@@ -258,7 +266,7 @@ export function FormRenderer({
       );
     }
 
-    if (PRESENTATIONAL.has(el.type)) {
+    if (isPresentationalType(el.type)) {
       return (
         <div className="field" key={el.name}>
           {el.label && <p className="presentational">{P(el.label)}</p>}
@@ -309,6 +317,30 @@ export function FormRenderer({
   const current = steps[stepIndex] ?? { key: "empty", elements: [] };
   const isLastStep = stepIndex >= steps.length - 1;
 
+  // A single-step form with many questions benefits from a scroll progress bar even when
+  // the author didn't explicitly enable showProgressBar. Threshold keeps short forms clean.
+  const SCROLL_PROGRESS_THRESHOLD = 6;
+  const answerableCount = current.elements.filter((el) => !isPresentationalType(el.type)).length;
+  const showScrollProgress =
+    steps.length === 1 &&
+    settings?.showProgressBar !== false &&
+    answerableCount >= SCROLL_PROGRESS_THRESHOLD;
+
+  useEffect(() => {
+    if (!showScrollProgress) return;
+    const onScroll = () => {
+      const max = document.documentElement.scrollHeight - window.innerHeight;
+      setScrollProgress(max > 0 ? Math.min(1, window.scrollY / max) : 1);
+    };
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+    };
+  }, [showScrollProgress]);
+
   /** Jump to the first step containing any of the errored fields (after full validation). */
   function stepFor(errorKeys: string[]): number {
     return steps.findIndex((s) =>
@@ -323,6 +355,24 @@ export function FormRenderer({
       return;
     }
     setErrors({});
+
+    // Evaluate nextPageIf branching rules on the current page (paged mode only).
+    // The current step key matches the page name when mode === "paged".
+    if (mode === "paged") {
+      const currentPage = visiblePages.find((p) => p.name === current.key);
+      if (currentPage?.nextPageIf) {
+        for (const rule of currentPage.nextPageIf) {
+          if (evaluateBool(rule.condition, answers)) {
+            const targetIdx = steps.findIndex((s) => s.key === rule.page);
+            if (targetIdx >= 0) {
+              setStep(targetIdx);
+              return;
+            }
+          }
+        }
+      }
+    }
+
     setStep(Math.min(stepIndex + 1, steps.length - 1));
   }
 
@@ -355,6 +405,9 @@ export function FormRenderer({
     }
     try {
       await api.submit(formId, answers, { _started_at: startedAt.current });
+      if (schema.settings?.allowMultipleSubmissions === false) {
+        markSubmitted(formId);
+      }
       setSubmitted(true);
     } catch (err) {
       // The server re-validates: map any field-level 422 details back onto the fields.
@@ -372,6 +425,10 @@ export function FormRenderer({
   }
 
   const theme = schema.theme;
+  // The welcome screen is opt-in and content-driven: it appears only when the author wrote
+  // a welcome title/message (editable in builder Settings). A bare Start gate with no message
+  // is pure friction, so we never force one from structure alone — the title + description at
+  // the top of the form serve as the lightweight intro, MS-Forms style.
   const hasWelcome = Boolean(settings?.welcomeTitle || settings?.welcomeMessage);
 
   // Quiz scoring: pick the matching outcome band; its redirect (if any) wins.
@@ -416,7 +473,7 @@ export function FormRenderer({
     };
     return (
       <div className="confirmation">
-        <h2 className="confirmation-title">Thank you!</h2>
+        <h2 className="confirmation-title">{L(settings?.confirmationTitle) || "Thank you!"}</h2>
         {settings?.quizMode && (
           <p className="quiz-score">
             Your score: <strong>{quizScore}</strong>
@@ -485,6 +542,12 @@ export function FormRenderer({
           />
         )}
 
+        {showScrollProgress && (
+          <div className="scroll-progress" aria-hidden="true">
+            <div className="scroll-progress-bar" style={{ width: `${scrollProgress * 100}%` }} />
+          </div>
+        )}
+
         <div className="form-step" key={current.key}>
           {steps.length > 1 && current.title && <h2 className="page-title">{L(current.title)}</h2>}
           {steps.length > 1 && current.description && (
@@ -518,6 +581,11 @@ export function FormRenderer({
             {L(settings?.submitButtonText) || "Submit"}
           </Button>
         )}
+
+        {/* Trust/safety footer (MS-Forms style): reassures respondents on unknown links. */}
+        <p className="form-trust-note">
+          🔒 Never share passwords or sensitive personal details unless you trust this form's owner.
+        </p>
       </form>
     </LanguageContext.Provider>
   );

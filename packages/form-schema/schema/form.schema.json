@@ -86,6 +86,7 @@
         "closeDate": { "type": "string", "format": "date-time" },
         "maxResponses": { "type": "integer", "minimum": 0, "description": "Stop accepting submissions after this many responses." },
         "submitButtonText": { "$ref": "#/$defs/i18nString" },
+        "confirmationTitle": { "$ref": "#/$defs/i18nString" },
         "confirmationMessage": { "$ref": "#/$defs/i18nString" },
         "welcomeTitle": { "$ref": "#/$defs/i18nString" },
         "welcomeMessage": { "$ref": "#/$defs/i18nString" },
@@ -136,6 +137,19 @@
         "title": { "$ref": "#/$defs/i18nString" },
         "description": { "$ref": "#/$defs/i18nString" },
         "visibleIf": { "$ref": "#/$defs/expression" },
+        "nextPageIf": {
+          "type": "array",
+          "description": "Conditional branching rules evaluated after leaving this page. First matching rule determines which page to navigate to next; if none match, the next visible page in order is shown.",
+          "items": {
+            "type": "object",
+            "required": ["condition", "page"],
+            "additionalProperties": false,
+            "properties": {
+              "condition": { "$ref": "#/$defs/expression" },
+              "page": { "type": "string", "description": "Target page name to navigate to." }
+            }
+          }
+        },
         "elements": {
           "type": "array",
           "items": { "$ref": "#/$defs/element" }
@@ -154,8 +168,9 @@
             "text", "longtext", "number", "integer", "decimal", "email", "url", "phone",
             "single_choice", "multi_choice", "dropdown", "rating", "ranking", "scale",
             "date", "time", "datetime", "date_range", "boolean", "matrix",
-            "file", "image", "signature", "geopoint", "barcode", "address",
-            "calculated", "hidden", "note", "section", "group", "repeat", "html", "image_block"
+            "file", "image", "signature", "geopoint", "geotrace", "geoshape", "barcode", "address",
+            "calculated", "hidden", "note", "section", "group", "repeat", "html",
+            "start", "end", "today", "deviceid", "username"
           ]
         },
         "name": {

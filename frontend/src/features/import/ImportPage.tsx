@@ -186,31 +186,56 @@ export function ImportPage() {
   return (
     <section className="import-page">
       <h1>Import a form</h1>
-      <p className="muted">
-        Bring in a form from the ODK / KoboToolbox ecosystem. Supported: XLSForm (<code>.xlsx</code>
-        ) and ODK XForm (<code>.xml</code>).
-      </p>
 
-      <input
-        type="file"
-        accept=".xlsx,.xls,.xml"
-        onChange={(e) => {
-          setFile(e.target.files?.[0] ?? null);
-          setError(null);
-        }}
-      />
+      <div className="import-section">
+        <div className="import-section-label">
+          <span className="import-section-icon">📊</span>
+          <div>
+            <h2>XLSForm / ODK XForm</h2>
+            <p className="muted">
+              Bring in a form from the ODK / KoboToolbox ecosystem. Supports XLSForm (
+              <code>.xlsx</code>) and ODK XForm (<code>.xml</code>).
+            </p>
+          </div>
+        </div>
 
-      {file && kind && (
-        <p className="muted">
-          Detected: <strong>{kind === "xlsform" ? "XLSForm" : "ODK XForm"}</strong>
-        </p>
-      )}
-      {file && !kind && <p className="error">Unsupported file type.</p>}
-      {error && <p className="error">{error}</p>}
+        <label className="file-dropzone">
+          <input
+            type="file"
+            accept=".xlsx,.xls,.xml"
+            className="file-dropzone-input"
+            onChange={(e) => {
+              setFile(e.target.files?.[0] ?? null);
+              setError(null);
+            }}
+          />
+          {file ? (
+            <span className="file-dropzone-name">📄 {file.name}</span>
+          ) : (
+            <span className="file-dropzone-prompt">
+              <strong>Click to choose a file</strong>
+              <span className="muted"> — .xlsx, .xls, or .xml</span>
+            </span>
+          )}
+        </label>
 
-      <button type="button" className="button" onClick={onImport} disabled={!file || !kind || busy}>
-        {busy ? "Importing…" : "Import & open in builder"}
-      </button>
+        {file && kind && (
+          <p className="muted import-detected">
+            Detected: <strong>{kind === "xlsform" ? "XLSForm" : "ODK XForm"}</strong>
+          </p>
+        )}
+        {file && !kind && <p className="error">Unsupported file type.</p>}
+        {error && <p className="error">{error}</p>}
+
+        <button
+          type="button"
+          className="button"
+          onClick={onImport}
+          disabled={!file || !kind || busy}
+        >
+          {busy ? "Importing…" : "Import & open in builder"}
+        </button>
+      </div>
 
       <hr className="import-divider" />
 

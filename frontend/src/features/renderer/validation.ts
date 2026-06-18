@@ -12,6 +12,7 @@ import { evaluateBool } from "./expressions";
 
 export type FieldErrors = Record<string, string>;
 
+// Broader than isPresentationalType: calculated and hidden also carry no user-submittable value.
 const PRESENTATIONAL = new Set(["note", "section", "html", "calculated", "hidden"]);
 
 function isEmpty(value: unknown): boolean {

@@ -1,4 +1,5 @@
 import { api } from "@/api/client";
+import { Alert, Spinner } from "@/components";
 import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 
@@ -35,22 +36,32 @@ export function VerifyEmailPage() {
   }, [token]);
 
   return (
-    <section className="auth">
-      {state === "verifying" && <h1>Verifying your email…</h1>}
+    <div className="auth-card">
+      <div className="auth-brand">Supform</div>
+      {state === "verifying" && (
+        <>
+          <h1 className="auth-title">Verifying your email…</h1>
+          <Spinner size="md" />
+        </>
+      )}
       {state === "ok" && (
         <>
-          <h1>Email verified ✓</h1>
-          <p className="muted">Thanks — your email address is confirmed.</p>
-          <Link to="/login">Continue to sign in</Link>
+          <h1 className="auth-title">Email verified ✓</h1>
+          <p className="auth-sub">Thanks — your email address is confirmed.</p>
+          <div className="auth-footer">
+            <Link to="/login">Continue to sign in</Link>
+          </div>
         </>
       )}
       {state === "error" && (
         <>
-          <h1>Verification failed</h1>
-          <p className="error">{error}</p>
-          <Link to="/login">Back to sign in</Link>
+          <h1 className="auth-title">Verification failed</h1>
+          <Alert tone="danger">{error}</Alert>
+          <div className="auth-footer">
+            <Link to="/login">Back to sign in</Link>
+          </div>
         </>
       )}
-    </section>
+    </div>
   );
 }

@@ -1,4 +1,5 @@
-import { Button } from "@/components";
+import { api } from "@/api/client";
+import { Button, Modal } from "@/components";
 import { localize } from "@/lib/i18n";
 import { useBuilderStore } from "@/stores/builderStore";
 import type { ElementType, FormSchema } from "@/types/form-schema";
@@ -22,11 +23,13 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { formToText } from "../import/textForm";
 import { saveMyTemplate } from "../templates/myTemplates";
+import { ActivityPanel } from "./ActivityPanel";
 import { BuilderCanvas, type DropLocation } from "./BuilderCanvas";
 import { LanguagePreview } from "./LanguagePreview";
 import { LogicBuilder } from "./LogicBuilder";
 import { OverviewPanel } from "./OverviewPanel";
 import { PaletteItem } from "./PaletteItem";
+import { PreviewModal } from "./PreviewModal";
 import { PropertiesPanel } from "./PropertiesPanel";
 import { QuestionLibraryPanel } from "./QuestionLibraryPanel";
 import { SettingsPanel } from "./SettingsPanel";
@@ -34,11 +37,20 @@ import { ShareDialog } from "./ShareDialog";
 import { ShareLinkDialog } from "./ShareLinkDialog";
 import { ThemePanel } from "./ThemePanel";
 import { TranslatePanel } from "./TranslatePanel";
+import { VersionHistoryPanel } from "./VersionHistoryPanel";
 import { WebhooksDialog } from "./WebhooksDialog";
-import { findElement, groupElements, pageElements } from "./model";
-import { ELEMENT_PALETTE } from "./palette";
+import { confirmDeleteContainer, findElement, isContainerType, pageElements } from "./model";
+import { ADVANCED_PALETTE, COMMON_PALETTE, ELEMENT_PALETTE } from "./palette";
 
-type Tab = "overview" | "properties" | "theme" | "settings" | "translate" | "preview";
+type Tab =
+  | "overview"
+  | "properties"
+  | "theme"
+  | "settings"
+  | "translate"
+  | "preview"
+  | "history"
+  | "activity";
 
 export function BuilderPage() {
   const { formId = "new" } = useParams();
@@ -51,6 +63,11 @@ export function BuilderPage() {
   const [shareLink, setShareLink] = useState(false);
   const [integrations, setIntegrations] = useState(false);
   const [showLibrary, setShowLibrary] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const [hintDismissed, setHintDismissed] = useState(
+    () => localStorage.getItem("supform.builderHintDismissed") === "1",
+  );
   const importRef = useRef<HTMLInputElement>(null);
   const isMultilingual = (schema.languages?.length ?? 0) >= 2;
 
@@ -109,7 +126,7 @@ export function BuilderPage() {
     // Dropping onto a section card means "into the section" (appended at the end),
     // unless the dragged item is already a direct child of that section.
     const overEl = findElement(schema, overId);
-    if (overEl && (overEl.type === "group" || overEl.type === "repeat")) {
+    if (overEl && isContainerType(overEl.type)) {
       const isOwnChild = overEl.elements?.some((c) => c.name === activeId) ?? false;
       if (!isOwnChild && overId !== activeId) {
         loc = {
@@ -128,6 +145,22 @@ export function BuilderPage() {
     }
 
     if (activeId === overId) return;
+
+    // Drag a non-container card directly onto another non-container card → group them.
+    const isZone = (id: string) => id.startsWith("dz:") || id.startsWith("page:");
+    const activeElForGroup = findElement(schema, activeId);
+    const overElForGroup = findElement(schema, overId);
+    if (
+      !isZone(overId) &&
+      activeElForGroup &&
+      overElForGroup &&
+      !isContainerType(activeElForGroup.type) &&
+      !isContainerType(overElForGroup.type)
+    ) {
+      store.confirmGrouping(activeId, overId);
+      return;
+    }
+
     store.moveInto(activeId, { pageIndex: loc.pageIndex, parentName: loc.parentName }, loc.index);
   }
 
@@ -178,6 +211,18 @@ export function BuilderPage() {
     }
   }, [store.formId, formId, navigate]);
 
+  // Loss-aversion guard: warn before leaving with unsaved edits. Autosave usually beats
+  // this, but a fast close/refresh can still race the 2s autosave timer.
+  useEffect(() => {
+    if (!dirty) return;
+    const warn = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [dirty]);
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement | null;
@@ -186,9 +231,18 @@ export function BuilderPage() {
         target instanceof HTMLTextAreaElement ||
         target?.isContentEditable;
 
-      // Esc: cancel group-link mode or clear selection.
+      // "?" opens the keyboard-shortcuts legend (when not typing into a field).
+      if (e.key === "?" && !inText) {
+        e.preventDefault();
+        setShortcutsOpen((o) => !o);
+        return;
+      }
+
+      // Esc: close the shortcuts help, cancel group-link mode, or clear selection.
       if (e.key === "Escape") {
-        if (groupingSource) {
+        if (shortcutsOpen) {
+          setShortcutsOpen(false);
+        } else if (groupingSource) {
           setGroupingSource(null);
         } else {
           store.clearSelection();
@@ -205,13 +259,7 @@ export function BuilderPage() {
           e.preventDefault();
           // Deleting a section takes its questions with it — confirm first.
           const el = findElement(schema, selectedName);
-          const kids = el?.elements?.length ?? 0;
-          if (el && (el.type === "group" || el.type === "repeat") && kids > 0) {
-            const ok = window.confirm(
-              `Delete this section and the ${kids} ${kids === 1 ? "question" : "questions"} inside it?`,
-            );
-            if (!ok) return;
-          }
+          if (el && !confirmDeleteContainer(el.type, el.elements?.length ?? 0)) return;
           store.remove(selectedName);
         }
         return;
@@ -258,7 +306,7 @@ export function BuilderPage() {
 
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [groupingSource, selectedName, selectedNames, schema, activePage, store]);
+  }, [groupingSource, shortcutsOpen, selectedName, selectedNames, schema, activePage, store]);
 
   const elements = pageElements(schema, activePage);
   const selected = selectedName ? findElement(schema, selectedName) : null;
@@ -302,7 +350,11 @@ export function BuilderPage() {
             ↷
           </Button>
           {error ? <span className="error">{error}</span> : null}
-          <span className="muted">
+          <span
+            className="save-status"
+            data-state={status === "saving" ? "saving" : dirty ? "dirty" : "saved"}
+            aria-live="polite"
+          >
             {status === "saving" ? "Saving…" : dirty ? "Unsaved changes" : "Saved ✓"}
           </span>
           {store.formId ? (
@@ -355,6 +407,9 @@ export function BuilderPage() {
               e.target.value = "";
             }}
           />
+          <Button variant="outline" size="sm" onClick={() => setPreviewOpen(true)}>
+            Preview
+          </Button>
           <Button
             variant="outline"
             size="sm"
@@ -373,6 +428,26 @@ export function BuilderPage() {
           </Button>
         </div>
       </header>
+
+      {!hintDismissed && (
+        <div className="builder-hint">
+          <span>
+            <strong>1.</strong> Add a question · <strong>2.</strong> Preview · <strong>3.</strong>{" "}
+            Publish &amp; share. Press <kbd>?</kbd> for shortcuts.
+          </span>
+          <button
+            type="button"
+            className="builder-hint-close"
+            aria-label="Dismiss"
+            onClick={() => {
+              localStorage.setItem("supform.builderHintDismissed", "1");
+              setHintDismissed(true);
+            }}
+          >
+            ✕
+          </button>
+        </div>
+      )}
 
       {/* One DndContext covers both the palette (useDraggable) and the canvas (useSortable). */}
       <DndContext
@@ -412,7 +487,7 @@ export function BuilderPage() {
             ) : (
               <>
                 <p className="palette-heading">Add a question</p>
-                {ELEMENT_PALETTE.map((item) => (
+                {COMMON_PALETTE.map((item) => (
                   <PaletteItem
                     key={item.type}
                     type={item.type}
@@ -420,6 +495,17 @@ export function BuilderPage() {
                     icon={item.icon}
                   />
                 ))}
+                <details className="palette-more">
+                  <summary>More types</summary>
+                  {ADVANCED_PALETTE.map((item) => (
+                    <PaletteItem
+                      key={item.type}
+                      type={item.type}
+                      label={item.label}
+                      icon={item.icon}
+                    />
+                  ))}
+                </details>
               </>
             )}
           </aside>
@@ -468,6 +554,75 @@ export function BuilderPage() {
                   excludeName=""
                   onChange={(v) => store.setPageVisibleIf(activePage, v)}
                 />
+                <div className="page-branching">
+                  <div className="page-branching-header">
+                    <span className="page-branching-label">Page branching</span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        const current = schema.pages[activePage]?.nextPageIf ?? [];
+                        store.setPageNextPageIf(activePage, [
+                          ...current,
+                          { condition: "", page: schema.pages[activePage + 1]?.name ?? "" },
+                        ]);
+                      }}
+                    >
+                      + Add rule
+                    </Button>
+                  </div>
+                  {(schema.pages[activePage]?.nextPageIf ?? []).length > 0 && (
+                    <div className="page-branching-rules">
+                      {(schema.pages[activePage]?.nextPageIf ?? []).map((rule, ri) => (
+                        // biome-ignore lint/suspicious/noArrayIndexKey: branching rules have no stable id
+                        <div key={ri} className="page-branching-rule">
+                          <LogicBuilder
+                            label="If…"
+                            value={rule.condition}
+                            excludeName=""
+                            onChange={(v) => {
+                              const rules = [...(schema.pages[activePage]?.nextPageIf ?? [])];
+                              rules[ri] = { ...rules[ri], condition: v ?? "" };
+                              store.setPageNextPageIf(activePage, rules);
+                            }}
+                          />
+                          <div className="page-branching-target">
+                            {/* biome-ignore lint/a11y/noLabelWithoutControl: label wraps select below */}
+                            <label className="page-branching-target-label">Go to page</label>
+                            <select
+                              value={rule.page}
+                              onChange={(e) => {
+                                const rules = [...(schema.pages[activePage]?.nextPageIf ?? [])];
+                                rules[ri] = { ...rules[ri], page: e.target.value };
+                                store.setPageNextPageIf(activePage, rules);
+                              }}
+                            >
+                              {schema.pages
+                                .filter((_, pi) => pi !== activePage)
+                                .map((p) => (
+                                  <option key={p.name} value={p.name}>
+                                    {p.name}
+                                  </option>
+                                ))}
+                            </select>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                const rules = (schema.pages[activePage]?.nextPageIf ?? []).filter(
+                                  (_, i) => i !== ri,
+                                );
+                                store.setPageNextPageIf(activePage, rules);
+                              }}
+                            >
+                              ✕
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 
@@ -487,19 +642,7 @@ export function BuilderPage() {
                     store.select(name);
                   } else if (groupingSource !== name) {
                     // Complete the group.
-                    const s = useBuilderStore.getState();
-                    const { schema: next, groupName } = groupElements(s.schema, [
-                      groupingSource,
-                      name,
-                    ]);
-                    if (groupName) {
-                      useBuilderStore.setState({
-                        schema: next,
-                        selectedName: groupName,
-                        selectedNames: new Set([groupName]),
-                        dirty: true,
-                      });
-                    }
+                    store.confirmGrouping(groupingSource, name);
                     setGroupingSource(null);
                   }
                 }}
@@ -518,6 +661,7 @@ export function BuilderPage() {
                   "settings",
                   ...(isMultilingual ? (["translate"] as Tab[]) : []),
                   "preview",
+                  ...(formId !== "new" ? (["history", "activity"] as Tab[]) : []),
                 ] as Tab[]
               ).map((t) => (
                 <Button
@@ -531,7 +675,11 @@ export function BuilderPage() {
                     ? "Map"
                     : t === "translate"
                       ? "🌐"
-                      : t.charAt(0).toUpperCase() + t.slice(1)}
+                      : t === "history"
+                        ? "History"
+                        : t === "activity"
+                          ? "Activity"
+                          : t.charAt(0).toUpperCase() + t.slice(1)}
                 </Button>
               ))}
             </div>
@@ -547,6 +695,17 @@ export function BuilderPage() {
             {tab === "settings" && <SettingsPanel />}
             {tab === "translate" && <TranslatePanel />}
             {tab === "preview" && <LanguagePreview schema={schema} />}
+            {tab === "activity" && formId !== "new" && <ActivityPanel formId={formId} />}
+            {tab === "history" && formId !== "new" && (
+              <VersionHistoryPanel
+                formId={formId}
+                onRestoreVersion={async (version) => {
+                  const versionSchema = await api.getVersion(formId, version);
+                  store.loadTemplate(versionSchema);
+                  await store.save();
+                }}
+              />
+            )}
           </aside>
         </div>
 
@@ -576,6 +735,7 @@ export function BuilderPage() {
         </DragOverlay>
       </DndContext>
 
+      {previewOpen && <PreviewModal schema={schema} onClose={() => setPreviewOpen(false)} />}
       {sharing && store.projectId && (
         <ShareDialog projectId={store.projectId} onClose={() => setSharing(false)} />
       )}
@@ -585,6 +745,47 @@ export function BuilderPage() {
       {shareLink && store.formId && (
         <ShareLinkDialog formId={store.formId} onClose={() => setShareLink(false)} />
       )}
+      <Modal
+        open={shortcutsOpen}
+        onClose={() => setShortcutsOpen(false)}
+        title="Keyboard shortcuts"
+        width="sm"
+      >
+        <dl className="shortcuts-list">
+          <div>
+            <dt>Ctrl/⌘ + Z</dt>
+            <dd>Undo</dd>
+          </div>
+          <div>
+            <dt>Ctrl/⌘ + Shift + Z</dt>
+            <dd>Redo</dd>
+          </div>
+          <div>
+            <dt>Ctrl/⌘ + D</dt>
+            <dd>Duplicate selection</dd>
+          </div>
+          <div>
+            <dt>Ctrl/⌘ + G</dt>
+            <dd>Group selected questions</dd>
+          </div>
+          <div>
+            <dt>Ctrl/⌘ + A</dt>
+            <dd>Select all on page</dd>
+          </div>
+          <div>
+            <dt>Delete / Backspace</dt>
+            <dd>Remove selection</dd>
+          </div>
+          <div>
+            <dt>Esc</dt>
+            <dd>Clear selection</dd>
+          </div>
+          <div>
+            <dt>?</dt>
+            <dd>Toggle this help</dd>
+          </div>
+        </dl>
+      </Modal>
     </div>
   );
 }

@@ -17,25 +17,7 @@ import type {
   I18nString,
   Page,
 } from "@/types/form-schema";
-
-export const DEFAULT_LABELS: Partial<Record<ElementType, string>> = {
-  text: "Short text question",
-  longtext: "Long answer question",
-  email: "Email question",
-  single_choice: "Single choice question",
-  multi_choice: "Multiple choice question",
-  dropdown: "Dropdown question",
-  rating: "Rating question",
-  scale: "Scale question",
-  number: "Number question",
-  date: "Date question",
-  boolean: "Yes / no question",
-  matrix: "Matrix question",
-  file: "File upload",
-  calculated: "Calculated value",
-  group: "Section",
-  repeat: "Repeating group",
-};
+import { defaultLabelFor } from "./fieldMeta";
 
 const CHOICE_TYPES: ReadonlySet<string> = new Set([
   "single_choice",
@@ -46,6 +28,23 @@ const CHOICE_TYPES: ReadonlySet<string> = new Set([
 
 const CONTAINER_TYPES: ReadonlySet<string> = new Set(["group", "repeat"]);
 
+/** Display-only types that collect no answer value (info text, raw HTML). */
+const PRESENTATIONAL_TYPES: ReadonlySet<string> = new Set(["note", "section", "html"]);
+
+/**
+ * Types whose answer value is a number (or ordered scale that maps to a number).
+ * NOTE: `calculated` is intentionally excluded here — it IS numeric for formula operands
+ * (FormulaBuilder adds it locally) but is NOT user-answerable, so it doesn't belong in
+ * the shared set that drives operator selection and analytics.
+ */
+const NUMERIC_TYPES: ReadonlySet<string> = new Set([
+  "number",
+  "integer",
+  "decimal",
+  "rating",
+  "scale",
+]);
+
 export function isChoiceType(type: ElementType): boolean {
   return CHOICE_TYPES.has(type);
 }
@@ -54,9 +53,37 @@ export function isContainerType(type: ElementType): boolean {
   return CONTAINER_TYPES.has(type);
 }
 
+/** Display-only types (note / html) that never carry a respondent answer. */
+export function isPresentationalType(type: ElementType): boolean {
+  return PRESENTATIONAL_TYPES.has(type);
+}
+
+/** Types with no answer value of their own: presentational text and containers. */
+export function isNoValueType(type: ElementType): boolean {
+  return isPresentationalType(type) || isContainerType(type);
+}
+
+/** Types whose answer value is numeric. See NUMERIC_TYPES comment for what is excluded. */
+export function isNumericType(type: ElementType): boolean {
+  return NUMERIC_TYPES.has(type);
+}
+
 /** Types that carry an editable list of choice `options`. */
 export function hasOptionList(type: ElementType): boolean {
   return isChoiceType(type) || type === "rating" || type === "scale";
+}
+
+/**
+ * Confirm before deleting a section that still holds questions (they go with it).
+ * Returns true when the deletion should proceed.
+ */
+export function confirmDeleteContainer(type: ElementType, childCount: number): boolean {
+  if (!isContainerType(type) || childCount === 0) return true;
+  return window.confirm(
+    `Delete this section and the ${childCount} ${
+      childCount === 1 ? "question" : "questions"
+    } inside it?\n\nTip: use Ungroup (⊟) to keep the questions.`,
+  );
 }
 
 export function createEmptyForm(): FormSchema {
@@ -157,7 +184,7 @@ function transformSiblings(
 }
 
 function makeElement(type: ElementType, name: string): Element {
-  const el: Element = { type, name, label: DEFAULT_LABELS[type] ?? "Question" };
+  const el: Element = { type, name, label: defaultLabelFor(type) };
   if (hasOptionList(type)) {
     el.options =
       type === "scale"
@@ -247,7 +274,7 @@ export function groupElements(
     const group: Element = {
       type: "group",
       name: newGroupName,
-      label: DEFAULT_LABELS.group ?? "Section",
+      label: defaultLabelFor("group"),
       elements: ordered,
     };
     groupName = newGroupName;
@@ -520,6 +547,22 @@ export function setPageVisibleIf(
     ...schema,
     pages: schema.pages.map((p, i) =>
       i === index ? { ...p, visibleIf: visibleIf || undefined } : p,
+    ),
+  };
+}
+
+/** Update the conditional branching rules for a page. */
+export function setPageNextPageIf(
+  schema: FormSchema,
+  index: number,
+  nextPageIf: Array<{ condition: string; page: string }> | undefined,
+): FormSchema {
+  return {
+    ...schema,
+    pages: schema.pages.map((p, i) =>
+      i === index
+        ? { ...p, nextPageIf: nextPageIf && nextPageIf.length > 0 ? nextPageIf : undefined }
+        : p,
     ),
   };
 }

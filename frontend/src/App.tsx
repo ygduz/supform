@@ -43,7 +43,7 @@ function Shell() {
   return (
     <>
       <header className="app-header">
-        <Link to="/" className="brand">
+        <Link to={authed ? "/forms" : "/"} className="brand">
           Supform
         </Link>
         <nav>
@@ -51,9 +51,10 @@ function Shell() {
             <>
               <Link to="/forms">My forms</Link>
               <Link to="/templates">Templates</Link>
-              <Link to="/builder/new">Builder</Link>
-              <Link to="/import">Import</Link>
               <Link to="/inbox">Inbox</Link>
+              <Link to="/builder/new" className="button">
+                + New form
+              </Link>
             </>
           ) : (
             <>

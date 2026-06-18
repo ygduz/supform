@@ -112,6 +112,12 @@ export interface FormListItem {
   response_count: number;
 }
 
+export interface FormVersionOut {
+  version: number;
+  created_at: string;
+  title: string | null;
+}
+
 /** An outbound webhook registered on a form. */
 export interface Webhook {
   id: string;
@@ -392,6 +398,34 @@ export const api = {
 
   deleteQuestionTemplate: (id: string): Promise<void> =>
     request(`/api/v1/question-library/${id}`, { method: "DELETE" }),
+
+  listVersions: (formId: string): Promise<FormVersionOut[]> =>
+    request(`/api/v1/forms/${formId}/versions`),
+
+  getVersion: (
+    formId: string,
+    version: number,
+  ): Promise<import("@/types/form-schema").FormSchema> =>
+    request(`/api/v1/forms/${formId}/versions/${version}`),
+
+  getFormAudit: (
+    formId: string,
+  ): Promise<Array<{ id: string; action: string; summary: string | null; created_at: string }>> =>
+    request(`/api/v1/forms/${formId}/audit`),
+
+  getSubmissionEdits: (
+    formId: string,
+    submissionId: string,
+  ): Promise<
+    Array<{
+      id: string;
+      edited_by: string | null;
+      changed_fields: string[];
+      answers_before: Record<string, unknown>;
+      answers_after: Record<string, unknown>;
+      created_at: string;
+    }>
+  > => request(`/api/v1/forms/${formId}/submissions/${submissionId}/edits`),
 
   /** Fetch an export with auth and return the blob + server-suggested filename. */
   exportSubmissions: async (

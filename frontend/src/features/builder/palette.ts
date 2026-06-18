@@ -1,41 +1,39 @@
 import type { ElementType } from "@/types/form-schema";
+import { FIELDS } from "./fieldMeta";
 
-/** The question types offered in the builder palette. */
-export const ELEMENT_PALETTE: { type: ElementType; label: string; icon: string }[] = [
-  { type: "text", label: "Short text", icon: "✏️" },
-  { type: "longtext", label: "Paragraph", icon: "📝" },
-  { type: "email", label: "Email", icon: "✉️" },
-  { type: "phone", label: "Phone", icon: "📞" },
-  { type: "url", label: "Website URL", icon: "🔗" },
-  { type: "single_choice", label: "Single choice", icon: "🔘" },
-  { type: "multi_choice", label: "Multiple choice", icon: "☑️" },
-  { type: "dropdown", label: "Dropdown", icon: "🔽" },
-  { type: "boolean", label: "Yes / no", icon: "🔀" },
-  { type: "rating", label: "Rating", icon: "⭐" },
-  { type: "scale", label: "Scale", icon: "📊" },
-  { type: "number", label: "Number", icon: "🔢" },
-  { type: "integer", label: "Integer", icon: "#" },
-  { type: "decimal", label: "Decimal", icon: "0.0" },
-  { type: "date", label: "Date", icon: "📅" },
-  { type: "date_range", label: "Date range", icon: "🗓️" },
-  { type: "time", label: "Time", icon: "⏰" },
-  { type: "note", label: "Note / info text", icon: "ℹ️" },
-  { type: "html", label: "HTML block", icon: "</>" },
-  { type: "ranking", label: "Ranking", icon: "↕" },
-  { type: "matrix", label: "Matrix", icon: "▦" },
-  { type: "signature", label: "Signature", icon: "✍️" },
-  { type: "address", label: "Address", icon: "🏠" },
-  { type: "file", label: "File upload", icon: "📎" },
-  { type: "geopoint", label: "Location (point)", icon: "📍" },
-  { type: "geotrace", label: "Location (line)", icon: "〰️" },
-  { type: "geoshape", label: "Location (area)", icon: "⬡" },
-  { type: "barcode", label: "Barcode / QR", icon: "▥" },
-  { type: "calculated", label: "Calculated", icon: "🧮" },
-  { type: "start", label: "Start time", icon: "⏱" },
-  { type: "end", label: "End time", icon: "⏹" },
-  { type: "today", label: "Today's date", icon: "📅" },
-  { type: "deviceid", label: "Device ID", icon: "📱" },
-  { type: "username", label: "Username", icon: "👤" },
-  { type: "group", label: "Section", icon: "📂" },
-  { type: "repeat", label: "Repeating group", icon: "🔁" },
+/**
+ * The question types offered in the builder palette, in display order.
+ * Derived from the {@link FIELDS} registry — the single source of truth for type metadata.
+ */
+export const ELEMENT_PALETTE: { type: ElementType; label: string; icon: string }[] = FIELDS.map(
+  ({ type, meta }) => ({ type, label: meta.label, icon: meta.icon }),
+);
+
+/**
+ * The everyday types that cover ~80% of forms, ordered by real-world frequency. Showing
+ * just these up front (and tucking the rest under "More types") keeps a first-time user
+ * from drowning in 30+ choices — the MS-Forms two-tier model.
+ */
+export const COMMON_TYPES: readonly ElementType[] = [
+  "text",
+  "longtext",
+  "single_choice",
+  "multi_choice",
+  "dropdown",
+  "date",
+  "number",
+  "rating",
+  "email",
 ];
+
+const COMMON_SET = new Set<ElementType>(COMMON_TYPES);
+
+/** Common types, in the curated order above. */
+export const COMMON_PALETTE = COMMON_TYPES.map((type) => {
+  const item = ELEMENT_PALETTE.find((p) => p.type === type);
+  // COMMON_TYPES is a hand-curated subset of FIELDS, so this always resolves.
+  return item as { type: ElementType; label: string; icon: string };
+});
+
+/** Everything else, in registry order — surfaced under a "More types" disclosure. */
+export const ADVANCED_PALETTE = ELEMENT_PALETTE.filter((p) => !COMMON_SET.has(p.type));

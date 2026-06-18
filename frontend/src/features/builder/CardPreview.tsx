@@ -20,6 +20,26 @@ export function CardPreview({ element, editable }: { element: Element; editable:
       return <div className="pv-input pv-narrow">123</div>;
     case "date":
       return <div className="pv-input pv-narrow">Select a date 📅</div>;
+    case "time":
+      return <div className="pv-input pv-narrow">Select a time ⏰</div>;
+    case "datetime":
+      return <div className="pv-input pv-narrow">Select date &amp; time 📆</div>;
+    case "date_range":
+      return (
+        <div className="pv-range">
+          <div className="pv-input pv-narrow">From 📅</div>
+          <span className="pv-range-sep">→</span>
+          <div className="pv-input pv-narrow">To 📅</div>
+        </div>
+      );
+    case "address":
+      return (
+        <div className="pv-address">
+          <div className="pv-input">Street address</div>
+          <div className="pv-input">City</div>
+          <div className="pv-input pv-narrow">Postal code</div>
+        </div>
+      );
     case "longtext":
       return (
         <div className="pv-input pv-tall">{localize(element.placeholder) || "Long answer"}</div>
@@ -114,9 +134,44 @@ export function CardPreview({ element, editable }: { element: Element; editable:
       return <div className="pv-upload">✍️ Sign here</div>;
     case "geopoint":
       return <div className="pv-upload">📍 Pick a location on the map</div>;
+    case "geotrace":
+      return <div className="pv-upload">〰️ Trace a path on the map</div>;
+    case "geoshape":
+      return <div className="pv-upload">⬡ Draw an area on the map</div>;
+    case "barcode":
+      return <div className="pv-input pv-narrow">▥ Scan a barcode / QR</div>;
     case "note":
     case "html":
       return <div className="pv-note">{localize(element.label) || "Informational text"}</div>;
+    case "repeat": {
+      const fieldCount = element.elements?.length ?? 0;
+      const minMax = [
+        element.repeat?.min != null ? `min ${element.repeat.min}` : null,
+        element.repeat?.max != null ? `max ${element.repeat.max}` : null,
+      ]
+        .filter(Boolean)
+        .join(", ");
+      return (
+        <div className="pv-container-summary">
+          <span className="pv-container-icon">↻</span>
+          <span>
+            Repeating · {fieldCount} {fieldCount === 1 ? "field" : "fields"}
+            {minMax ? ` · ${minMax}` : ""}
+          </span>
+        </div>
+      );
+    }
+    case "group": {
+      const fieldCount = element.elements?.length ?? 0;
+      return (
+        <div className="pv-container-summary">
+          <span className="pv-container-icon">⊞</span>
+          <span>
+            Group · {fieldCount} {fieldCount === 1 ? "field" : "fields"}
+          </span>
+        </div>
+      );
+    }
     default:
       return null;
   }

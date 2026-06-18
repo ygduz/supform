@@ -103,6 +103,13 @@ export function BuilderCanvas({
         </div>
       )}
 
+      {connectingFrom && (
+        <div className="connect-hint">
+          Click the question to show or hide based on this answer — or press <kbd>Esc</kbd> to
+          cancel.
+        </div>
+      )}
+
       <ConnectorLayer containerRef={innerRef} />
 
       <CanvasList
