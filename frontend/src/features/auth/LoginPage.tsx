@@ -1,4 +1,5 @@
 import { api, setAccessToken } from "@/api/client";
+import { Alert, Button, Input } from "@/components";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
@@ -30,42 +31,57 @@ export function LoginPage() {
   }
 
   return (
-    <form className="auth" onSubmit={onSubmit}>
-      <h1>{mode === "login" ? "Sign in" : "Create your account"}</h1>
-      <input
-        type="email"
-        placeholder="Email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        required
-      />
-      <input
-        type="password"
-        placeholder="Password (min 8 characters)"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-        minLength={8}
-        required
-      />
-      {error && <p className="error">{error}</p>}
-      <button type="submit" className="button" disabled={busy}>
-        {busy ? "Please wait…" : mode === "login" ? "Sign in" : "Create account"}
-      </button>
-      <button
-        type="button"
-        className="link-button"
-        onClick={() => {
-          setError(null);
-          setMode(mode === "login" ? "signup" : "login");
-        }}
-      >
-        {mode === "login" ? "Need an account? Sign up" : "Have an account? Sign in"}
-      </button>
-      {mode === "login" && (
-        <Link to="/forgot-password" className="muted">
-          Forgot your password?
-        </Link>
-      )}
-    </form>
+    <div className="auth-page">
+      <form className="auth-card" onSubmit={onSubmit}>
+        <div className="auth-head">
+          <h1>{mode === "login" ? "Welcome back" : "Create your account"}</h1>
+          <p className="auth-sub">
+            {mode === "login"
+              ? "Sign in to your Supform account"
+              : "It only takes a minute to get started"}
+          </p>
+        </div>
+        {error && <Alert tone="danger">{error}</Alert>}
+        <Input
+          label="Email"
+          type="email"
+          placeholder="you@example.com"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          autoComplete="email"
+          required
+        />
+        <Input
+          label="Password"
+          type="password"
+          placeholder="Min 8 characters"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          autoComplete={mode === "login" ? "current-password" : "new-password"}
+          minLength={8}
+          required
+        />
+        <Button type="submit" variant="primary" loading={busy} className="auth-submit">
+          {mode === "login" ? "Sign in" : "Create account"}
+        </Button>
+        <div className="auth-footer">
+          <button
+            type="button"
+            className="link-button"
+            onClick={() => {
+              setError(null);
+              setMode(mode === "login" ? "signup" : "login");
+            }}
+          >
+            {mode === "login" ? "Need an account? Sign up" : "Have an account? Sign in"}
+          </button>
+          {mode === "login" && (
+            <Link to="/forgot-password" className="muted">
+              Forgot password?
+            </Link>
+          )}
+        </div>
+      </form>
+    </div>
   );
 }

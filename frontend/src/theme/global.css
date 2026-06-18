@@ -432,29 +432,30 @@ button:focus-visible {
   flex-direction: column;
   align-items: center;
   text-align: center;
-  padding: var(--space-8) var(--space-6);
+  padding: calc(var(--space-8) * 1.5) var(--space-6);
   color: var(--muted);
 }
 .empty-state-icon {
-  font-size: 40px;
+  font-size: 48px;
   margin-bottom: var(--space-4);
-  opacity: 0.5;
+  opacity: 0.6;
+  line-height: 1;
 }
 .empty-state-title {
-  font-size: var(--text-lg);
+  font-size: var(--text-xl);
   font-weight: 600;
-  color: var(--text-secondary);
+  color: var(--text);
   margin: 0 0 var(--space-2);
 }
 .empty-state-desc {
-  font-size: var(--text-base);
+  font-size: var(--text-md);
   color: var(--muted);
-  max-width: 380px;
-  line-height: 1.5;
+  max-width: 340px;
+  line-height: 1.6;
   margin: 0 0 var(--space-5);
 }
 .empty-state-action {
-  margin-top: var(--space-2);
+  margin-top: var(--space-3);
 }
 
 /* ── Modal ──────────────────────────────────────────────────── */
@@ -2228,30 +2229,51 @@ body,
 }
 
 /* Auth (sign in / sign up) */
-.auth {
-  max-width: 360px;
-  margin: 48px auto;
+/* ── Auth pages ───────────────────────────────────────────────── */
+.auth-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-6);
+  background: var(--surface);
+}
+.auth-card {
+  width: 100%;
+  max-width: 400px;
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  padding: var(--space-8) var(--space-6);
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--space-4);
 }
-.auth h1 {
-  margin: 0 0 8px;
-  font-size: 24px;
-}
-.auth input {
-  padding: 10px 12px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  font-size: 15px;
-  font-family: inherit;
-}
-.auth .button {
+.auth-head {
   text-align: center;
+  margin-bottom: var(--space-2);
 }
-.auth .button:disabled {
-  opacity: 0.6;
-  cursor: default;
+.auth-head h1 {
+  margin: 0 0 var(--space-2);
+  font-size: var(--text-2xl);
+}
+.auth-sub {
+  margin: 0;
+  font-size: var(--text-md);
+  color: var(--muted);
+}
+.auth-submit {
+  width: 100%;
+  justify-content: center;
+  margin-top: var(--space-1);
+}
+.auth-footer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
 }
 
 /* Inline field validation errors */
@@ -4161,32 +4183,7 @@ body,
   padding: 1px 6px;
 }
 
-/* ── Submission edit modal ────────────────────────────────────── */
-.edit-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.4);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 200;
-}
-.edit-modal {
-  background: var(--surface-raised);
-  border-radius: 12px;
-  padding: 28px 32px;
-  width: min(640px, 92vw);
-  max-height: 90vh;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
-}
-.edit-modal h2 {
-  margin: 0;
-  font-size: 18px;
-}
+/* ── Submission edit modal (inside shared Modal) ─────────────── */
 .edit-json {
   font-family: monospace;
   font-size: 12px;
@@ -4202,7 +4199,7 @@ body,
 .edit-json:focus {
   outline: none;
   border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 15%, transparent);
 }
 .edit-footer {
   display: flex;

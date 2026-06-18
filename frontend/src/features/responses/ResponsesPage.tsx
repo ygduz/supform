@@ -1,5 +1,5 @@
 import { type SubmissionRow, type ValidationStatus, api, isAuthenticated } from "@/api/client";
-import { Alert, Button, EmptyState, Spinner, Tabs } from "@/components";
+import { Alert, Button, EmptyState, Modal, Spinner, Tabs } from "@/components";
 import { localize } from "@/lib/i18n";
 import type { FormSchema } from "@/types/form-schema";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -378,6 +378,18 @@ export function ResponsesPage() {
           icon="📬"
           title="No responses yet"
           description="Share the form link to start collecting responses."
+          action={
+            formId ? (
+              <Button
+                variant="primary"
+                onClick={() => {
+                  navigator.clipboard.writeText(`${window.location.origin}/f/${formId}`);
+                }}
+              >
+                Copy share link
+              </Button>
+            ) : undefined
+          }
         />
       ) : (
         <>
@@ -534,12 +546,14 @@ export function ResponsesPage() {
           )}
         </>
       )}
-      {editState && (
-        // biome-ignore lint/a11y/useKeyWithClickEvents: overlay backdrop dismiss
-        <div className="edit-overlay" onClick={() => !editState.saving && setEditState(null)}>
-          {/* biome-ignore lint/a11y/useKeyWithClickEvents: stopPropagation only */}
-          <div className="edit-modal" onClick={(e) => e.stopPropagation()}>
-            <h2>Edit response</h2>
+      <Modal
+        open={!!editState}
+        onClose={() => !editState?.saving && setEditState(null)}
+        title="Edit response"
+        width="lg"
+      >
+        {editState && (
+          <>
             <p className="muted">Submitted {new Date(editState.row.created_at).toLocaleString()}</p>
             <textarea
               ref={editRef}
@@ -564,9 +578,9 @@ export function ResponsesPage() {
                 Cancel
               </Button>
             </div>
-          </div>
-        </div>
-      )}
+          </>
+        )}
+      </Modal>
     </section>
   );
 }

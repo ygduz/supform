@@ -1,4 +1,5 @@
 import { api } from "@/api/client";
+import { Alert, Button, Input } from "@/components";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 
@@ -25,33 +26,47 @@ export function ForgotPasswordPage() {
 
   if (sent) {
     return (
-      <section className="auth">
-        <h1>Check your email</h1>
-        <p className="muted">
-          If an account exists for <strong>{email}</strong>, we've sent a link to reset your
-          password. The link expires in 30 minutes.
-        </p>
-        <Link to="/login">Back to sign in</Link>
-      </section>
+      <div className="auth-page">
+        <div className="auth-card">
+          <div className="auth-head">
+            <h1>Check your email</h1>
+            <p className="auth-sub">
+              If an account exists for <strong>{email}</strong>, we've sent a reset link. It expires
+              in 30 minutes.
+            </p>
+          </div>
+          <Link to="/login" className="link-button">
+            ← Back to sign in
+          </Link>
+        </div>
+      </div>
     );
   }
 
   return (
-    <form className="auth" onSubmit={onSubmit}>
-      <h1>Reset your password</h1>
-      <p className="muted">Enter your email and we'll send you a reset link.</p>
-      <input
-        type="email"
-        placeholder="Email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        required
-      />
-      {error && <p className="error">{error}</p>}
-      <button type="submit" className="button" disabled={busy}>
-        {busy ? "Sending…" : "Send reset link"}
-      </button>
-      <Link to="/login">Back to sign in</Link>
-    </form>
+    <div className="auth-page">
+      <form className="auth-card" onSubmit={onSubmit}>
+        <div className="auth-head">
+          <h1>Reset your password</h1>
+          <p className="auth-sub">Enter your email and we'll send you a reset link.</p>
+        </div>
+        {error && <Alert tone="danger">{error}</Alert>}
+        <Input
+          label="Email"
+          type="email"
+          placeholder="you@example.com"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          autoComplete="email"
+          required
+        />
+        <Button type="submit" variant="primary" loading={busy} className="auth-submit">
+          Send reset link
+        </Button>
+        <Link to="/login" className="link-button">
+          ← Back to sign in
+        </Link>
+      </form>
+    </div>
   );
 }
