@@ -1627,23 +1627,25 @@ body,
 }
 .bulk-bar {
   position: sticky;
-  bottom: 0;
+  top: 0;
   display: flex;
   align-items: center;
-  gap: 10px;
-  background: #1e293b;
-  color: var(--surface);
+  gap: 8px;
+  background: color-mix(in srgb, var(--primary) 6%, var(--surface-raised));
+  border: 1px solid color-mix(in srgb, var(--primary) 25%, var(--border));
   border-radius: var(--radius);
-  padding: 10px 14px;
-  margin-top: 12px;
-  box-shadow: 0 -4px 16px rgba(15, 23, 42, 0.15);
-  z-index: 10;
+  padding: 8px 14px;
+  margin-bottom: 8px;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
+  z-index: 20;
+  flex-wrap: wrap;
 }
 .bulk-count {
   font-size: 13px;
   font-weight: 600;
-  color: var(--subtle);
+  color: var(--primary);
   white-space: nowrap;
+  margin-right: 4px;
 }
 .bulk-actions {
   display: flex;
@@ -2412,17 +2414,27 @@ body,
   font-weight: 600;
   position: sticky;
   top: 0;
+  box-shadow: 0 1px 0 var(--border);
+  z-index: 1;
 }
 .responses-table tbody tr:nth-child(even) {
   background: var(--surface-sunken);
 }
 .responses-table tbody tr:hover {
-  background: var(--primary-light);
+  background: color-mix(in srgb, var(--primary) 5%, var(--surface-raised));
+}
+.responses-table tbody tr:hover .row-actions {
+  opacity: 1;
 }
 .responses-table tbody tr.row-selected {
   background: color-mix(in srgb, var(--primary) 8%, transparent);
   outline: 1px solid color-mix(in srgb, var(--primary) 30%, transparent);
   outline-offset: -1px;
+}
+.row-actions {
+  opacity: 0;
+  transition: opacity var(--duration-fast) var(--ease);
+  white-space: nowrap;
 }
 
 /* Modal + share dialog */
@@ -2722,22 +2734,40 @@ body,
   border-color: var(--text);
 }
 .status-select {
-  font-size: 13px;
-  padding: 2px 6px;
-  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 3px 8px 3px 6px;
+  border-radius: 999px;
   border: 1px solid var(--border);
+  background: var(--surface-sunken);
+  color: var(--text-secondary);
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%236b7280' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 6px center;
+  padding-right: 22px;
+  transition: border-color var(--duration-fast) var(--ease);
+}
+.status-select:focus {
+  outline: none;
+  border-color: var(--primary);
 }
 .status-select.approved {
-  background: #dcfce7;
-  color: #166534;
+  background-color: color-mix(in srgb, #22c55e 12%, transparent);
+  color: #15803d;
+  border-color: color-mix(in srgb, #22c55e 35%, transparent);
 }
 .status-select.on_hold {
-  background: #fef9c3;
-  color: #854d0e;
+  background-color: color-mix(in srgb, #eab308 12%, transparent);
+  color: #92400e;
+  border-color: color-mix(in srgb, #eab308 35%, transparent);
 }
 .status-select.not_approved {
-  background: #fee2e2;
-  color: #991b1b;
+  background-color: color-mix(in srgb, var(--danger) 10%, transparent);
+  color: var(--danger);
+  border-color: color-mix(in srgb, var(--danger) 30%, transparent);
 }
 
 /* Geopoint field + map */
@@ -4261,25 +4291,6 @@ body,
   outline-offset: 2px;
 }
 
-/* ── Bulk action bar ──────────────────────────────────────────── */
-.bulk-bar {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 14px;
-  background: rgba(37, 99, 235, 0.06);
-  border: 1px solid rgba(37, 99, 235, 0.2);
-  border-radius: 8px;
-  margin-bottom: 8px;
-  flex-wrap: wrap;
-}
-.bulk-count {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--primary);
-  margin-right: 6px;
-}
-
 /* ── Table row selection ──────────────────────────────────────── */
 .th-check,
 .td-check {
@@ -4408,19 +4419,36 @@ body,
 
 /* ── Response search bar ──────────────────────────────────────── */
 .responses-search {
-  margin-bottom: 8px;
+  position: relative;
+  margin-bottom: 10px;
+}
+.responses-search::before {
+  content: "";
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 14px;
+  height: 14px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.35-4.35'/%3E%3C/svg%3E");
+  background-size: contain;
+  background-repeat: no-repeat;
+  pointer-events: none;
 }
 .responses-search-input {
   width: 100%;
-  padding: 8px 12px;
+  padding: 8px 12px 8px 34px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   font-size: 14px;
   background: var(--surface-raised);
+  transition: border-color var(--duration-fast) var(--ease), box-shadow var(--duration-fast)
+    var(--ease);
 }
 .responses-search-input:focus {
   outline: none;
   border-color: var(--primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 15%, transparent);
 }
 
 /* ── Repeat group polish ──────────────────────────────────────── */
@@ -4629,28 +4657,29 @@ body,
 .quality-flag {
   display: inline-block;
   font-size: 11px;
-  padding: 2px 6px;
-  border-radius: 10px;
+  font-weight: 500;
+  padding: 2px 7px;
+  border-radius: 999px;
   margin-right: 4px;
-  background: #fff3cd;
-  color: #856404;
-  border: 1px solid #ffe69c;
+  background: color-mix(in srgb, #eab308 10%, transparent);
+  color: #92400e;
+  border: 1px solid color-mix(in srgb, #eab308 30%, transparent);
   cursor: default;
 }
 .quality-flag--too_fast {
-  background: #ffe5e5;
-  color: #991b1b;
-  border-color: #fca5a5;
+  background: color-mix(in srgb, var(--danger) 10%, transparent);
+  color: var(--danger);
+  border-color: color-mix(in srgb, var(--danger) 30%, transparent);
 }
 .quality-flag--straight_lining {
-  background: #fef9c3;
-  color: #713f12;
-  border-color: #fde047;
+  background: color-mix(in srgb, #eab308 10%, transparent);
+  color: #92400e;
+  border-color: color-mix(in srgb, #eab308 30%, transparent);
 }
 .quality-flag--geo_outlier {
-  background: #e0f2fe;
+  background: color-mix(in srgb, #0ea5e9 10%, transparent);
   color: #0c4a6e;
-  border-color: #7dd3fc;
+  border-color: color-mix(in srgb, #0ea5e9 30%, transparent);
 }
 
 /* ── Bounding box row ────────────────────────────────────────── */
