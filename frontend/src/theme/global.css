@@ -2262,6 +2262,7 @@ body,
   margin: 0;
   font-size: var(--text-md);
   color: var(--muted);
+  text-align: center;
 }
 .auth-submit {
   width: 100%;
@@ -2274,6 +2275,26 @@ body,
   align-items: center;
   gap: var(--space-2);
   font-size: var(--text-sm);
+}
+.auth-brand {
+  font-size: var(--text-xl);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--primary);
+  text-align: center;
+  margin-bottom: var(--space-1);
+}
+.auth-title {
+  margin: 0;
+  font-size: var(--text-2xl);
+  font-weight: 700;
+  text-align: center;
+  color: var(--text);
+}
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
 }
 
 /* Inline field validation errors */

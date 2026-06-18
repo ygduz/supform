@@ -1,13 +1,12 @@
 import { api } from "@/api/client";
-import { Alert, Button, Spinner } from "@/components";
+import { Alert, Spinner } from "@/components";
 import { useEffect, useState } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 
 type State = "verifying" | "ok" | "error";
 
 /** Confirm an email address from the link sent at signup (?token=...). */
 export function VerifyEmailPage() {
-  const navigate = useNavigate();
   const [params] = useSearchParams();
   const token = params.get("token") ?? "";
   const [state, setState] = useState<State>("verifying");
@@ -37,37 +36,32 @@ export function VerifyEmailPage() {
   }, [token]);
 
   return (
-    <div className="auth-page">
-      <div className="auth-card">
-        {state === "verifying" && (
-          <div className="auth-head">
-            <Spinner size="md" />
-            <h1>Verifying your email…</h1>
+    <div className="auth-card">
+      <div className="auth-brand">Supform</div>
+      {state === "verifying" && (
+        <>
+          <h1 className="auth-title">Verifying your email…</h1>
+          <Spinner size="md" />
+        </>
+      )}
+      {state === "ok" && (
+        <>
+          <h1 className="auth-title">Email verified ✓</h1>
+          <p className="auth-sub">Thanks — your email address is confirmed.</p>
+          <div className="auth-footer">
+            <Link to="/login">Continue to sign in</Link>
           </div>
-        )}
-        {state === "ok" && (
-          <>
-            <div className="auth-head">
-              <h1>Email verified ✓</h1>
-              <p className="auth-sub">Thanks — your email address is confirmed.</p>
-            </div>
-            <Button variant="primary" className="auth-submit" onClick={() => navigate("/login")}>
-              Continue to sign in
-            </Button>
-          </>
-        )}
-        {state === "error" && (
-          <>
-            <div className="auth-head">
-              <h1>Verification failed</h1>
-            </div>
-            {error && <Alert tone="danger">{error}</Alert>}
-            <Link to="/login" className="link-button">
-              ← Back to sign in
-            </Link>
-          </>
-        )}
-      </div>
+        </>
+      )}
+      {state === "error" && (
+        <>
+          <h1 className="auth-title">Verification failed</h1>
+          <Alert tone="danger">{error}</Alert>
+          <div className="auth-footer">
+            <Link to="/login">Back to sign in</Link>
+          </div>
+        </>
+      )}
     </div>
   );
 }

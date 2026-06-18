@@ -31,57 +31,53 @@ export function LoginPage() {
   }
 
   return (
-    <div className="auth-page">
-      <form className="auth-card" onSubmit={onSubmit}>
-        <div className="auth-head">
-          <h1>{mode === "login" ? "Welcome back" : "Create your account"}</h1>
-          <p className="auth-sub">
-            {mode === "login"
-              ? "Sign in to your Supform account"
-              : "It only takes a minute to get started"}
-          </p>
-        </div>
-        {error && <Alert tone="danger">{error}</Alert>}
+    <div className="auth-card">
+      <div className="auth-brand">Supform</div>
+      <h1 className="auth-title">{mode === "login" ? "Welcome back" : "Create your account"}</h1>
+      <p className="auth-sub">
+        {mode === "login" ? "Sign in to your workspace" : "It only takes a minute"}
+      </p>
+      <form onSubmit={onSubmit} className="auth-form">
         <Input
-          label="Email"
           type="email"
-          placeholder="you@example.com"
+          label="Email"
+          autoComplete="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          autoComplete="email"
           required
         />
         <Input
-          label="Password"
           type="password"
-          placeholder="Min 8 characters"
+          label="Password"
+          hint={mode === "signup" ? "Minimum 8 characters" : undefined}
+          autoComplete={mode === "login" ? "current-password" : "new-password"}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          autoComplete={mode === "login" ? "current-password" : "new-password"}
           minLength={8}
           required
         />
-        <Button type="submit" variant="primary" loading={busy} className="auth-submit">
+        {error && <Alert tone="danger">{error}</Alert>}
+        <Button type="submit" variant="primary" size="lg" loading={busy} className="auth-submit">
           {mode === "login" ? "Sign in" : "Create account"}
         </Button>
-        <div className="auth-footer">
-          <button
-            type="button"
-            className="link-button"
-            onClick={() => {
-              setError(null);
-              setMode(mode === "login" ? "signup" : "login");
-            }}
-          >
-            {mode === "login" ? "Need an account? Sign up" : "Have an account? Sign in"}
-          </button>
-          {mode === "login" && (
-            <Link to="/forgot-password" className="muted">
-              Forgot password?
-            </Link>
-          )}
-        </div>
       </form>
+      <div className="auth-footer">
+        <button
+          type="button"
+          className="link-button"
+          onClick={() => {
+            setError(null);
+            setMode(mode === "login" ? "signup" : "login");
+          }}
+        >
+          {mode === "login" ? "Need an account? Sign up" : "Have an account? Sign in"}
+        </button>
+        {mode === "login" && (
+          <Link to="/forgot-password" className="muted">
+            Forgot your password?
+          </Link>
+        )}
+      </div>
     </div>
   );
 }

@@ -26,47 +26,42 @@ export function ForgotPasswordPage() {
 
   if (sent) {
     return (
-      <div className="auth-page">
-        <div className="auth-card">
-          <div className="auth-head">
-            <h1>Check your email</h1>
-            <p className="auth-sub">
-              If an account exists for <strong>{email}</strong>, we've sent a reset link. It expires
-              in 30 minutes.
-            </p>
-          </div>
-          <Link to="/login" className="link-button">
-            ← Back to sign in
-          </Link>
+      <div className="auth-card">
+        <div className="auth-brand">Supform</div>
+        <h1 className="auth-title">Check your email</h1>
+        <p className="auth-sub">
+          If an account exists for <strong>{email}</strong>, we've sent a link to reset your
+          password. The link expires in 30 minutes.
+        </p>
+        <div className="auth-footer">
+          <Link to="/login">Back to sign in</Link>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="auth-page">
-      <form className="auth-card" onSubmit={onSubmit}>
-        <div className="auth-head">
-          <h1>Reset your password</h1>
-          <p className="auth-sub">Enter your email and we'll send you a reset link.</p>
-        </div>
-        {error && <Alert tone="danger">{error}</Alert>}
+    <div className="auth-card">
+      <div className="auth-brand">Supform</div>
+      <h1 className="auth-title">Reset your password</h1>
+      <p className="auth-sub">Enter your email and we'll send you a reset link.</p>
+      <form onSubmit={onSubmit} className="auth-form">
         <Input
-          label="Email"
           type="email"
-          placeholder="you@example.com"
+          label="Email"
+          autoComplete="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          autoComplete="email"
           required
         />
-        <Button type="submit" variant="primary" loading={busy} className="auth-submit">
+        {error && <Alert tone="danger">{error}</Alert>}
+        <Button type="submit" variant="primary" size="lg" loading={busy} className="auth-submit">
           Send reset link
         </Button>
-        <Link to="/login" className="link-button">
-          ← Back to sign in
-        </Link>
       </form>
+      <div className="auth-footer">
+        <Link to="/login">Back to sign in</Link>
+      </div>
     </div>
   );
 }

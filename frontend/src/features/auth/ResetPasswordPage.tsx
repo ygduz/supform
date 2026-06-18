@@ -29,15 +29,12 @@ export function ResetPasswordPage() {
 
   if (!token) {
     return (
-      <div className="auth-page">
-        <div className="auth-card">
-          <div className="auth-head">
-            <h1>Invalid link</h1>
-            <p className="auth-sub">This password-reset link is missing its token.</p>
-          </div>
-          <Link to="/forgot-password" className="link-button">
-            Request a new link
-          </Link>
+      <div className="auth-card">
+        <div className="auth-brand">Supform</div>
+        <h1 className="auth-title">Invalid link</h1>
+        <p className="auth-sub">This password-reset link is missing its token.</p>
+        <div className="auth-footer">
+          <Link to="/forgot-password">Request a new link</Link>
         </div>
       </div>
     );
@@ -45,45 +42,46 @@ export function ResetPasswordPage() {
 
   if (done) {
     return (
-      <div className="auth-page">
-        <div className="auth-card">
-          <div className="auth-head">
-            <h1>Password updated</h1>
-            <p className="auth-sub">Your password has been reset successfully.</p>
-          </div>
-          <Button variant="primary" className="auth-submit" onClick={() => navigate("/login")}>
-            Sign in
-          </Button>
-        </div>
+      <div className="auth-card">
+        <div className="auth-brand">Supform</div>
+        <h1 className="auth-title">Password updated</h1>
+        <p className="auth-sub">Your password has been reset successfully.</p>
+        <Button
+          variant="primary"
+          size="lg"
+          className="auth-submit"
+          onClick={() => navigate("/login")}
+        >
+          Sign in
+        </Button>
       </div>
     );
   }
 
   return (
-    <div className="auth-page">
-      <form className="auth-card" onSubmit={onSubmit}>
-        <div className="auth-head">
-          <h1>Choose a new password</h1>
-          <p className="auth-sub">Pick something secure — at least 8 characters.</p>
-        </div>
-        {error && <Alert tone="danger">{error}</Alert>}
+    <div className="auth-card">
+      <div className="auth-brand">Supform</div>
+      <h1 className="auth-title">Choose a new password</h1>
+      <p className="auth-sub">Pick something strong that you don't use elsewhere.</p>
+      <form onSubmit={onSubmit} className="auth-form">
         <Input
-          label="New password"
           type="password"
-          placeholder="Min 8 characters"
+          label="New password"
+          hint="Minimum 8 characters"
+          autoComplete="new-password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          autoComplete="new-password"
           minLength={8}
           required
         />
-        <Button type="submit" variant="primary" loading={busy} className="auth-submit">
+        {error && <Alert tone="danger">{error}</Alert>}
+        <Button type="submit" variant="primary" size="lg" loading={busy} className="auth-submit">
           Reset password
         </Button>
-        <Link to="/login" className="link-button">
-          ← Back to sign in
-        </Link>
       </form>
+      <div className="auth-footer">
+        <Link to="/login">Back to sign in</Link>
+      </div>
     </div>
   );
 }
