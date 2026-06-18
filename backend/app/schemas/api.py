@@ -141,6 +141,28 @@ class PublishResult(BaseModel):
     version: int
 
 
+class FormVersionOut(BaseModel):
+    version: int
+    created_at: datetime
+    title: str | None = None
+
+
+class FormAuditLogOut(BaseModel):
+    id: uuid.UUID
+    action: str
+    summary: str | None
+    created_at: datetime
+
+
+class SubmissionEditOut(BaseModel):
+    id: uuid.UUID
+    edited_by: uuid.UUID | None
+    answers_before: dict
+    answers_after: dict
+    changed_fields: list[str]
+    created_at: datetime
+
+
 # ---- submissions ----
 class SubmissionCreate(BaseModel):
     answers: dict[str, Any]

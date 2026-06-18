@@ -3,6 +3,7 @@ import { Alert, Button } from "@/components";
 import { isNumericType, isPresentationalType } from "@/lib/fieldTypes";
 import { LanguageContext, formLanguages, languageLabel, localize } from "@/lib/i18n";
 import { isNetworkError, queueSubmission } from "@/lib/offline";
+import { hasSubmitted, markSubmitted } from "@/lib/submissionToken";
 import type { Element, FormSchema, I18nString } from "@/types/form-schema";
 import type { JSX } from "react";
 import { useEffect, useRef, useState } from "react";
@@ -98,7 +99,14 @@ export function FormRenderer({
   );
   const [errors, setErrors] = useState<FieldErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
-  const [submitted, setSubmitted] = useState(false);
+  // If the respondent already submitted this form anonymously within the last 24h and
+  // the form disallows multiple submissions, skip straight to the thank-you screen.
+  const [submitted, setSubmitted] = useState(() => {
+    if (formId && schema.settings?.allowMultipleSubmissions === false) {
+      return hasSubmitted(formId);
+    }
+    return false;
+  });
   const [queuedOffline, setQueuedOffline] = useState(false);
   const [step, setStep] = useState(0);
   const [started, setStarted] = useState(false);
@@ -347,6 +355,24 @@ export function FormRenderer({
       return;
     }
     setErrors({});
+
+    // Evaluate nextPageIf branching rules on the current page (paged mode only).
+    // The current step key matches the page name when mode === "paged".
+    if (mode === "paged") {
+      const currentPage = visiblePages.find((p) => p.name === current.key);
+      if (currentPage?.nextPageIf) {
+        for (const rule of currentPage.nextPageIf) {
+          if (evaluateBool(rule.condition, answers)) {
+            const targetIdx = steps.findIndex((s) => s.key === rule.page);
+            if (targetIdx >= 0) {
+              setStep(targetIdx);
+              return;
+            }
+          }
+        }
+      }
+    }
+
     setStep(Math.min(stepIndex + 1, steps.length - 1));
   }
 
@@ -379,6 +405,9 @@ export function FormRenderer({
     }
     try {
       await api.submit(formId, answers, { _started_at: startedAt.current });
+      if (schema.settings?.allowMultipleSubmissions === false) {
+        markSubmitted(formId);
+      }
       setSubmitted(true);
     } catch (err) {
       // The server re-validates: map any field-level 422 details back onto the fields.

@@ -141,6 +141,10 @@ interface BuilderState {
   removePage: (index: number) => void;
   renamePage: (index: number, title: string) => void;
   setPageVisibleIf: (index: number, visibleIf: string | undefined) => void;
+  setPageNextPageIf: (
+    index: number,
+    nextPageIf: Array<{ condition: string; page: string }> | undefined,
+  ) => void;
 
   save: () => Promise<void>;
   publish: () => Promise<void>;
@@ -604,6 +608,9 @@ export const useBuilderStore = create<BuilderState>((rawSet, get) => {
 
     setPageVisibleIf: (index, visibleIf) =>
       set((s) => ({ schema: model.setPageVisibleIf(s.schema, index, visibleIf) })),
+
+    setPageNextPageIf: (index, nextPageIf) =>
+      set((s) => ({ schema: model.setPageNextPageIf(s.schema, index, nextPageIf) })),
 
     save: async () => {
       const { formId, schema } = get();

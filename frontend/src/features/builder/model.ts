@@ -551,6 +551,22 @@ export function setPageVisibleIf(
   };
 }
 
+/** Update the conditional branching rules for a page. */
+export function setPageNextPageIf(
+  schema: FormSchema,
+  index: number,
+  nextPageIf: Array<{ condition: string; page: string }> | undefined,
+): FormSchema {
+  return {
+    ...schema,
+    pages: schema.pages.map((p, i) =>
+      i === index
+        ? { ...p, nextPageIf: nextPageIf && nextPageIf.length > 0 ? nextPageIf : undefined }
+        : p,
+    ),
+  };
+}
+
 // ── i18n migration ──────────────────────────────────────────────
 
 function upgradeI18n(value: I18nString | undefined, lang: string): I18nString | undefined {

@@ -55,6 +55,9 @@ export function ResponsesPage() {
   const [view, setView] = useState<View>("analytics");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [editState, setEditState] = useState<EditState | null>(null);
+  const [editHistory, setEditHistory] = useState<
+    Array<{ id: string; changed_fields: string[]; created_at: string }>
+  >([]);
   const [search, setSearch] = useState("");
   const editRef = useRef<HTMLTextAreaElement>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -128,6 +131,13 @@ export function ResponsesPage() {
       saving: false,
       error: null,
     });
+    setEditHistory([]);
+    if (formId) {
+      api
+        .getSubmissionEdits(formId, row.id)
+        .then(setEditHistory)
+        .catch(() => {});
+    }
   }
 
   async function saveEdit() {
@@ -566,6 +576,25 @@ export function ResponsesPage() {
               spellCheck={false}
             />
             {editState.error && <Alert tone="danger">{editState.error}</Alert>}
+            {editHistory.length > 0 && (
+              <details className="edit-history">
+                <summary className="edit-history-summary">
+                  Edit history ({editHistory.length})
+                </summary>
+                <div className="edit-history-list">
+                  {editHistory.map((e) => (
+                    <div key={e.id} className="edit-history-entry">
+                      <span className="edit-history-time">
+                        {new Date(e.created_at).toLocaleString()}
+                      </span>
+                      <span className="edit-history-fields">
+                        {e.changed_fields.join(", ")} changed
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </details>
+            )}
             <div className="edit-footer">
               <Button variant="primary" onClick={saveEdit} loading={editState.saving}>
                 Save changes

@@ -143,6 +143,35 @@ export function CardPreview({ element, editable }: { element: Element; editable:
     case "note":
     case "html":
       return <div className="pv-note">{localize(element.label) || "Informational text"}</div>;
+    case "repeat": {
+      const fieldCount = element.elements?.length ?? 0;
+      const minMax = [
+        element.repeat?.min != null ? `min ${element.repeat.min}` : null,
+        element.repeat?.max != null ? `max ${element.repeat.max}` : null,
+      ]
+        .filter(Boolean)
+        .join(", ");
+      return (
+        <div className="pv-container-summary">
+          <span className="pv-container-icon">↻</span>
+          <span>
+            Repeating · {fieldCount} {fieldCount === 1 ? "field" : "fields"}
+            {minMax ? ` · ${minMax}` : ""}
+          </span>
+        </div>
+      );
+    }
+    case "group": {
+      const fieldCount = element.elements?.length ?? 0;
+      return (
+        <div className="pv-container-summary">
+          <span className="pv-container-icon">⊞</span>
+          <span>
+            Group · {fieldCount} {fieldCount === 1 ? "field" : "fields"}
+          </span>
+        </div>
+      );
+    }
     default:
       return null;
   }

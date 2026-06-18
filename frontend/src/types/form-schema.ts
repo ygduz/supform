@@ -115,11 +115,18 @@ export interface Element {
   meta?: Record<string, unknown>;
 }
 
+export interface NextPageRule {
+  condition: Expression;
+  page: string;
+}
+
 export interface Page {
   name: string;
   title?: I18nString;
   description?: I18nString;
   visibleIf?: Expression;
+  /** Conditional branching: first matching rule wins; falls back to sequential if none match. */
+  nextPageIf?: NextPageRule[];
   elements: Element[];
 }
 

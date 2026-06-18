@@ -334,7 +334,7 @@ export function ElementCard({
         </div>
       </div>
 
-      {!container && !isDragging && (
+      {(!container || collapsed) && !isDragging && (
         <div
           className="el-preview"
           onClick={handleCardClick}

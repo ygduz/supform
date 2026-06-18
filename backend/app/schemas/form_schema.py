@@ -147,6 +147,13 @@ class Element(BaseModel):
     meta: dict[str, Any] = Field(default_factory=dict)
 
 
+class NextPageRule(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, extra="forbid")
+
+    condition: str
+    page: str
+
+
 class Page(BaseModel):
     model_config = ConfigDict(populate_by_name=True, extra="forbid")
 
@@ -154,6 +161,7 @@ class Page(BaseModel):
     title: I18nString | None = None
     description: I18nString | None = None
     visible_if: str | None = Field(default=None, alias="visibleIf")
+    next_page_if: list[NextPageRule] = Field(default_factory=list, alias="nextPageIf")
     elements: list[Element] = Field(default_factory=list)
 
 

@@ -137,6 +137,19 @@
         "title": { "$ref": "#/$defs/i18nString" },
         "description": { "$ref": "#/$defs/i18nString" },
         "visibleIf": { "$ref": "#/$defs/expression" },
+        "nextPageIf": {
+          "type": "array",
+          "description": "Conditional branching rules evaluated after leaving this page. First matching rule determines which page to navigate to next; if none match, the next visible page in order is shown.",
+          "items": {
+            "type": "object",
+            "required": ["condition", "page"],
+            "additionalProperties": false,
+            "properties": {
+              "condition": { "$ref": "#/$defs/expression" },
+              "page": { "type": "string", "description": "Target page name to navigate to." }
+            }
+          }
+        },
         "elements": {
           "type": "array",
           "items": { "$ref": "#/$defs/element" }

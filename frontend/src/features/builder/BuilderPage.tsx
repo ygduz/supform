@@ -1,3 +1,4 @@
+import { api } from "@/api/client";
 import { Button, Modal } from "@/components";
 import { localize } from "@/lib/i18n";
 import { useBuilderStore } from "@/stores/builderStore";
@@ -22,6 +23,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { formToText } from "../import/textForm";
 import { saveMyTemplate } from "../templates/myTemplates";
+import { ActivityPanel } from "./ActivityPanel";
 import { BuilderCanvas, type DropLocation } from "./BuilderCanvas";
 import { LanguagePreview } from "./LanguagePreview";
 import { LogicBuilder } from "./LogicBuilder";
@@ -35,11 +37,20 @@ import { ShareDialog } from "./ShareDialog";
 import { ShareLinkDialog } from "./ShareLinkDialog";
 import { ThemePanel } from "./ThemePanel";
 import { TranslatePanel } from "./TranslatePanel";
+import { VersionHistoryPanel } from "./VersionHistoryPanel";
 import { WebhooksDialog } from "./WebhooksDialog";
 import { confirmDeleteContainer, findElement, isContainerType, pageElements } from "./model";
 import { ADVANCED_PALETTE, COMMON_PALETTE, ELEMENT_PALETTE } from "./palette";
 
-type Tab = "overview" | "properties" | "theme" | "settings" | "translate" | "preview";
+type Tab =
+  | "overview"
+  | "properties"
+  | "theme"
+  | "settings"
+  | "translate"
+  | "preview"
+  | "history"
+  | "activity";
 
 export function BuilderPage() {
   const { formId = "new" } = useParams();
@@ -543,6 +554,75 @@ export function BuilderPage() {
                   excludeName=""
                   onChange={(v) => store.setPageVisibleIf(activePage, v)}
                 />
+                <div className="page-branching">
+                  <div className="page-branching-header">
+                    <span className="page-branching-label">Page branching</span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        const current = schema.pages[activePage]?.nextPageIf ?? [];
+                        store.setPageNextPageIf(activePage, [
+                          ...current,
+                          { condition: "", page: schema.pages[activePage + 1]?.name ?? "" },
+                        ]);
+                      }}
+                    >
+                      + Add rule
+                    </Button>
+                  </div>
+                  {(schema.pages[activePage]?.nextPageIf ?? []).length > 0 && (
+                    <div className="page-branching-rules">
+                      {(schema.pages[activePage]?.nextPageIf ?? []).map((rule, ri) => (
+                        // biome-ignore lint/suspicious/noArrayIndexKey: branching rules have no stable id
+                        <div key={ri} className="page-branching-rule">
+                          <LogicBuilder
+                            label="If…"
+                            value={rule.condition}
+                            excludeName=""
+                            onChange={(v) => {
+                              const rules = [...(schema.pages[activePage]?.nextPageIf ?? [])];
+                              rules[ri] = { ...rules[ri], condition: v ?? "" };
+                              store.setPageNextPageIf(activePage, rules);
+                            }}
+                          />
+                          <div className="page-branching-target">
+                            {/* biome-ignore lint/a11y/noLabelWithoutControl: label wraps select below */}
+                            <label className="page-branching-target-label">Go to page</label>
+                            <select
+                              value={rule.page}
+                              onChange={(e) => {
+                                const rules = [...(schema.pages[activePage]?.nextPageIf ?? [])];
+                                rules[ri] = { ...rules[ri], page: e.target.value };
+                                store.setPageNextPageIf(activePage, rules);
+                              }}
+                            >
+                              {schema.pages
+                                .filter((_, pi) => pi !== activePage)
+                                .map((p) => (
+                                  <option key={p.name} value={p.name}>
+                                    {p.name}
+                                  </option>
+                                ))}
+                            </select>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                const rules = (schema.pages[activePage]?.nextPageIf ?? []).filter(
+                                  (_, i) => i !== ri,
+                                );
+                                store.setPageNextPageIf(activePage, rules);
+                              }}
+                            >
+                              ✕
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 
@@ -581,6 +661,7 @@ export function BuilderPage() {
                   "settings",
                   ...(isMultilingual ? (["translate"] as Tab[]) : []),
                   "preview",
+                  ...(formId !== "new" ? (["history", "activity"] as Tab[]) : []),
                 ] as Tab[]
               ).map((t) => (
                 <Button
@@ -594,7 +675,11 @@ export function BuilderPage() {
                     ? "Map"
                     : t === "translate"
                       ? "🌐"
-                      : t.charAt(0).toUpperCase() + t.slice(1)}
+                      : t === "history"
+                        ? "History"
+                        : t === "activity"
+                          ? "Activity"
+                          : t.charAt(0).toUpperCase() + t.slice(1)}
                 </Button>
               ))}
             </div>
@@ -610,6 +695,17 @@ export function BuilderPage() {
             {tab === "settings" && <SettingsPanel />}
             {tab === "translate" && <TranslatePanel />}
             {tab === "preview" && <LanguagePreview schema={schema} />}
+            {tab === "activity" && formId !== "new" && <ActivityPanel formId={formId} />}
+            {tab === "history" && formId !== "new" && (
+              <VersionHistoryPanel
+                formId={formId}
+                onRestoreVersion={async (version) => {
+                  const versionSchema = await api.getVersion(formId, version);
+                  store.loadTemplate(versionSchema);
+                  await store.save();
+                }}
+              />
+            )}
           </aside>
         </div>
 
