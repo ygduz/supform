@@ -1,0 +1,27 @@
+{
+  "name": "supform-mobile",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Capacitor wrapper for the Supform web app — iOS and Android native shell.",
+  "scripts": {
+    "build:web": "cd ../frontend && VITE_API_BASE_URL=$(cat ../mobile/.env | grep VITE_API_BASE_URL | cut -d= -f2) npm run build",
+    "sync": "cap sync",
+    "open:ios": "cap open ios",
+    "open:android": "cap open android",
+    "run:ios": "cap run ios",
+    "run:android": "cap run android"
+  },
+  "dependencies": {
+    "@capacitor/android": "^6.0.0",
+    "@capacitor/camera": "^6.0.0",
+    "@capacitor/core": "^6.0.0",
+    "@capacitor/geolocation": "^6.0.0",
+    "@capacitor/ios": "^6.0.0",
+    "@capacitor/splash-screen": "^6.0.0",
+    "@capacitor/status-bar": "^6.0.0"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^6.0.0",
+    "typescript": "^6.0.3"
+  }
+}
