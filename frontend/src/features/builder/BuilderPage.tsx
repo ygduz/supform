@@ -65,6 +65,8 @@ export function BuilderPage() {
   const [showLibrary, setShowLibrary] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const [paletteOpen, setPaletteOpen] = useState(true);
+  const [inspectorOpen, setInspectorOpen] = useState(true);
   const [hintDismissed, setHintDismissed] = useState(
     () => localStorage.getItem("supform.builderHintDismissed") === "1",
   );
@@ -461,53 +463,67 @@ export function BuilderPage() {
           setOverDragId(null);
         }}
       >
-        <div className="builder-body">
+        <div
+          className={`builder-body${paletteOpen ? "" : " palette-collapsed"}${inspectorOpen ? "" : " inspector-collapsed"}`}
+        >
           {/* Palette */}
           <aside className="palette">
-            <div className="palette-tabs">
-              <Button
-                variant="ghost"
-                size="sm"
-                className={!showLibrary ? "palette-tab active" : "palette-tab"}
-                onClick={() => setShowLibrary(false)}
-              >
-                Fields
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                className={showLibrary ? "palette-tab active" : "palette-tab"}
-                onClick={() => setShowLibrary(true)}
-              >
-                Library
-              </Button>
-            </div>
-            {showLibrary ? (
-              <QuestionLibraryPanel onClose={() => setShowLibrary(false)} />
-            ) : (
-              <>
-                <p className="palette-heading">Add a question</p>
-                {COMMON_PALETTE.map((item) => (
-                  <PaletteItem
-                    key={item.type}
-                    type={item.type}
-                    label={item.label}
-                    icon={item.icon}
-                  />
-                ))}
-                <details className="palette-more">
-                  <summary>More types</summary>
-                  {ADVANCED_PALETTE.map((item) => (
-                    <PaletteItem
-                      key={item.type}
-                      type={item.type}
-                      label={item.label}
-                      icon={item.icon}
-                    />
-                  ))}
-                </details>
-              </>
+            {paletteOpen && (
+              <div className="palette-content">
+                <div className="palette-tabs">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className={!showLibrary ? "palette-tab active" : "palette-tab"}
+                    onClick={() => setShowLibrary(false)}
+                  >
+                    Fields
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className={showLibrary ? "palette-tab active" : "palette-tab"}
+                    onClick={() => setShowLibrary(true)}
+                  >
+                    Library
+                  </Button>
+                </div>
+                {showLibrary ? (
+                  <QuestionLibraryPanel onClose={() => setShowLibrary(false)} />
+                ) : (
+                  <>
+                    <p className="palette-heading">Add a question</p>
+                    {COMMON_PALETTE.map((item) => (
+                      <PaletteItem
+                        key={item.type}
+                        type={item.type}
+                        label={item.label}
+                        icon={item.icon}
+                      />
+                    ))}
+                    <details className="palette-more">
+                      <summary>More types</summary>
+                      {ADVANCED_PALETTE.map((item) => (
+                        <PaletteItem
+                          key={item.type}
+                          type={item.type}
+                          label={item.label}
+                          icon={item.icon}
+                        />
+                      ))}
+                    </details>
+                  </>
+                )}
+              </div>
             )}
+            <button
+              type="button"
+              className="panel-toggle"
+              title={paletteOpen ? "Collapse fields panel" : "Expand fields panel"}
+              onClick={() => setPaletteOpen((o) => !o)}
+            >
+              {paletteOpen ? "‹" : "›"}
+            </button>
           </aside>
 
           {/* Canvas */}
@@ -651,61 +667,71 @@ export function BuilderPage() {
           </section>
 
           {/* Inspector */}
-          <aside className="inspector">
-            <div className="tabs">
-              {(
-                [
-                  "overview",
-                  "properties",
-                  "theme",
-                  "settings",
-                  ...(isMultilingual ? (["translate"] as Tab[]) : []),
-                  "preview",
-                  ...(formId !== "new" ? (["history", "activity"] as Tab[]) : []),
-                ] as Tab[]
-              ).map((t) => (
-                <Button
-                  key={t}
-                  variant="ghost"
-                  size="sm"
-                  className={tab === t ? "tab active" : "tab"}
-                  onClick={() => setTab(t)}
-                >
-                  {t === "overview"
-                    ? "Map"
-                    : t === "translate"
-                      ? "🌐"
-                      : t === "history"
-                        ? "History"
-                        : t === "activity"
-                          ? "Activity"
-                          : t.charAt(0).toUpperCase() + t.slice(1)}
-                </Button>
-              ))}
-            </div>
+          <aside className={`inspector${inspectorOpen ? "" : " inspector-collapsed"}`}>
+            <button
+              type="button"
+              className="panel-toggle"
+              title={inspectorOpen ? "Collapse inspector" : "Expand inspector"}
+              onClick={() => setInspectorOpen((o) => !o)}
+            >
+              {inspectorOpen ? "›" : "‹"}
+            </button>
+            <div className="inspector-inner">
+              <div className="tabs">
+                {(
+                  [
+                    "overview",
+                    "properties",
+                    "theme",
+                    "settings",
+                    ...(isMultilingual ? (["translate"] as Tab[]) : []),
+                    "preview",
+                    ...(formId !== "new" ? (["history", "activity"] as Tab[]) : []),
+                  ] as Tab[]
+                ).map((t) => (
+                  <Button
+                    key={t}
+                    variant="ghost"
+                    size="sm"
+                    className={tab === t ? "tab active" : "tab"}
+                    onClick={() => setTab(t)}
+                  >
+                    {t === "overview"
+                      ? "Map"
+                      : t === "translate"
+                        ? "🌐"
+                        : t === "history"
+                          ? "History"
+                          : t === "activity"
+                            ? "Activity"
+                            : t.charAt(0).toUpperCase() + t.slice(1)}
+                  </Button>
+                ))}
+              </div>
 
-            {tab === "overview" && <OverviewPanel />}
-            {tab === "properties" &&
-              (selected ? (
-                <PropertiesPanel element={selected} />
-              ) : (
-                <p className="muted">Select a question to edit its settings.</p>
-              ))}
-            {tab === "theme" && <ThemePanel />}
-            {tab === "settings" && <SettingsPanel />}
-            {tab === "translate" && <TranslatePanel />}
-            {tab === "preview" && <LanguagePreview schema={schema} />}
-            {tab === "activity" && formId !== "new" && <ActivityPanel formId={formId} />}
-            {tab === "history" && formId !== "new" && (
-              <VersionHistoryPanel
-                formId={formId}
-                onRestoreVersion={async (version) => {
-                  const versionSchema = await api.getVersion(formId, version);
-                  store.loadTemplate(versionSchema);
-                  await store.save();
-                }}
-              />
-            )}
+              {tab === "overview" && <OverviewPanel />}
+              {tab === "properties" &&
+                (selected ? (
+                  <PropertiesPanel element={selected} />
+                ) : (
+                  <p className="muted">Select a question to edit its settings.</p>
+                ))}
+              {tab === "theme" && <ThemePanel />}
+              {tab === "settings" && <SettingsPanel />}
+              {tab === "translate" && <TranslatePanel />}
+              {tab === "preview" && <LanguagePreview schema={schema} />}
+              {tab === "activity" && formId !== "new" && <ActivityPanel formId={formId} />}
+              {tab === "history" && formId !== "new" && (
+                <VersionHistoryPanel
+                  formId={formId}
+                  onRestoreVersion={async (version) => {
+                    const versionSchema = await api.getVersion(formId, version);
+                    store.loadTemplate(versionSchema);
+                    await store.save();
+                  }}
+                />
+              )}
+            </div>
           </aside>
         </div>
 
