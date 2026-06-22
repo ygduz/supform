@@ -15,6 +15,7 @@ passlib-issued ones — no re-hash or migration needed.
 from __future__ import annotations
 
 import base64
+import binascii
 import hashlib
 import hmac
 import json
@@ -38,7 +39,9 @@ def _ab64_encode(raw: bytes) -> str:
 def _ab64_decode(data: str) -> bytes:
     data = data.replace(".", "+")
     data += "=" * (-len(data) % 4)
-    return base64.b64decode(data)
+    # validate=True so a malformed (non-alphabet) field raises instead of silently
+    # decoding to garbage — verify_password turns that into a clean auth failure.
+    return base64.b64decode(data, validate=True)
 
 
 def hash_password(plain: str) -> str:
@@ -55,9 +58,13 @@ def verify_password(plain: str, hashed: str) -> bool:
         rounds = int(rounds_s)
         salt = _ab64_decode(salt_s)
         expected = _ab64_decode(checksum_s)
-    except (ValueError, base64.binascii.Error):
+        # A corrupt row (zero rounds, empty salt/checksum) must fail auth cleanly,
+        # not raise out of pbkdf2_hmac (dklen=0 / rounds<1 both ValueError).
+        if rounds < 1 or not salt or not expected:
+            return False
+        digest = hashlib.pbkdf2_hmac("sha256", plain.encode(), salt, rounds, dklen=len(expected))
+    except (ValueError, binascii.Error):
         return False
-    digest = hashlib.pbkdf2_hmac("sha256", plain.encode(), salt, rounds, dklen=len(expected))
     return hmac.compare_digest(digest, expected)
 
 
