@@ -75,7 +75,6 @@ export function MindMapPanel() {
 
   return (
     <div className="mindmap-panel">
-      {/* biome-ignore lint/a11y/noSvgWithoutTitle: aria-label provides accessible name */}
       <svg
         viewBox={`0 0 ${CANVAS_W} ${totalH}`}
         width={CANVAS_W}
