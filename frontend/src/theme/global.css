@@ -1,36 +1,42 @@
 :root {
-  /* Brand */
-  --primary: #2563eb;
-  --primary-hover: #1d4ed8;
-  --primary-light: #eff6ff;
+  /* Brand — Warm Vintage (70s earthy) retro palette */
+  --primary: #c75d3a; /* terracotta */
+  --primary-hover: #a84a2c;
+  --primary-light: #f6e4dc;
 
-  /* Text */
-  --text: #0f172a;
-  --text-secondary: #334155;
-  --muted: #64748b;
-  --subtle: #94a3b8;
-  --placeholder: #cbd5e1;
+  /* Retro accents */
+  --accent-mustard: #d9a441;
+  --accent-mustard-light: #f7ecd2;
+  --accent-teal: #2f6b6b;
+  --accent-teal-light: #dcebe9;
 
-  /* Surfaces */
-  --surface: #f8fafc;
-  --surface-raised: #ffffff;
-  --surface-sunken: #f1f5f9;
+  /* Text — warm ink on paper */
+  --text: #2b2420;
+  --text-secondary: #4a4038;
+  --muted: #8a7d70;
+  --subtle: #a89a8c;
+  --placeholder: #c3b6a6;
+
+  /* Surfaces — cream / paper */
+  --surface: #f4ece1;
+  --surface-raised: #fbf6ee;
+  --surface-sunken: #ece1d2;
 
   /* Borders */
-  --border: #e2e8f0;
-  --border-strong: #cbd5e1;
-  --border-focus: #2563eb;
+  --border: #e3d6c4;
+  --border-strong: #cbb89f;
+  --border-focus: #c75d3a;
 
-  /* Semantic */
-  --success: #16a34a;
-  --success-light: #f0fdf4;
-  --warning: #d97706;
-  --warning-light: #fffbeb;
-  --danger: #dc2626;
-  --danger-light: #fef2f2;
-  --danger-hover: #b91c1c;
-  --info: #0284c7;
-  --info-light: #f0f9ff;
+  /* Semantic — warmed to sit with the retro palette */
+  --success: #5f8a3f; /* avocado */
+  --success-light: #eef2e0;
+  --warning: #c98a2b;
+  --warning-light: #f9eed4;
+  --danger: #c0392b; /* rust red */
+  --danger-light: #f7e3df;
+  --danger-hover: #9e2b20;
+  --info: #2f6b6b;
+  --info-light: #dcebe9;
 
   /* Radius */
   --radius: 8px;
@@ -38,10 +44,10 @@
   --radius-lg: 12px;
   --radius-full: 9999px;
 
-  /* Shadow */
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.05);
-  --shadow: 0 4px 12px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.05);
-  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.12), 0 4px 8px rgba(0, 0, 0, 0.06);
+  /* Shadow — warm, brown-tinted to suit the paper surfaces */
+  --shadow-sm: 0 1px 3px rgba(74, 51, 35, 0.1), 0 1px 2px rgba(74, 51, 35, 0.06);
+  --shadow: 0 4px 12px rgba(74, 51, 35, 0.1), 0 2px 4px rgba(74, 51, 35, 0.06);
+  --shadow-lg: 0 12px 32px rgba(74, 51, 35, 0.14), 0 4px 8px rgba(74, 51, 35, 0.08);
 
   /* Typography scale */
   --text-xs: 11px;
@@ -68,10 +74,10 @@
 
   --font: "Segoe UI", "Segoe UI Web", -apple-system, system-ui, Roboto, "Helvetica Neue", sans-serif;
 
-  /* Form renderer (MS Forms-style respondent view) */
-  --fr-page-bg: #f5f5f5;
+  /* Form renderer (MS Forms-style layout, retro palette) */
+  --fr-page-bg: #f4ece1;
   --fr-band: var(--primary);
-  --fr-card-radius: 8px;
+  --fr-card-radius: 10px;
 }
 
 * {
@@ -124,7 +130,7 @@ body {
 }
 .button:hover {
   background: var(--primary-hover);
-  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.25);
+  box-shadow: 0 4px 14px rgba(199, 93, 58, 0.25);
 }
 .button:active {
   transform: translateY(1px);
@@ -198,7 +204,7 @@ button:focus-visible {
 }
 .btn--primary:hover {
   background: var(--primary-hover);
-  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+  box-shadow: 0 4px 12px rgba(199, 93, 58, 0.3);
 }
 
 .btn--secondary {
@@ -326,7 +332,7 @@ button:focus-visible {
 }
 .field-input:focus {
   border-color: var(--border-focus);
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+  box-shadow: 0 0 0 3px rgba(199, 93, 58, 0.12);
 }
 .field-input::placeholder {
   color: var(--placeholder);
@@ -931,30 +937,50 @@ button:focus-visible {
 .field .select:focus {
   outline: none;
   border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+  box-shadow: 0 0 0 3px var(--primary-light);
 }
+/* ── Tactile option cards (modern radios/checkboxes) ────────────
+   Full-row cards with a custom-drawn indicator. The native input is restyled
+   in place (appearance: none) so it stays keyboard- and screen-reader-accessible
+   while we draw the retro circle/box ourselves. */
 .choices {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
 }
 .choices label {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 13px;
   margin: 0;
-  padding: 12px 14px;
-  border: 1px solid var(--border);
+  padding: 14px 16px;
+  background: var(--surface-raised);
+  border: 1.5px solid var(--border);
   border-radius: var(--radius);
   cursor: pointer;
   font-size: var(--text-md);
   font-weight: 400;
   color: var(--text-secondary);
-  transition: border-color 0.12s ease, background 0.12s ease, color 0.12s ease;
+  transition:
+    border-color var(--duration) var(--ease), background var(--duration) var(--ease),
+    color var(--duration) var(--ease), box-shadow var(--duration) var(--ease),
+    transform var(--duration-fast) var(--ease);
 }
 .choices label:hover {
   border-color: var(--border-strong);
-  background: var(--surface-sunken);
+  background: var(--surface);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+.choices label:active {
+  transform: translateY(0) scale(0.992);
+}
+/* Keyboard focus ring on the whole card. */
+.choices label:focus-within {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-light);
 }
 .choices label:has(input:checked) {
   border-color: var(--primary);
@@ -962,12 +988,44 @@ button:focus-visible {
   color: var(--text);
   font-weight: 500;
 }
+
+/* The custom indicator — the native input itself, redrawn. */
 .choices input[type="radio"],
 .choices input[type="checkbox"] {
-  width: 18px;
-  height: 18px;
-  accent-color: var(--primary);
+  appearance: none;
+  -webkit-appearance: none;
+  margin: 0;
+  width: 22px;
+  height: 22px;
   flex-shrink: 0;
+  background: var(--surface-raised);
+  border: 2px solid var(--border-strong);
+  cursor: pointer;
+  transition: border-color var(--duration) var(--ease), background var(--duration) var(--ease),
+    box-shadow var(--duration) var(--ease);
+}
+.choices input[type="radio"] {
+  border-radius: var(--radius-full);
+}
+.choices input[type="checkbox"] {
+  border-radius: 6px;
+}
+.choices label:hover input {
+  border-color: var(--primary);
+}
+/* Radio: animate an inner dot in via an inset ring. */
+.choices input[type="radio"]:checked {
+  border-color: var(--primary);
+  box-shadow: inset 0 0 0 5px var(--primary);
+}
+/* Checkbox: fill + draw a checkmark with a background SVG. */
+.choices input[type="checkbox"]:checked {
+  border-color: var(--primary);
+  background-color: var(--primary);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23fbf6ee' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='3.5 8.5 6.5 11.5 12.5 4.5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 15px;
 }
 .rating .star {
   background: none;
@@ -977,7 +1035,7 @@ button:focus-visible {
   cursor: pointer;
 }
 .rating .star.active {
-  color: #f59e0b;
+  color: var(--accent-mustard);
 }
 
 /* Select / dropdown */
@@ -1614,11 +1672,11 @@ body,
 .el-card.selected .el-number {
   color: var(--primary);
   border-color: var(--primary);
-  background: rgba(37, 99, 235, 0.08);
+  background: rgba(199, 93, 58, 0.08);
 }
 .el-card.selected {
   border-color: var(--primary);
-  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
+  box-shadow: 0 0 0 2px rgba(199, 93, 58, 0.15);
 }
 .el-children {
   margin: 0 10px 10px 28px;
@@ -1712,7 +1770,7 @@ body,
   height: 3px;
   border-radius: 2px;
   background: var(--primary);
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+  box-shadow: 0 0 0 3px rgba(199, 93, 58, 0.2);
 }
 .el-card.drag-ghost {
   box-shadow: 0 10px 30px rgba(15, 23, 42, 0.18);
@@ -1751,7 +1809,7 @@ body,
 }
 .drop-zone.armed.over {
   border-color: var(--primary);
-  background: rgba(37, 99, 235, 0.06);
+  background: rgba(199, 93, 58, 0.06);
   color: var(--primary);
 }
 
@@ -1811,7 +1869,7 @@ body,
 }
 .el-actions button.active {
   color: var(--primary);
-  background: rgba(37, 99, 235, 0.1);
+  background: rgba(199, 93, 58, 0.1);
 }
 
 /* ---- palette item drag affordance ---- */
@@ -1931,7 +1989,7 @@ body,
   right: 0;
   top: 50%;
   height: 2px;
-  background: rgba(37, 99, 235, 0.35);
+  background: rgba(199, 93, 58, 0.35);
 }
 .insert-pop {
   position: absolute;
@@ -2158,7 +2216,7 @@ body,
   border-radius: 6px;
 }
 .pv-add-option:hover {
-  background: rgba(37, 99, 235, 0.08);
+  background: rgba(199, 93, 58, 0.08);
 }
 
 /* ---- visual logic builder ---- */
@@ -4038,7 +4096,7 @@ body,
   opacity: 0.55;
 }
 .ov-row.ov-in-viewport:not(.ov-selected) {
-  background: rgba(37, 99, 235, 0.04);
+  background: rgba(199, 93, 58, 0.04);
 }
 
 .ov-row:hover {
@@ -4313,7 +4371,7 @@ body,
 .text-import-area:focus {
   outline: none;
   border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+  box-shadow: 0 0 0 3px rgba(199, 93, 58, 0.15);
   background: var(--surface-raised);
 }
 .text-import-preview {
@@ -4517,7 +4575,7 @@ body,
 }
 .ranking-item.ranking-over {
   border-color: var(--primary);
-  background: rgba(37, 99, 235, 0.04);
+  background: rgba(199, 93, 58, 0.04);
 }
 .ranking-handle {
   color: var(--muted);
@@ -4564,7 +4622,7 @@ body,
   text-align: center;
 }
 .row-selected td {
-  background: rgba(37, 99, 235, 0.04);
+  background: rgba(199, 93, 58, 0.04);
 }
 
 /* ── Note / HTML display fields ───────────────────────────────── */
