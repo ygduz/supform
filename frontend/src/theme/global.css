@@ -66,7 +66,12 @@
   --duration-fast: 100ms;
   --duration: 180ms;
 
-  --font: Inter, system-ui, -apple-system, sans-serif;
+  --font: "Segoe UI", "Segoe UI Web", -apple-system, system-ui, Roboto, "Helvetica Neue", sans-serif;
+
+  /* Form renderer (MS Forms-style respondent view) */
+  --fr-page-bg: #f5f5f5;
+  --fr-band: var(--primary);
+  --fr-card-radius: 8px;
 }
 
 * {
@@ -653,34 +658,110 @@ button:focus-visible {
 /* ════════════════════════════════════════════════════════════ */
 
 /* Forms */
+/* ── MS Forms-style respondent view ─────────────────────────── */
+/* A tinted full-bleed page holds a centered column of white cards: a title card
+   with a themeable color band on top, then one card per question. */
+.fr-page {
+  min-height: 100%;
+  background: var(--fr-page-bg);
+  padding: 32px 16px 64px;
+}
 .form-renderer {
-  max-width: 600px;
-  margin: 40px auto;
-  padding: 40px 44px;
+  max-width: 720px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  background: transparent;
+  border: none;
+  padding: 0;
+  box-shadow: none;
+}
+
+/* Title card — white card with the themeable color band across the top. */
+.fr-titlecard {
   background: var(--surface-raised);
   border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
+  border-radius: var(--fr-card-radius);
   box-shadow: var(--shadow-sm);
+  overflow: hidden;
 }
-.form-renderer > h1 {
+.fr-band {
+  height: 12px;
+  background: var(--fr-band);
+}
+.fr-titlecard-body {
+  padding: 24px 28px 28px;
+}
+.form-renderer h1 {
   font-size: var(--text-2xl);
-  font-weight: 700;
-  line-height: 1.25;
-  margin: 0 0 28px;
-  padding-bottom: 20px;
-  border-bottom: 1px solid var(--border);
+  font-weight: 600;
+  line-height: 1.3;
+  margin: 0;
   color: var(--text);
+}
+.fr-desc {
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: var(--text-base);
+  line-height: 1.5;
+}
+
+/* Submit button (single-page mode) sits left-aligned below the cards, MS Forms-style. */
+.form-renderer > .btn {
+  align-self: flex-start;
+  padding: 11px 32px;
+  font-size: var(--text-md);
+}
+
+/* Each question is its own card. */
+.form-renderer .form-step {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.form-renderer .field,
+.form-renderer .calculated-field {
+  margin-bottom: 0;
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--fr-card-radius);
+  box-shadow: var(--shadow-sm);
+  padding: 22px 28px;
+  transition: box-shadow var(--duration) var(--ease), border-color var(--duration) var(--ease);
+}
+.form-renderer .field:focus-within {
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow);
+}
+.form-renderer .field--error {
+  border-color: var(--danger);
 }
 .form-renderer .group {
   border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 16px 18px 4px;
-  margin: 0 0 24px;
-  background: var(--surface);
+  border-radius: var(--fr-card-radius);
+  padding: 22px 28px 8px;
+  margin: 0;
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-sm);
 }
 .form-renderer .group legend {
   font-weight: 600;
-  padding: 0 6px;
+  font-size: var(--text-lg);
+  padding: 0;
+}
+/* Nested fields inside a group/repeat are plain rows, not nested cards. */
+.form-renderer .group .field,
+.form-renderer .repeat .field {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+  margin-bottom: 18px;
+}
+.form-renderer .group .field:focus-within,
+.form-renderer .repeat .field:focus-within {
+  box-shadow: none;
 }
 .form-cover {
   width: 100%;
@@ -716,13 +797,16 @@ button:focus-visible {
 /* Repeating group */
 .form-renderer .repeat {
   border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 12px 16px;
-  margin: 0 0 20px;
+  border-radius: var(--fr-card-radius);
+  padding: 22px 28px;
+  margin: 0;
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-sm);
 }
 .form-renderer .repeat legend {
   font-weight: 600;
-  padding: 0 6px;
+  font-size: var(--text-lg);
+  padding: 0;
 }
 .repeat-instance {
   border: 1px solid var(--border);
@@ -3071,18 +3155,20 @@ body,
 }
 /* Thank-you / confirmation screen */
 .confirmation {
-  max-width: 520px;
-  margin: 48px auto;
-  text-align: center;
-  padding: 40px 32px;
+  max-width: 560px;
+  margin: 0 auto;
   border: 1px solid var(--border);
-  border-radius: 16px;
+  border-radius: var(--fr-card-radius);
   background: var(--surface-raised);
-  box-shadow: 0 4px 24px rgba(15, 23, 42, 0.06);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
   animation: stepIn 0.3s ease;
 }
-.confirmation::before {
-  content: "✓";
+.confirmation-body {
+  text-align: center;
+  padding: 40px 32px;
+}
+.confirmation-check {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -3096,15 +3182,10 @@ body,
   font-weight: 700;
   box-shadow: 0 0 0 6px rgba(22, 163, 74, 0.06);
 }
-.confirmation--offline::before {
-  content: "📡";
-  background: var(--surface-sunken);
-  box-shadow: 0 0 0 6px rgba(100, 116, 139, 0.06);
-}
 .confirmation-title {
   margin: 0 0 8px;
   font-size: var(--text-2xl);
-  font-weight: 700;
+  font-weight: 600;
   color: var(--text);
 }
 .confirmation p {
@@ -3331,13 +3412,13 @@ body,
 }
 
 /* Welcome screen */
-.welcome-screen {
+.welcome-screen .fr-titlecard-body {
   text-align: center;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 12px;
-  padding: 40px 24px;
+  padding: 40px 32px;
 }
 .welcome-screen .button {
   margin-top: 8px;

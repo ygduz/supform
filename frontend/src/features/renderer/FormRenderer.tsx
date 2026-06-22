@@ -453,12 +453,17 @@ export function FormRenderer({
   if (submitted) {
     if (queuedOffline) {
       return (
-        <div className="confirmation confirmation--offline">
-          <h2 className="confirmation-title">Saved offline</h2>
-          <p>
-            You appear to be offline. Your response was saved on this device and will be submitted
-            automatically when you're back online.
-          </p>
+        <div className="fr-page" style={themeToStyle(theme)}>
+          <div className="confirmation confirmation--offline">
+            <div className="fr-band" />
+            <div className="confirmation-body">
+              <h2 className="confirmation-title">Saved offline</h2>
+              <p>
+                You appear to be offline. Your response was saved on this device and will be
+                submitted automatically when you're back online.
+              </p>
+            </div>
+          </div>
         </div>
       );
     }
@@ -472,23 +477,33 @@ export function FormRenderer({
       setSubmitted(false);
     };
     return (
-      <div className="confirmation">
-        <h2 className="confirmation-title">{L(settings?.confirmationTitle) || "Thank you!"}</h2>
-        {settings?.quizMode && (
-          <p className="quiz-score">
-            Your score: <strong>{quizScore}</strong>
-          </p>
-        )}
-        <p>
-          {L(outcome?.message) || L(settings?.confirmationMessage) || "Your response was recorded."}
-        </p>
-        {redirectUrl && !isLocal ? (
-          <span className="muted redirect-note">Redirecting…</span>
-        ) : (
-          <button type="button" className="confirmation-again" onClick={startOver}>
-            Submit another response
-          </button>
-        )}
+      <div className="fr-page" style={themeToStyle(theme)}>
+        <div className="confirmation">
+          <div className="fr-band" />
+          <div className="confirmation-body">
+            <div className="confirmation-check" aria-hidden="true">
+              ✓
+            </div>
+            <h2 className="confirmation-title">{L(settings?.confirmationTitle) || "Thank you!"}</h2>
+            {settings?.quizMode && (
+              <p className="quiz-score">
+                Your score: <strong>{quizScore}</strong>
+              </p>
+            )}
+            <p>
+              {L(outcome?.message) ||
+                L(settings?.confirmationMessage) ||
+                "Your response was recorded."}
+            </p>
+            {redirectUrl && !isLocal ? (
+              <span className="muted redirect-note">Redirecting…</span>
+            ) : (
+              <button type="button" className="confirmation-again" onClick={startOver}>
+                Submit another response
+              </button>
+            )}
+          </div>
+        </div>
       </div>
     );
   }
@@ -496,97 +511,115 @@ export function FormRenderer({
   // Welcome screen (paged / one-question modes): a cover + title + Start button.
   if (hasWelcome && !started && mode !== "single") {
     return (
-      <div className="form-renderer welcome-screen" style={themeToStyle(theme)}>
-        {theme?.coverImage && <img className="form-cover" src={theme.coverImage} alt="" />}
-        {theme?.logo && <img className="form-logo" src={theme.logo} alt="" />}
-        <h1>{L(settings?.welcomeTitle) || L(schema.title)}</h1>
-        {settings?.welcomeMessage && <p className="muted">{L(settings.welcomeMessage)}</p>}
-        <Button variant="primary" size="lg" onClick={() => setStarted(true)}>
-          Start
-        </Button>
+      <div className="fr-page" style={themeToStyle(theme)}>
+        <div className="form-renderer welcome-screen">
+          <div className="fr-titlecard">
+            <div className="fr-band" />
+            <div className="fr-titlecard-body">
+              {theme?.coverImage && <img className="form-cover" src={theme.coverImage} alt="" />}
+              {theme?.logo && <img className="form-logo" src={theme.logo} alt="" />}
+              <h1>{L(settings?.welcomeTitle) || L(schema.title)}</h1>
+              {settings?.welcomeMessage && <p className="fr-desc">{L(settings.welcomeMessage)}</p>}
+              <Button variant="primary" size="lg" onClick={() => setStarted(true)}>
+                Start
+              </Button>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
     <LanguageContext.Provider value={lang}>
-      <form className="form-renderer" style={themeToStyle(theme)} onSubmit={handleSubmit}>
-        {theme?.coverImage && <img className="form-cover" src={theme.coverImage} alt="" />}
-        {theme?.logo && <img className="form-logo" src={theme.logo} alt="" />}
-        {languages.length > 1 && (
-          <div className="lang-switcher">
-            <label htmlFor="form-language">Language</label>
-            <select
-              id="form-language"
-              className="select"
-              value={lang}
-              onChange={(e) => setLang(e.target.value)}
-            >
-              {languages.map((code) => (
-                <option key={code} value={code}>
-                  {languageLabel(code)}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
-        <h1>{L(schema.title)}</h1>
-        {schema.description && <p className="muted">{L(schema.description)}</p>}
-
-        {settings?.showProgressBar && steps.length > 1 && (
-          <progress
-            className="form-progress"
-            value={stepIndex + 1}
-            max={steps.length}
-            aria-label="Form progress"
-          />
-        )}
-
-        {showScrollProgress && (
-          <div className="scroll-progress" aria-hidden="true">
-            <div className="scroll-progress-bar" style={{ width: `${scrollProgress * 100}%` }} />
-          </div>
-        )}
-
-        <div className="form-step" key={current.key}>
-          {steps.length > 1 && current.title && <h2 className="page-title">{L(current.title)}</h2>}
-          {steps.length > 1 && current.description && (
-            <p className="muted">{L(current.description)}</p>
+      <div className="fr-page" style={themeToStyle(theme)}>
+        <form className="form-renderer" onSubmit={handleSubmit}>
+          {languages.length > 1 && (
+            <div className="lang-switcher">
+              <label htmlFor="form-language">Language</label>
+              <select
+                id="form-language"
+                className="select"
+                value={lang}
+                onChange={(e) => setLang(e.target.value)}
+              >
+                {languages.map((code) => (
+                  <option key={code} value={code}>
+                    {languageLabel(code)}
+                  </option>
+                ))}
+              </select>
+            </div>
           )}
-          {current.elements.map(renderElement)}
-        </div>
 
-        {formError && <Alert tone="danger">{formError}</Alert>}
+          <div className="fr-titlecard">
+            <div className="fr-band" />
+            <div className="fr-titlecard-body">
+              {theme?.coverImage && <img className="form-cover" src={theme.coverImage} alt="" />}
+              {theme?.logo && <img className="form-logo" src={theme.logo} alt="" />}
+              <h1>{L(schema.title)}</h1>
+              {schema.description && <p className="fr-desc">{L(schema.description)}</p>}
 
-        {steps.length > 1 ? (
-          <div className="step-nav">
-            <Button variant="outline" onClick={goBack} disabled={stepIndex === 0}>
-              Back
-            </Button>
-            <span className="muted step-count">
-              {stepIndex + 1} / {steps.length}
-            </span>
-            {isLastStep ? (
-              <Button variant="primary" type="submit">
-                {L(settings?.submitButtonText) || "Submit"}
-              </Button>
-            ) : (
-              <Button variant="primary" type="button" onClick={goNext}>
-                Next
-              </Button>
-            )}
+              {settings?.showProgressBar && steps.length > 1 && (
+                <progress
+                  className="form-progress"
+                  value={stepIndex + 1}
+                  max={steps.length}
+                  aria-label="Form progress"
+                />
+              )}
+            </div>
           </div>
-        ) : (
-          <Button variant="primary" type="submit">
-            {L(settings?.submitButtonText) || "Submit"}
-          </Button>
-        )}
 
-        {/* Trust/safety footer (MS-Forms style): reassures respondents on unknown links. */}
-        <p className="form-trust-note">
-          🔒 Never share passwords or sensitive personal details unless you trust this form's owner.
-        </p>
-      </form>
+          {showScrollProgress && (
+            <div className="scroll-progress" aria-hidden="true">
+              <div className="scroll-progress-bar" style={{ width: `${scrollProgress * 100}%` }} />
+            </div>
+          )}
+
+          <div className="form-step" key={current.key}>
+            {steps.length > 1 && current.title && (
+              <h2 className="page-title">{L(current.title)}</h2>
+            )}
+            {steps.length > 1 && current.description && (
+              <p className="muted">{L(current.description)}</p>
+            )}
+            {current.elements.map(renderElement)}
+          </div>
+
+          {formError && <Alert tone="danger">{formError}</Alert>}
+
+          {steps.length > 1 ? (
+            <div className="step-nav">
+              <Button variant="outline" onClick={goBack} disabled={stepIndex === 0}>
+                Back
+              </Button>
+              <span className="muted step-count">
+                {stepIndex + 1} / {steps.length}
+              </span>
+              {isLastStep ? (
+                <Button variant="primary" type="submit">
+                  {L(settings?.submitButtonText) || "Submit"}
+                </Button>
+              ) : (
+                <Button variant="primary" type="button" onClick={goNext}>
+                  Next
+                </Button>
+              )}
+            </div>
+          ) : (
+            <Button variant="primary" type="submit">
+              {L(settings?.submitButtonText) || "Submit"}
+            </Button>
+          )}
+
+          {/* Trust/safety footer (MS-Forms style): reassures respondents on unknown links. */}
+          <p className="form-trust-note">
+            🔒 Never share passwords or sensitive personal details unless you trust this form's
+            owner.
+          </p>
+        </form>
+      </div>
     </LanguageContext.Provider>
   );
 }
