@@ -24,9 +24,10 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { formToText } from "../import/textForm";
 import { saveMyTemplate } from "../templates/myTemplates";
 import { ActivityPanel } from "./ActivityPanel";
+import { BirdsEyePreview } from "./BirdsEyePreview";
 import { BuilderCanvas, type DropLocation } from "./BuilderCanvas";
-import { LanguagePreview } from "./LanguagePreview";
 import { LogicBuilder } from "./LogicBuilder";
+import { MindMapPanel } from "./MindMapPanel";
 import { OverviewPanel } from "./OverviewPanel";
 import { PaletteItem } from "./PaletteItem";
 import { PreviewModal } from "./PreviewModal";
@@ -49,6 +50,7 @@ type Tab =
   | "settings"
   | "translate"
   | "preview"
+  | "mindmap"
   | "history"
   | "activity";
 
@@ -686,6 +688,7 @@ export function BuilderPage() {
                     "settings",
                     ...(isMultilingual ? (["translate"] as Tab[]) : []),
                     "preview",
+                    "mindmap",
                     ...(formId !== "new" ? (["history", "activity"] as Tab[]) : []),
                   ] as Tab[]
                 ).map((t) => (
@@ -701,10 +704,14 @@ export function BuilderPage() {
                       : t === "translate"
                         ? "🌐"
                         : t === "history"
-                          ? "History"
+                          ? "Hist"
                           : t === "activity"
-                            ? "Activity"
-                            : t.charAt(0).toUpperCase() + t.slice(1)}
+                            ? "Log"
+                            : t === "mindmap"
+                              ? "Mind"
+                              : t === "preview"
+                                ? "Live"
+                                : t.charAt(0).toUpperCase() + t.slice(1)}
                   </Button>
                 ))}
               </div>
@@ -719,7 +726,8 @@ export function BuilderPage() {
               {tab === "theme" && <ThemePanel />}
               {tab === "settings" && <SettingsPanel />}
               {tab === "translate" && <TranslatePanel />}
-              {tab === "preview" && <LanguagePreview schema={schema} />}
+              {tab === "preview" && <BirdsEyePreview schema={schema} />}
+              {tab === "mindmap" && <MindMapPanel />}
               {tab === "activity" && formId !== "new" && <ActivityPanel formId={formId} />}
               {tab === "history" && formId !== "new" && (
                 <VersionHistoryPanel

@@ -5048,6 +5048,71 @@ body,
   flex-direction: column;
   height: 100%;
 }
+
+/* ── Birds-eye live preview ──────────────────────────────────── */
+.bep-outer {
+  overflow-y: auto;
+  overflow-x: hidden;
+  height: 100%;
+  background: var(--surface-sunken);
+  padding: 8px 6px;
+}
+.bep-clip {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+.bep-inner {
+  position: absolute;
+  top: 0;
+  left: 0;
+  /* pointer-events: none lets cursor pass through — preview is read-only */
+  pointer-events: none;
+  user-select: none;
+}
+
+/* ── Mind map panel ──────────────────────────────────────────── */
+.mindmap-panel {
+  overflow: auto;
+  height: 100%;
+  padding: 8px 4px;
+  background: var(--surface-sunken);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+.mindmap-panel svg {
+  flex-shrink: 0;
+  display: block;
+}
+.mindmap-legend {
+  display: flex;
+  gap: 14px;
+  font-size: 10px;
+  color: var(--muted);
+  padding: 4px 0 8px;
+  flex-shrink: 0;
+}
+.mm-dot {
+  display: inline-block;
+  width: 18px;
+  height: 2px;
+  vertical-align: middle;
+  margin-right: 3px;
+  border-radius: 1px;
+}
+.mm-dot--cond {
+  background: var(--accent-mustard);
+  border-top: 1px dashed var(--accent-mustard);
+  height: 0;
+}
+.mm-dot--branch {
+  background: none;
+  border-top: 1.5px dashed var(--accent-teal);
+  height: 0;
+}
 .lang-preview-bar {
   display: flex;
   align-items: center;
