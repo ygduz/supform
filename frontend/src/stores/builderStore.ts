@@ -146,6 +146,8 @@ interface BuilderState {
     nextPageIf: Array<{ condition: string; page: string }> | undefined,
   ) => void;
 
+  respondentUrl: string | null;
+
   save: () => Promise<void>;
   publish: () => Promise<void>;
 }
@@ -215,6 +217,7 @@ export const useBuilderStore = create<BuilderState>((rawSet, get) => {
     error: null,
     dirty: false,
     templateLoaded: false,
+    respondentUrl: null,
     past: [],
     future: [],
 
@@ -642,8 +645,8 @@ export const useBuilderStore = create<BuilderState>((rawSet, get) => {
       if (!formId) return;
       set({ status: "publishing" });
       try {
-        await api.publish(formId);
-        set({ status: "idle", dirty: false });
+        const result = await api.publish(formId);
+        set({ status: "idle", dirty: false, respondentUrl: result.respondent_url });
       } catch (err) {
         set({ status: "error", error: (err as Error).message });
       }

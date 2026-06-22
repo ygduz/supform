@@ -8,7 +8,9 @@ branch_labels = None
 depends_on = None
 
 def upgrade() -> None:
-    op.add_column("submissions", sa.Column("read_at", sa.DateTime(timezone=True), nullable=True))
+    op.execute(
+        "ALTER TABLE submissions ADD COLUMN IF NOT EXISTS read_at TIMESTAMPTZ"
+    )
 
 def downgrade() -> None:
     op.drop_column("submissions", "read_at")

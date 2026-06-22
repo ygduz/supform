@@ -8,7 +8,9 @@ branch_labels = None
 depends_on = None
 
 def upgrade() -> None:
-    op.add_column("submissions", sa.Column("workflow_step", sa.String(100), nullable=True))
+    op.execute(
+        "ALTER TABLE submissions ADD COLUMN IF NOT EXISTS workflow_step VARCHAR(100)"
+    )
 
 def downgrade() -> None:
     op.drop_column("submissions", "workflow_step")

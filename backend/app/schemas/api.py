@@ -139,6 +139,7 @@ class FormDetail(FormOut):
 class PublishResult(BaseModel):
     form_id: uuid.UUID
     version: int
+    respondent_url: str
 
 
 class FormVersionOut(BaseModel):

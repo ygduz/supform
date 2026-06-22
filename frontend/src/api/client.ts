@@ -249,7 +249,7 @@ export const api = {
     }),
 
   publish: (formId: string) =>
-    request<{ form_id: string; version: number }>(`/api/v1/forms/${formId}/publish`, {
+    request<{ form_id: string; version: number; respondent_url: string }>(`/api/v1/forms/${formId}/publish`, {
       method: "POST",
     }),
 
