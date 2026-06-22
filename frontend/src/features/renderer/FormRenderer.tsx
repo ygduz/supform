@@ -274,10 +274,12 @@ export function FormRenderer({
       );
     }
 
+    const qNum = questionNumbers.get(el.name);
     return (
       <div className="field" key={el.name}>
         {el.label && (
           <label htmlFor={el.name}>
+            {qNum !== undefined && <span className="field-number">{qNum}.</span>}
             {P(el.label)}
             {el.required && " *"}
           </label>
@@ -315,6 +317,18 @@ export function FormRenderer({
   // Visibility can change with answers; never point past the end.
   const stepIndex = Math.min(step, steps.length - 1);
   const current = steps[stepIndex] ?? { key: "empty", elements: [] };
+
+  // Build a map of top-level visible answerable element name → display number.
+  // Recomputed each render so numbers stay correct as visibility changes.
+  const questionNumbers = new Map<string, number>();
+  {
+    let n = 0;
+    for (const el of current.elements) {
+      if (el.type === "hidden" || isPresentationalType(el.type)) continue;
+      if (!evaluateBool(el.visibleIf, answers)) continue;
+      questionNumbers.set(el.name, ++n);
+    }
+  }
   const isLastStep = stepIndex >= steps.length - 1;
 
   // A single-step form with many questions benefits from a scroll progress bar even when
@@ -587,37 +601,39 @@ export function FormRenderer({
             {current.elements.map(renderElement)}
           </div>
 
-          {formError && <Alert tone="danger">{formError}</Alert>}
+          <div className="fr-submit-card">
+            {formError && <Alert tone="danger">{formError}</Alert>}
 
-          {steps.length > 1 ? (
-            <div className="step-nav">
-              <Button variant="outline" onClick={goBack} disabled={stepIndex === 0}>
-                Back
+            {steps.length > 1 ? (
+              <div className="step-nav">
+                <Button variant="outline" onClick={goBack} disabled={stepIndex === 0}>
+                  Back
+                </Button>
+                <span className="muted step-count">
+                  {stepIndex + 1} / {steps.length}
+                </span>
+                {isLastStep ? (
+                  <Button variant="primary" type="submit">
+                    {L(settings?.submitButtonText) || "Submit"}
+                  </Button>
+                ) : (
+                  <Button variant="primary" type="button" onClick={goNext}>
+                    Next
+                  </Button>
+                )}
+              </div>
+            ) : (
+              <Button variant="primary" type="submit">
+                {L(settings?.submitButtonText) || "Submit"}
               </Button>
-              <span className="muted step-count">
-                {stepIndex + 1} / {steps.length}
-              </span>
-              {isLastStep ? (
-                <Button variant="primary" type="submit">
-                  {L(settings?.submitButtonText) || "Submit"}
-                </Button>
-              ) : (
-                <Button variant="primary" type="button" onClick={goNext}>
-                  Next
-                </Button>
-              )}
-            </div>
-          ) : (
-            <Button variant="primary" type="submit">
-              {L(settings?.submitButtonText) || "Submit"}
-            </Button>
-          )}
+            )}
 
-          {/* Trust/safety footer (MS-Forms style): reassures respondents on unknown links. */}
-          <p className="form-trust-note">
-            🔒 Never share passwords or sensitive personal details unless you trust this form's
-            owner.
-          </p>
+            {/* Trust/safety footer (MS-Forms style): reassures respondents on unknown links. */}
+            <p className="form-trust-note">
+              🔒 Never share passwords or sensitive personal details unless you trust this form's
+              owner.
+            </p>
+          </div>
         </form>
       </div>
     </LanguageContext.Provider>
