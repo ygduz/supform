@@ -83,6 +83,7 @@ async def test_full_loop(client: httpx.AsyncClient):
     pub = await client.post(f"/api/v1/forms/{form_id}/publish", headers=headers)
     assert pub.status_code == 200
     assert pub.json()["version"] == 1
+    assert pub.json()["respondent_url"] == f"/f/{form_id}"
 
     schema = await client.get(f"/api/v1/forms/{form_id}/schema")
     assert schema.status_code == 200 and schema.json()["version"] == 1
@@ -96,6 +97,24 @@ async def test_full_loop(client: httpx.AsyncClient):
 
     listed = await client.get(f"/api/v1/forms/{form_id}/submissions", headers=headers)
     assert listed.status_code == 200 and len(listed.json()) == 1
+
+
+@pytest.mark.asyncio
+async def test_publish_empty_form_rejected(client: httpx.AsyncClient):
+    """A draft with no questions saves fine but must not publish to a blank page."""
+    headers = await _auth_headers(client)
+    proj = await client.post("/api/v1/projects", json={"name": "Empty"}, headers=headers)
+    empty = {
+        "project_id": proj.json()["id"],
+        "content": {"name": "blank", "title": "Blank", "pages": [{"name": "p1", "elements": []}]},
+    }
+    created = await client.post("/api/v1/forms", json=empty, headers=headers)
+    assert created.status_code == 201  # empty draft is allowed
+    form_id = created.json()["id"]
+
+    pub = await client.post(f"/api/v1/forms/{form_id}/publish", headers=headers)
+    assert pub.status_code == 422
+    assert "at least one question" in pub.json()["error"]["message"].lower()
 
 
 @pytest.mark.asyncio

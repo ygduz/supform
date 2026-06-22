@@ -1,10 +1,15 @@
 """Authentication & password helpers.
 
-Deliberately dependency-light: passwords use passlib's pure-Python ``pbkdf2_sha256`` and
-JWTs are HS256 signed with the standard library (``hmac``/``hashlib``). This avoids native
-crypto extensions entirely, so auth works identically in every environment (no bcrypt /
-``cryptography`` build or ABI surprises). Swapping in bcrypt/RS256 later is a localized
-change confined to this module.
+Deliberately dependency-light: passwords use PBKDF2-HMAC-SHA256 from the standard library
+(``hashlib.pbkdf2_hmac``, OpenSSL-accelerated) and JWTs are HS256 signed with ``hmac``/
+``hashlib``. This avoids native crypto extensions entirely, so auth works identically in
+every environment (no bcrypt / ``cryptography`` build or ABI surprises) and pulls in no
+third-party crypto dependency. Swapping in bcrypt/RS256 later is a localized change confined
+to this module.
+
+The stored hash uses passlib's Modular Crypt Format (``$pbkdf2-sha256$rounds$salt$checksum``)
+with its "ab64" alphabet, so hashes are byte-for-byte interchangeable with any earlier
+passlib-issued ones — no re-hash or migration needed.
 """
 
 from __future__ import annotations
@@ -13,23 +18,47 @@ import base64
 import hashlib
 import hmac
 import json
+import os
 import time
 from typing import Any
 
-from passlib.context import CryptContext
-
 from app.core.config import settings
 
-_pwd_context = CryptContext(schemes=["pbkdf2_sha256"], deprecated="auto")
+_PBKDF2_SCHEME = "pbkdf2-sha256"
+_PBKDF2_ROUNDS = 29000
+_PBKDF2_SALT_BYTES = 16
 
 
 # ---- passwords ----
+def _ab64_encode(raw: bytes) -> str:
+    """passlib's "adapted base64": standard base64 with ``+``→``.`` and no padding."""
+    return base64.b64encode(raw).decode("ascii").rstrip("=").replace("+", ".")
+
+
+def _ab64_decode(data: str) -> bytes:
+    data = data.replace(".", "+")
+    data += "=" * (-len(data) % 4)
+    return base64.b64decode(data)
+
+
 def hash_password(plain: str) -> str:
-    return _pwd_context.hash(plain)
+    salt = os.urandom(_PBKDF2_SALT_BYTES)
+    digest = hashlib.pbkdf2_hmac("sha256", plain.encode(), salt, _PBKDF2_ROUNDS)
+    return f"${_PBKDF2_SCHEME}${_PBKDF2_ROUNDS}${_ab64_encode(salt)}${_ab64_encode(digest)}"
 
 
 def verify_password(plain: str, hashed: str) -> bool:
-    return _pwd_context.verify(plain, hashed)
+    try:
+        _, scheme, rounds_s, salt_s, checksum_s = hashed.split("$")
+        if scheme != _PBKDF2_SCHEME:
+            return False
+        rounds = int(rounds_s)
+        salt = _ab64_decode(salt_s)
+        expected = _ab64_decode(checksum_s)
+    except (ValueError, base64.binascii.Error):
+        return False
+    digest = hashlib.pbkdf2_hmac("sha256", plain.encode(), salt, rounds, dklen=len(expected))
+    return hmac.compare_digest(digest, expected)
 
 
 # ---- JWT (HS256, stdlib) ----

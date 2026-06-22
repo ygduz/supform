@@ -6258,3 +6258,9 @@ body,
     grid-template-columns: repeat(2, 1fr);
   }
 }
+
+/* Lazy-route fallback: a quiet min-height placeholder so the layout doesn't
+   collapse while a code-split route chunk loads. */
+.route-loading {
+  min-height: 60vh;
+}

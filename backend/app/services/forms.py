@@ -146,6 +146,10 @@ async def publish_form(db: AsyncSession, form_id: uuid.UUID, user_id: uuid.UUID)
     form = await get_owned_form(db, form_id, user_id, min_role="editor")
     content = FormSchema.model_validate(form.draft_content)
     _assert_valid(content)
+    # A draft may legitimately be empty mid-edit, but publishing one yields a
+    # blank form respondents can't use — block it at the version boundary.
+    if not any(page.elements for page in content.pages):
+        raise ValidationError("Add at least one question before publishing.")
 
     next_version = (form.current_version or 0) + 1
     content.version = next_version

@@ -425,7 +425,13 @@ export function BuilderPage() {
           <Button
             variant="primary"
             size="sm"
-            onClick={() => store.publish()}
+            onClick={async () => {
+              await store.publish();
+              // On a clean publish the store clears any error and records the
+              // respondent URL — surface the share dialog so the link is one
+              // click away instead of buried in the More menu.
+              if (!useBuilderStore.getState().error) setShareLink(true);
+            }}
             disabled={status === "publishing"}
           >
             {status === "publishing" ? "Publishing…" : "Publish"}

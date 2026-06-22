@@ -1,19 +1,36 @@
 import { isAuthenticated } from "@/api/client";
+import { Suspense, lazy } from "react";
 import { BrowserRouter, Link, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { ForgotPasswordPage } from "./features/auth/ForgotPasswordPage";
 import { LoginPage } from "./features/auth/LoginPage";
 import { ResetPasswordPage } from "./features/auth/ResetPasswordPage";
 import { VerifyEmailPage } from "./features/auth/VerifyEmailPage";
-import { BuilderPage } from "./features/builder/BuilderPage";
-import { EmbedPage } from "./features/embed/EmbedPage";
 import { FormsPage } from "./features/forms/FormsPage";
-import { ImportPage } from "./features/import/ImportPage";
 import { InboxPage } from "./features/inbox/InboxPage";
 import { OfflineIndicator } from "./features/offline/OfflineIndicator";
-import { RendererPage } from "./features/renderer/RendererPage";
-import { ReportPage } from "./features/reports/ReportPage";
-import { ResponsesPage } from "./features/responses/ResponsesPage";
 import { TemplatesPage } from "./features/templates/TemplatesPage";
+
+// Heavy, route-specific surfaces (dnd-kit builder, chart/PDF reports, the renderer,
+// the Word/Excel importer) are code-split so they don't weigh down first paint —
+// each loads only when its route is visited.
+const BuilderPage = lazy(() =>
+  import("./features/builder/BuilderPage").then((m) => ({ default: m.BuilderPage })),
+);
+const EmbedPage = lazy(() =>
+  import("./features/embed/EmbedPage").then((m) => ({ default: m.EmbedPage })),
+);
+const ImportPage = lazy(() =>
+  import("./features/import/ImportPage").then((m) => ({ default: m.ImportPage })),
+);
+const RendererPage = lazy(() =>
+  import("./features/renderer/RendererPage").then((m) => ({ default: m.RendererPage })),
+);
+const ReportPage = lazy(() =>
+  import("./features/reports/ReportPage").then((m) => ({ default: m.ReportPage })),
+);
+const ResponsesPage = lazy(() =>
+  import("./features/responses/ResponsesPage").then((m) => ({ default: m.ResponsesPage })),
+);
 
 /**
  * App shell + routing. Routes are intentionally minimal in the scaffold; each feature
@@ -33,10 +50,12 @@ function Shell() {
   const bare = path.startsWith("/embed/") || path.startsWith("/f/");
   if (bare) {
     return (
-      <Routes>
-        <Route path="/embed/:formId" element={<EmbedPage />} />
-        <Route path="/f/:formId" element={<RendererPage />} />
-      </Routes>
+      <Suspense fallback={<div className="route-loading" />}>
+        <Routes>
+          <Route path="/embed/:formId" element={<EmbedPage />} />
+          <Route path="/f/:formId" element={<RendererPage />} />
+        </Routes>
+      </Suspense>
     );
   }
   const authed = isAuthenticated();
@@ -66,20 +85,22 @@ function Shell() {
       </header>
       <OfflineIndicator />
       <main className="app-main">
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/forms" element={<FormsPage />} />
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-          <Route path="/reset-password" element={<ResetPasswordPage />} />
-          <Route path="/verify-email" element={<VerifyEmailPage />} />
-          <Route path="/templates" element={<TemplatesPage />} />
-          <Route path="/import" element={<ImportPage />} />
-          <Route path="/inbox" element={<InboxPage />} />
-          <Route path="/builder/:formId" element={<BuilderPage />} />
-          <Route path="/forms/:formId/responses" element={<ResponsesPage />} />
-          <Route path="/forms/:formId/report" element={<ReportPage />} />
-        </Routes>
+        <Suspense fallback={<div className="route-loading" />}>
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/forms" element={<FormsPage />} />
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
+            <Route path="/verify-email" element={<VerifyEmailPage />} />
+            <Route path="/templates" element={<TemplatesPage />} />
+            <Route path="/import" element={<ImportPage />} />
+            <Route path="/inbox" element={<InboxPage />} />
+            <Route path="/builder/:formId" element={<BuilderPage />} />
+            <Route path="/forms/:formId/responses" element={<ResponsesPage />} />
+            <Route path="/forms/:formId/report" element={<ReportPage />} />
+          </Routes>
+        </Suspense>
       </main>
     </>
   );
