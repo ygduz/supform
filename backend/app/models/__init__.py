@@ -10,6 +10,8 @@ from app.models.form_audit import FormAuditLog
 from app.models.media import MediaFile
 from app.models.project import Project
 from app.models.project_membership import ProjectMembership
+from app.models.question_template import QuestionTemplate
+from app.models.report import Report
 from app.models.submission import Submission
 from app.models.submission_edit import SubmissionEdit
 from app.models.user import User
@@ -26,6 +28,8 @@ __all__ = [
     "MediaFile",
     "ExportJob",
     "FormAuditLog",
+    "QuestionTemplate",
+    "Report",
     "SubmissionEdit",
     "Webhook",
     "WebhookDelivery",
