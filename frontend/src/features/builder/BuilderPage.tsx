@@ -150,21 +150,9 @@ export function BuilderPage() {
 
     if (activeId === overId) return;
 
-    // Drag a non-container card directly onto another non-container card → group them.
-    const isZone = (id: string) => id.startsWith("dz:") || id.startsWith("page:");
-    const activeElForGroup = findElement(schema, activeId);
-    const overElForGroup = findElement(schema, overId);
-    if (
-      !isZone(overId) &&
-      activeElForGroup &&
-      overElForGroup &&
-      !isContainerType(activeElForGroup.type) &&
-      !isContainerType(overElForGroup.type)
-    ) {
-      store.confirmGrouping(activeId, overId);
-      return;
-    }
-
+    // Drag always reorders — grouping is only triggered via the explicit "Group with another"
+    // overflow-menu action (not by dropping one card on top of another), so that a
+    // whole-card drag to reorder doesn't accidentally create a section.
     store.moveInto(activeId, { pageIndex: loc.pageIndex, parentName: loc.parentName }, loc.index);
   }
 
