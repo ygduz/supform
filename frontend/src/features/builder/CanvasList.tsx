@@ -60,6 +60,14 @@ export function CanvasList({
         over={overDragId === `zone:${parentName ?? `page-${pageIndex}`}`}
         label={parentName ? "Drop here to add to this group" : "Drop here"}
       />
+      {/* Always-visible add control at the bottom of the list (hidden mid-drag). */}
+      {activeDragId === null && elements.length > 0 && (
+        <InsertSlot
+          variant="block"
+          location={{ pageIndex, parentName, index: elements.length }}
+          label={parentName ? "Add question to group" : "Add question"}
+        />
+      )}
     </SortableContext>
   );
 }

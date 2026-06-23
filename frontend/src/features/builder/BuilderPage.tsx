@@ -528,9 +528,12 @@ export function BuilderPage() {
               type="button"
               className="panel-toggle"
               title={paletteOpen ? "Collapse fields panel" : "Expand fields panel"}
+              aria-label={paletteOpen ? "Collapse fields panel" : "Expand fields panel"}
               onClick={() => setPaletteOpen((o) => !o)}
             >
-              {paletteOpen ? "‹" : "›"}
+              <span className="panel-toggle-chip" aria-hidden="true">
+                {paletteOpen ? "‹" : "›"}
+              </span>
             </button>
           </aside>
 
@@ -680,9 +683,12 @@ export function BuilderPage() {
               type="button"
               className="panel-toggle"
               title={inspectorOpen ? "Collapse inspector" : "Expand inspector"}
+              aria-label={inspectorOpen ? "Collapse inspector" : "Expand inspector"}
               onClick={() => setInspectorOpen((o) => !o)}
             >
-              {inspectorOpen ? "›" : "‹"}
+              <span className="panel-toggle-chip" aria-hidden="true">
+                {inspectorOpen ? "›" : "‹"}
+              </span>
             </button>
             <div className="inspector-inner">
               <div className="tabs">

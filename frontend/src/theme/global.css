@@ -1400,7 +1400,7 @@ body,
 /* ── Three-column body: only the canvas column scrolls ────────── */
 .builder-body {
   display: grid;
-  grid-template-columns: 200px 1fr 260px;
+  grid-template-columns: 210px 1fr 320px;
   gap: 0;
   flex: 1; /* fills remaining height below toolbar */
   min-height: 0; /* essential: lets the flex child shrink below content size */
@@ -1408,13 +1408,13 @@ body,
   transition: grid-template-columns 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .builder-body.palette-collapsed {
-  grid-template-columns: 36px 1fr 260px;
+  grid-template-columns: 44px 1fr 320px;
 }
 .builder-body.inspector-collapsed {
-  grid-template-columns: 200px 1fr 36px;
+  grid-template-columns: 210px 1fr 44px;
 }
 .builder-body.palette-collapsed.inspector-collapsed {
-  grid-template-columns: 36px 1fr 36px;
+  grid-template-columns: 44px 1fr 44px;
 }
 
 /* ── Panel toggle buttons — sit at the inner border of each panel ── */
@@ -1423,20 +1423,44 @@ body,
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 20px;
+  width: 24px;
   height: 100%;
   min-height: 48px;
   border: none;
   background: none;
   cursor: pointer;
   color: var(--muted);
-  font-size: 13px;
-  line-height: 1;
   transition: color 0.12s, background 0.12s;
 }
 .panel-toggle:hover {
   color: var(--text);
   background: var(--surface-sunken);
+}
+/* The visible chip: a clear, tappable chevron disc instead of a hairline glyph. */
+.panel-toggle-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--surface-raised);
+  color: var(--muted);
+  font-size: 16px;
+  line-height: 1;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.12);
+  transition: color 0.12s, background 0.12s, border-color 0.12s;
+}
+.panel-toggle:hover .panel-toggle-chip {
+  color: var(--primary);
+  border-color: var(--primary);
+  background: var(--surface);
+}
+/* Collapsed rails are wider, so the whole strip reads as a clickable affordance. */
+.palette-collapsed .palette .panel-toggle,
+.inspector-collapsed .panel-toggle {
+  width: 100%;
 }
 
 /* Palette strip: row layout so toggle button sits at the right edge */
@@ -1464,7 +1488,6 @@ body,
 }
 .palette-collapsed .panel-toggle {
   border-left: none;
-  width: 36px;
 }
 
 /* Inspector strip */
@@ -1480,10 +1503,9 @@ body,
   border-right: 1px solid var(--border);
   background: var(--surface-raised);
   flex-shrink: 0;
-  width: 20px;
+  width: 24px;
 }
 .inspector-collapsed .panel-toggle {
-  width: 36px;
   border-right: none;
 }
 .inspector-inner {
@@ -1553,10 +1575,12 @@ body,
 
 /* Middle column: scrollable canvas */
 .canvas {
-  background: var(--surface);
+  /* Tinted "page" so the centered column reads as a deliberate sheet (MS Forms style),
+     not flat dead space. Cards stay white (--surface-raised) and float on the tint. */
+  background: var(--surface-sunken);
   overflow-y: auto;
   height: 100%;
-  padding: 20px 24px 80px; /* bottom padding so last card clears the viewport */
+  padding: 24px 24px 96px; /* bottom padding so last card clears the viewport */
 }
 
 /* Page tabs */
@@ -1766,6 +1790,13 @@ body,
   align-items: center;
   gap: 8px;
   padding: 8px 10px;
+  /* The whole row is the drag activator (dnd-kit listeners live here); interactive
+     children stop propagation so they still click/type without starting a drag. */
+  cursor: grab;
+  touch-action: none;
+}
+.el-row:active {
+  cursor: grabbing;
 }
 .el-number {
   flex-shrink: 0;
@@ -2001,8 +2032,35 @@ body,
 /* ---- bulk action bar ---- */
 .canvas-inner {
   position: relative;
-  max-width: 720px;
+  max-width: 768px;
   margin: 0 auto;
+}
+
+/* Themed header band atop the form sheet — echoes MS Forms' colored header and anchors
+   the centered column so the page doesn't feel empty at full width. */
+.canvas-form-header {
+  position: relative;
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-top: 4px solid var(--primary);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  padding: 18px 22px;
+  margin-bottom: 16px;
+}
+.canvas-form-header h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.3;
+}
+.canvas-form-header p {
+  margin: 6px 0 0;
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  white-space: pre-wrap;
 }
 .bulk-bar {
   position: sticky;
@@ -2070,13 +2128,13 @@ body,
 /* ---- insert-between slot ---- */
 .insert-slot {
   position: relative;
-  height: 8px;
+  height: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 .insert-btn {
-  opacity: 0;
+  opacity: 0.4; /* faintly visible so the gap is discoverable, not fully hidden */
   width: 22px;
   height: 22px;
   border-radius: 50%;
@@ -2092,7 +2150,35 @@ body,
 .insert-slot:hover .insert-btn,
 .insert-slot.open .insert-btn {
   opacity: 1;
-  transform: scale(1.1);
+  transform: scale(1.15);
+}
+
+/* ---- persistent "Add question" block button at the end of a list ---- */
+.insert-block {
+  position: relative;
+  margin-top: 10px;
+}
+.insert-block-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 12px;
+  border: 1px dashed var(--primary);
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--primary) 5%, var(--surface-raised));
+  color: var(--primary);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+.insert-block-btn:hover {
+  background: color-mix(in srgb, var(--primary) 12%, var(--surface-raised));
+}
+.insert-block .insert-pop {
+  top: calc(100% + 4px);
 }
 .insert-slot:hover::before,
 .insert-slot.open::before {
@@ -2415,15 +2501,16 @@ body,
 }
 .tabs {
   display: flex;
+  flex-wrap: wrap;
   background: var(--surface);
   padding: 6px;
-  gap: 2px;
+  gap: 3px;
   flex-shrink: 0;
   border-bottom: 1px solid var(--border);
 }
 .tab {
-  flex: 1;
-  padding: 6px 2px;
+  flex: 0 0 auto;
+  padding: 6px 10px;
   background: transparent;
   border: none;
   border-radius: 6px;
@@ -2432,6 +2519,7 @@ body,
   font-size: 12px;
   font-weight: 500;
   letter-spacing: 0.01em;
+  white-space: nowrap;
   transition: background 0.12s, color 0.12s;
 }
 .tab:hover {
@@ -5050,10 +5138,33 @@ body,
 }
 
 /* ── Birds-eye live preview ──────────────────────────────────── */
+.bep-wrap {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+.bep-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 10px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.bep-hint {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--muted);
+}
 .bep-outer {
   overflow-y: auto;
   overflow-x: hidden;
-  height: 100%;
+  flex: 1;
+  min-height: 0;
   background: var(--surface-sunken);
   padding: 8px 6px;
 }

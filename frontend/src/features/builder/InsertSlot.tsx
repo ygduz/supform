@@ -8,7 +8,16 @@ import { ELEMENT_PALETTE } from "./palette";
  * an in-place question-type picker that inserts at exactly this position — the fastest
  * way to build without reaching for the left palette.
  */
-export function InsertSlot({ location }: { location: DropLocation }) {
+export function InsertSlot({
+  location,
+  variant = "gap",
+  label = "Add question",
+}: {
+  location: DropLocation;
+  /** "gap" = thin hover-reveal between cards; "block" = persistent full-width button. */
+  variant?: "gap" | "block";
+  label?: string;
+}) {
   const addAt = useBuilderStore((s) => s.addAt);
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -30,15 +39,24 @@ export function InsertSlot({ location }: { location: DropLocation }) {
   }, [open]);
 
   return (
-    <div ref={ref} className={`insert-slot${open ? " open" : ""}`}>
-      <button
-        type="button"
-        className="insert-btn"
-        title="Insert a question here"
-        onClick={() => setOpen((v) => !v)}
-      >
-        +
-      </button>
+    <div
+      ref={ref}
+      className={`${variant === "block" ? "insert-block" : "insert-slot"}${open ? " open" : ""}`}
+    >
+      {variant === "block" ? (
+        <button type="button" className="insert-block-btn" onClick={() => setOpen((v) => !v)}>
+          <span aria-hidden="true">＋</span> {label}
+        </button>
+      ) : (
+        <button
+          type="button"
+          className="insert-btn"
+          title="Insert a question here"
+          onClick={() => setOpen((v) => !v)}
+        >
+          +
+        </button>
+      )}
       {open && (
         <div className="insert-pop" role="menu">
           {ELEMENT_PALETTE.map((item) => (

@@ -1,3 +1,4 @@
+import { localize } from "@/lib/i18n";
 import { useBuilderStore } from "@/stores/builderStore";
 import type { Element } from "@/types/form-schema";
 import { useEffect, useRef } from "react";
@@ -33,7 +34,9 @@ export function BuilderCanvas({
   groupingSource: string | null;
   onGroupLink: (targetName: string) => void;
 }) {
-  const { selectedName, selectedNames } = useBuilderStore();
+  const { selectedName, selectedNames, schema } = useBuilderStore();
+  const formTitle = localize(schema.title) || "Untitled form";
+  const formDescription = localize(schema.description);
   const setViewportName = useBuilderStore((s) => s.setViewportName);
   const connectingFrom = useBuilderStore((s) => s.connectingFrom);
   const cancelConnect = useBuilderStore((s) => s.cancelConnect);
@@ -97,6 +100,11 @@ export function BuilderCanvas({
       ref={innerRef}
       onClick={connectingFrom ? () => cancelConnect() : undefined}
     >
+      <div className="canvas-form-header">
+        <h2>{formTitle}</h2>
+        {formDescription ? <p>{formDescription}</p> : null}
+      </div>
+
       {groupingSource && (
         <div className="group-link-hint">
           Click another question to group it with this one — or press <kbd>Esc</kbd> to cancel.
