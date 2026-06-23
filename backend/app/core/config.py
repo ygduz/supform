@@ -43,6 +43,13 @@ class Settings(BaseSettings):
     # Database
     database_url: str = "postgresql+asyncpg://supform:supform@localhost:5432/supform"
 
+    @field_validator("database_url", mode="before")
+    @classmethod
+    def _fix_db_scheme(cls, v: object) -> object:
+        if isinstance(v, str) and v.startswith("postgresql://"):
+            return v.replace("postgresql://", "postgresql+asyncpg://", 1)
+        return v
+
     # Redis / Celery
     redis_url: str = "redis://localhost:6379/0"
 
