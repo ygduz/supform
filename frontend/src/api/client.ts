@@ -249,9 +249,12 @@ export const api = {
     }),
 
   publish: (formId: string) =>
-    request<{ form_id: string; version: number }>(`/api/v1/forms/${formId}/publish`, {
-      method: "POST",
-    }),
+    request<{ form_id: string; version: number; respondent_url: string }>(
+      `/api/v1/forms/${formId}/publish`,
+      {
+        method: "POST",
+      },
+    ),
 
   // webhooks / integrations
   listWebhooks: (formId: string) => request<Webhook[]>(`/api/v1/forms/${formId}/webhooks`),

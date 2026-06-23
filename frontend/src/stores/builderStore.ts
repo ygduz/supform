@@ -146,6 +146,8 @@ interface BuilderState {
     nextPageIf: Array<{ condition: string; page: string }> | undefined,
   ) => void;
 
+  respondentUrl: string | null;
+
   save: () => Promise<void>;
   publish: () => Promise<void>;
 }
@@ -215,6 +217,7 @@ export const useBuilderStore = create<BuilderState>((rawSet, get) => {
     error: null,
     dirty: false,
     templateLoaded: false,
+    respondentUrl: null,
     past: [],
     future: [],
 
@@ -635,6 +638,12 @@ export const useBuilderStore = create<BuilderState>((rawSet, get) => {
     },
 
     publish: async () => {
+      // A form with no questions publishes to a blank page respondents can't
+      // do anything with — block it with an actionable message instead.
+      if (model.allElements(get().schema).length === 0) {
+        set({ status: "error", error: "Add at least one question before publishing." });
+        return;
+      }
       set({ status: "publishing", error: null });
       await get().save(); // creates-or-updates and resolves formId
       if (get().status === "error") return;
@@ -642,8 +651,8 @@ export const useBuilderStore = create<BuilderState>((rawSet, get) => {
       if (!formId) return;
       set({ status: "publishing" });
       try {
-        await api.publish(formId);
-        set({ status: "idle", dirty: false });
+        const result = await api.publish(formId);
+        set({ status: "idle", dirty: false, respondentUrl: result.respondent_url });
       } catch (err) {
         set({ status: "error", error: (err as Error).message });
       }

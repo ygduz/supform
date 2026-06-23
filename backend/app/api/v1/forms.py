@@ -97,7 +97,7 @@ async def publish_form(
     user: User = Depends(get_current_user),
 ):
     version = await forms_service.publish_form(db, form_id, user.id)
-    return PublishResult(form_id=form_id, version=version.version)
+    return PublishResult(form_id=form_id, version=version.version, respondent_url=f"/f/{form_id}")
 
 
 @router.get("/{form_id}/schema", response_model=FormSchema)

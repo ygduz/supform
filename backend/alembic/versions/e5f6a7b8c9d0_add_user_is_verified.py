@@ -15,9 +15,8 @@ depends_on = None
 
 
 def upgrade() -> None:
-    op.add_column(
-        "users",
-        sa.Column("is_verified", sa.Boolean(), nullable=False, server_default=sa.false()),
+    op.execute(
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS is_verified BOOLEAN NOT NULL DEFAULT false"
     )
 
 
