@@ -37,6 +37,17 @@ class AIGenerateRequest(BaseModel):
     prompt: str = Field(min_length=1, max_length=2000)
 
 
+class AITranslateRequest(BaseModel):
+    texts: list[str] = Field(min_length=1, max_length=200)
+    source_lang: str = Field(alias="sourceLang", min_length=2, max_length=10)
+    target_lang: str = Field(alias="targetLang", min_length=2, max_length=10)
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class AITranslateResponse(BaseModel):
+    translations: list[str]
+
+
 class EmailRequest(BaseModel):
     email: EmailStr
 
@@ -128,6 +139,29 @@ class FormDetail(FormOut):
 class PublishResult(BaseModel):
     form_id: uuid.UUID
     version: int
+    respondent_url: str
+
+
+class FormVersionOut(BaseModel):
+    version: int
+    created_at: datetime
+    title: str | None = None
+
+
+class FormAuditLogOut(BaseModel):
+    id: uuid.UUID
+    action: str
+    summary: str | None
+    created_at: datetime
+
+
+class SubmissionEditOut(BaseModel):
+    id: uuid.UUID
+    edited_by: uuid.UUID | None
+    answers_before: dict
+    answers_after: dict
+    changed_fields: list[str]
+    created_at: datetime
 
 
 # ---- submissions ----
@@ -143,13 +177,22 @@ class SubmissionOut(BaseModel):
     form_version: int
     answers: dict[str, Any]
     created_at: datetime
+    read_at: datetime | None = None
     validation_status: str | None = None
+    workflow_step: str | None = None
     score: float | None = None
+    quality_flags: list[str] = []
+    started_at: str | None = None
+    form_title: str | None = None
 
 
 class ValidationUpdate(BaseModel):
     # None clears the status back to unreviewed.
     status: str | None = None
+
+
+class SubmissionAnswersUpdate(BaseModel):
+    answers: dict[str, Any]
 
 
 # ---- webhooks ----
@@ -171,6 +214,18 @@ class WebhookOut(BaseModel):
     event: str
     active: bool
     secret: str
+    created_at: datetime
+
+
+class WebhookDeliveryOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: uuid.UUID
+    webhook_id: uuid.UUID
+    url: str
+    status_code: int | None = None
+    error: str | None = None
+    duration_ms: int | None = None
+    is_test: bool
     created_at: datetime
 
 

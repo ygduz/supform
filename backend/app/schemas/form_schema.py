@@ -41,6 +41,7 @@ class ElementType(StrEnum):
     DATE = "date"
     TIME = "time"
     DATETIME = "datetime"
+    DATE_RANGE = "date_range"
     BOOLEAN = "boolean"
     # complex
     MATRIX = "matrix"
@@ -50,8 +51,17 @@ class ElementType(StrEnum):
     FILE = "file"
     IMAGE = "image"
     SIGNATURE = "signature"
+    ADDRESS = "address"
     GEOPOINT = "geopoint"
+    GEOTRACE = "geotrace"
+    GEOSHAPE = "geoshape"
     BARCODE = "barcode"
+    # metadata auto-capture (invisible to respondents, filled server-side)
+    START = "start"
+    END = "end"
+    TODAY = "today"
+    DEVICEID = "deviceid"
+    USERNAME = "username"
     # derived / layout
     CALCULATED = "calculated"
     HIDDEN = "hidden"
@@ -99,6 +109,7 @@ class RepeatSettings(BaseModel):
     min: int = 0
     max: int | None = None
     add_button_text: I18nString | None = Field(default=None, alias="addButtonText")
+    entry_label: I18nString | None = Field(default=None, alias="entryLabel")
 
 
 class Element(BaseModel):
@@ -136,6 +147,13 @@ class Element(BaseModel):
     meta: dict[str, Any] = Field(default_factory=dict)
 
 
+class NextPageRule(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, extra="forbid")
+
+    condition: str
+    page: str
+
+
 class Page(BaseModel):
     model_config = ConfigDict(populate_by_name=True, extra="forbid")
 
@@ -143,6 +161,7 @@ class Page(BaseModel):
     title: I18nString | None = None
     description: I18nString | None = None
     visible_if: str | None = Field(default=None, alias="visibleIf")
+    next_page_if: list[NextPageRule] = Field(default_factory=list, alias="nextPageIf")
     elements: list[Element] = Field(default_factory=list)
 
 
@@ -169,13 +188,17 @@ class FormSettings(BaseModel):
     close_date: str | None = Field(default=None, alias="closeDate")
     max_responses: int | None = Field(default=None, alias="maxResponses")
     submit_button_text: I18nString | None = Field(default=None, alias="submitButtonText")
+    confirmation_title: I18nString | None = Field(default=None, alias="confirmationTitle")
     confirmation_message: I18nString | None = Field(default=None, alias="confirmationMessage")
     welcome_title: I18nString | None = Field(default=None, alias="welcomeTitle")
     welcome_message: I18nString | None = Field(default=None, alias="welcomeMessage")
     redirect_url: str | None = Field(default=None, alias="redirectUrl")
     notify_emails: list[str] = Field(default_factory=list, alias="notifyEmails")
     quiz_mode: bool = Field(default=False, alias="quizMode")
+    workflow_steps: list[str] = []
     outcomes: list[Outcome] = Field(default_factory=list)
+    # Data quality: thresholds for automated flag checks run at submit time.
+    quality_checks: dict[str, Any] | None = Field(default=None, alias="qualityChecks")
 
 
 class FormSchema(BaseModel):

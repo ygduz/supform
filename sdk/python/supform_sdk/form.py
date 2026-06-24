@@ -38,10 +38,20 @@ class Form:
         self._pages[page]["elements"].extend(elements)
         return self
 
-    def add_page(self, name: str, *, title: str | None = None) -> "Form":
+    def add_page(
+        self,
+        name: str,
+        *,
+        title: str | None = None,
+        next_page_if: list[dict[str, str]] | None = None,
+    ) -> "Form":
+        """Add a new page. ``next_page_if`` is a list of ``{"condition": expr, "page": name}``
+        branching rules evaluated after the respondent leaves this page."""
         page: dict[str, Any] = {"name": name, "elements": []}
         if title:
             page["title"] = title
+        if next_page_if:
+            page["nextPageIf"] = next_page_if
         self._pages.append(page)
         return self
 

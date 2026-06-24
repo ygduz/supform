@@ -1,8 +1,10 @@
-"""Export endpoint: download a published form's submissions as CSV/XLSX/JSON."""
+"""Export endpoint: download a published form's submissions as CSV/XLSX/JSON/GeoJSON/SPSS/ZIP."""
 
 from __future__ import annotations
 
+import io
 import uuid
+import zipfile
 from typing import Any
 
 from fastapi import APIRouter, Depends
@@ -12,8 +14,18 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user
 from app.core.exceptions import ValidationError
+from app.core.storage import get_storage
 from app.db.session import get_db
-from app.exporters import export_csv, export_json, export_xlsx
+from app.exporters import (
+    export_csv,
+    export_geojson,
+    export_json,
+    export_kml,
+    export_spss,
+    export_xlsform,
+    export_xlsx,
+)
+from app.models.media import MediaFile
 from app.models.submission import Submission
 from app.models.user import User
 from app.schemas.api import ExportJobOut
@@ -33,10 +45,15 @@ def _job_out(job: object) -> ExportJobOut:
 # Map each format to its exporter, MIME type, and file extension in one place so adding a
 # format is a single-line change and Content-Type never drifts from the body.
 _XLSX_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+_SPSS_MIME = "application/x-spss-sav"
 _FORMATS = {
     "csv": (export_csv, "text/csv", "csv"),
     "xlsx": (export_xlsx, _XLSX_MIME, "xlsx"),
     "json": (export_json, "application/json", "json"),
+    "geojson": (export_geojson, "application/geo+json", "geojson"),
+    "kml": (export_kml, "application/vnd.google-earth.kml+xml", "kml"),
+    "spss": (export_spss, _SPSS_MIME, "sav"),
+    "xlsform": (export_xlsform, _XLSX_MIME, "xlsx"),
 }
 
 
@@ -78,6 +95,51 @@ async def export_submissions(
         content=body,
         media_type=media_type,
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+@router.get("/forms/{form_id}/export/media")
+async def export_media_zip(
+    form_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> Response:
+    """Stream all uploaded file attachments for a form's submissions as a ZIP archive."""
+    await get_owned_form(db, form_id, user.id)
+
+    # Collect every MediaFile that belongs to this form.
+    stmt = (
+        select(MediaFile).where(MediaFile.form_id == form_id).order_by(MediaFile.created_at.asc())
+    )
+    media_files = list(await db.scalars(stmt))
+
+    storage = get_storage()
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, mode="w", compression=zipfile.ZIP_DEFLATED) as zf:
+        seen: dict[str, int] = {}
+        for mf in media_files:
+            try:
+                data = storage.read(str(mf.id))
+            except Exception:  # noqa: BLE001
+                continue  # skip missing blobs gracefully
+
+            # Deduplicate filenames by appending a counter when needed.
+            name = mf.filename or str(mf.id)
+            if name in seen:
+                seen[name] += 1
+                base, _, ext = name.rpartition(".")
+                name = f"{base}_{seen[name]}.{ext}" if ext else f"{name}_{seen[name]}"
+            else:
+                seen[name] = 0
+
+            zf.writestr(name, data)
+
+    schema = await get_published_schema(db, form_id)
+    zip_filename = f"{schema.name}-media.zip"
+    return Response(
+        content=buf.getvalue(),
+        media_type="application/zip",
+        headers={"Content-Disposition": f'attachment; filename="{zip_filename}"'},
     )
 
 

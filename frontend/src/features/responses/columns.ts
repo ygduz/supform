@@ -5,6 +5,7 @@
  * table lines up with CSV/XLSX downloads: groups are transparent, a matrix expands to one
  * column per row, multi-choice joins into a single cell, and a repeat is shown as JSON.
  */
+import { isPresentationalType } from "@/lib/fieldTypes";
 import { localize } from "@/lib/i18n";
 import type { Choice, Element, FormSchema } from "@/types/form-schema";
 
@@ -13,8 +14,6 @@ export interface Column {
   label: string;
   value: (answers: Record<string, unknown>) => string;
 }
-
-const PRESENTATIONAL = new Set(["note", "section", "html"]);
 
 const elementLabel = (el: Element): string => localize(el.label) || el.name;
 const choiceLabel = (c: Choice): string => localize(c.label) || String(c.value);
@@ -37,7 +36,7 @@ export function buildColumns(schema: FormSchema): Column[] {
 
   const walk = (elements: Element[]) => {
     for (const el of elements) {
-      if (PRESENTATIONAL.has(el.type)) continue;
+      if (isPresentationalType(el.type)) continue;
 
       if (el.type === "group") {
         walk(el.elements ?? []);
@@ -56,6 +55,21 @@ export function buildColumns(schema: FormSchema): Column[] {
             },
           });
         }
+        continue;
+      }
+
+      if (el.type === "repeat") {
+        // Show a compact summary: "N entries" for the main table; full detail in the
+        // expanded view or JSON/XLSX export.
+        columns.push({
+          key: el.name,
+          label: elementLabel(el),
+          value: (answers) => {
+            const instances = answers[el.name];
+            if (!Array.isArray(instances) || instances.length === 0) return "";
+            return `${instances.length} ${instances.length === 1 ? "entry" : "entries"}`;
+          },
+        });
         continue;
       }
 
@@ -78,6 +92,7 @@ export interface FieldSummary {
   counts: Array<{ label: string; count: number }>;
 }
 
+// Broader than model.isChoiceType: boolean and scale also produce discrete-count distributions.
 const CHOICE_TYPES = new Set(["single_choice", "multi_choice", "dropdown", "boolean", "scale"]);
 
 export function buildSummaries(

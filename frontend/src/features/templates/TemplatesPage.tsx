@@ -1,3 +1,4 @@
+import { EmptyState } from "@/components";
 import { useBuilderStore } from "@/stores/builderStore";
 import type { FormSchema } from "@/types/form-schema";
 import { useState } from "react";
@@ -39,8 +40,14 @@ export function TemplatesPage() {
       </p>
 
       <div className="ai-cta">
+        <div className="ai-cta-text">
+          <strong>Generate with AI</strong>
+          <span className="muted">
+            Describe your form in plain English — get a draft in seconds.
+          </span>
+        </div>
         <button type="button" className="button" onClick={() => setAiOpen(true)}>
-          ✨ Generate with AI
+          ✨ Try it
         </button>
       </div>
       {aiOpen && <AIGenerateDialog onClose={() => setAiOpen(false)} />}
@@ -80,25 +87,33 @@ export function TemplatesPage() {
       )}
 
       <h2 className="section-title">Templates</h2>
-      <div className="template-grid">
-        {TEMPLATES.map((template) => (
-          <article key={template.id} className="template-card">
-            <div className="template-icon" aria-hidden="true">
-              {template.icon}
-            </div>
-            <h2>{template.name}</h2>
-            <p className="muted">{template.description}</p>
-            <ul className="template-fields">
-              {template.schema.pages[0].elements.slice(0, 5).map((el) => (
-                <li key={el.name}>{typeof el.label === "string" ? el.label : el.name}</li>
-              ))}
-            </ul>
-            <button type="button" className="button" onClick={() => use(template.schema)}>
-              Use this template
-            </button>
-          </article>
-        ))}
-      </div>
+      {TEMPLATES.length === 0 ? (
+        <EmptyState
+          icon="📋"
+          title="No templates yet"
+          description="Use the AI generator above or start from scratch."
+        />
+      ) : (
+        <div className="template-grid">
+          {TEMPLATES.map((template) => (
+            <article key={template.id} className="template-card">
+              <div className="template-icon" aria-hidden="true">
+                {template.icon}
+              </div>
+              <h2>{template.name}</h2>
+              <p className="muted">{template.description}</p>
+              <ul className="template-fields">
+                {template.schema.pages[0].elements.slice(0, 5).map((el) => (
+                  <li key={el.name}>{typeof el.label === "string" ? el.label : el.name}</li>
+                ))}
+              </ul>
+              <button type="button" className="button" onClick={() => use(template.schema)}>
+                Use this template
+              </button>
+            </article>
+          ))}
+        </div>
+      )}
     </section>
   );
 }

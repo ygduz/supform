@@ -1,6 +1,6 @@
 import type { FormSchema } from "@/types/form-schema";
 import { describe, expect, it } from "vitest";
-import { numericStats, responsesByDay } from "./analytics";
+import { numericStats, responsesByDay, textResponses } from "./analytics";
 
 function schema(): FormSchema {
   return {
@@ -50,6 +50,37 @@ describe("numericStats", () => {
     ];
     const age = numericStats(schema(), rows).find((s) => s.name === "age");
     expect(age?.median).toBe(25);
+  });
+});
+
+describe("textResponses", () => {
+  it("collects answers newest-first and counts non-empty ones", () => {
+    const rows = [
+      { answers: { comment: "Great service" } },
+      { answers: { comment: "" } },
+      { answers: { comment: "Loved it" } },
+      { answers: { age: 5 } },
+    ];
+    const [field] = textResponses(schema(), rows);
+    expect(field).toMatchObject({ name: "comment", count: 2 });
+    expect(field.answers).toEqual(["Loved it", "Great service"]);
+  });
+
+  it("builds a stop-word-filtered top-words frequency", () => {
+    const rows = [
+      { answers: { comment: "The food was great and the service was great" } },
+      { answers: { comment: "Great food, will return" } },
+    ];
+    const [field] = textResponses(schema(), rows);
+    const top = field.topWords.find((w) => w.word === "great");
+    expect(top?.count).toBe(3);
+    // "the"/"and"/"was" are stop words and excluded.
+    expect(field.topWords.map((w) => w.word)).not.toContain("the");
+    expect(field.topWords.map((w) => w.word)).toContain("food");
+  });
+
+  it("omits text fields with no answers", () => {
+    expect(textResponses(schema(), [{ answers: { age: 1 } }])).toEqual([]);
   });
 });
 

@@ -90,13 +90,151 @@ def Date(name: str, **kw: Any) -> Element:
     return _base("date", name, **kw)
 
 
+def DateRange(name: str, **kw: Any) -> Element:
+    """A date-range question (start + end dates stored as {start, end})."""
+    return _base("date_range", name, **kw)
+
+
+def DateTime(name: str, **kw: Any) -> Element:
+    """A combined date-and-time question."""
+    return _base("datetime", name, **kw)
+
+
 def Boolean(name: str, **kw: Any) -> Element:
     return _base("boolean", name, **kw)
+
+
+def Signature(name: str, **kw: Any) -> Element:
+    """A freehand signature capture question."""
+    return _base("signature", name, **kw)
+
+
+def Image(name: str, **kw: Any) -> Element:
+    """An image upload question."""
+    return _base("image", name, **kw)
+
+
+def Address(name: str, **kw: Any) -> Element:
+    """A structured address question (street, city, state, zip, country)."""
+    return _base("address", name, **kw)
 
 
 def Calculated(name: str, *, calculate: str, **kw: Any) -> Element:
     return _base("calculated", name, calculate=calculate, readOnly=True, **kw)
 
 
+def Barcode(name: str, **kw: Any) -> Element:
+    """A barcode / QR-code scan question."""
+    return _base("barcode", name, **kw)
+
+
+def Decimal(name: str, *, min: float | None = None, max: float | None = None, **kw: Any) -> Element:
+    validation = {k: v for k, v in {"min": min, "max": max}.items() if v is not None} or None
+    return _base("decimal", name, validation=validation, **kw)
+
+
+def File(name: str, **kw: Any) -> Element:
+    """A file-upload question."""
+    return _base("file", name, **kw)
+
+
+def Geopoint(name: str, **kw: Any) -> Element:
+    """A single GPS point capture question."""
+    return _base("geopoint", name, **kw)
+
+
+def Geoshape(name: str, **kw: Any) -> Element:
+    """A polygon / area capture question."""
+    return _base("geoshape", name, **kw)
+
+
+def Geotrace(name: str, **kw: Any) -> Element:
+    """A GPS trace (line) capture question."""
+    return _base("geotrace", name, **kw)
+
+
+def Group(name: str, *, elements: list[Element], **kw: Any) -> Element:
+    return _base("group", name, elements=elements, **kw)
+
+
+def Hidden(name: str, *, default_value: Any = None, **kw: Any) -> Element:
+    """A hidden field — never shown to the respondent; carries a default value."""
+    return _base("hidden", name, defaultValue=default_value, **kw)
+
+
+def Html(name: str, *, label: str, **kw: Any) -> Element:
+    """A read-only HTML content block displayed to the respondent."""
+    return _base("html", name, label=label, **kw)
+
+
+def Matrix(name: str, *, rows: list[Any], columns: list[Any], **kw: Any) -> Element:
+    """A matrix / grid question with labelled rows and columns."""
+    return _base("matrix", name, rows=_options(rows), columns=_options(columns), **kw)
+
+
 def Note(name: str, *, label: str, **kw: Any) -> Element:
     return _base("note", name, label=label, **kw)
+
+
+def Phone(name: str, **kw: Any) -> Element:
+    """A phone-number input question."""
+    return _base("phone", name, **kw)
+
+
+def Ranking(name: str, *, options: list[Any], **kw: Any) -> Element:
+    """A drag-to-rank question."""
+    return _base("ranking", name, options=_options(options), **kw)
+
+
+def Scale(name: str, *, min: int = 1, max: int = 5, **kw: Any) -> Element:
+    """A numeric scale question rendered as a labelled slider or button row."""
+    return _base("scale", name, options=_options(list(range(min, max + 1))), **kw)
+
+
+def Section(name: str, *, label: str, **kw: Any) -> Element:
+    """A visual section-divider / heading block."""
+    return _base("section", name, label=label, **kw)
+
+
+def Time(name: str, **kw: Any) -> Element:
+    """A time-only question."""
+    return _base("time", name, **kw)
+
+
+def Url(name: str, **kw: Any) -> Element:
+    """A URL input question."""
+    return _base("url", name, **kw)
+
+
+def QualityChecks(
+    *,
+    min_duration_seconds: int | None = None,
+    expected_geo_bbox: tuple[float, float, float, float] | None = None,
+) -> dict[str, Any]:
+    """Return a ``qualityChecks`` settings dict for use in ``Form(..., settings={...})``."""
+    qc: dict[str, Any] = {}
+    if min_duration_seconds is not None:
+        qc["minDurationSeconds"] = min_duration_seconds
+    if expected_geo_bbox is not None:
+        qc["expectedGeoBbox"] = list(expected_geo_bbox)
+    return qc
+
+
+def Repeat(
+    name: str,
+    *,
+    elements: list[Element],
+    min: int = 0,
+    max: int | None = None,
+    entry_label: str | None = None,
+    add_button_text: str | None = None,
+    **kw: Any,
+) -> Element:
+    repeat: dict[str, Any] = {"min": min}
+    if max is not None:
+        repeat["max"] = max
+    if entry_label is not None:
+        repeat["entryLabel"] = entry_label
+    if add_button_text is not None:
+        repeat["addButtonText"] = add_button_text
+    return _base("repeat", name, elements=elements, repeat=repeat, **kw)

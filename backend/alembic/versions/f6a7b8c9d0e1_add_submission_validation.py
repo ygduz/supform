@@ -15,22 +15,30 @@ depends_on = None
 
 
 def upgrade() -> None:
-    op.add_column(
-        "submissions", sa.Column("validation_status", sa.String(length=20), nullable=True)
+    op.execute(
+        "ALTER TABLE submissions ADD COLUMN IF NOT EXISTS validation_status VARCHAR(20)"
     )
-    op.add_column("submissions", sa.Column("validated_by", sa.Uuid(), nullable=True))
-    op.add_column(
-        "submissions", sa.Column("validated_at", sa.DateTime(timezone=True), nullable=True)
+    op.execute(
+        "ALTER TABLE submissions ADD COLUMN IF NOT EXISTS validated_by UUID"
     )
-    op.create_index(
-        op.f("ix_submissions_validation_status"),
-        "submissions",
-        ["validation_status"],
-        unique=False,
+    op.execute(
+        "ALTER TABLE submissions ADD COLUMN IF NOT EXISTS validated_at TIMESTAMPTZ"
     )
-    op.create_foreign_key(
-        "fk_submissions_validated_by", "submissions", "users", ["validated_by"], ["id"]
-    )
+    conn = op.get_bind()
+    insp = sa.inspect(conn)
+    existing_indexes = [idx["name"] for idx in insp.get_indexes("submissions")]
+    if "ix_submissions_validation_status" not in existing_indexes:
+        op.create_index(
+            op.f("ix_submissions_validation_status"),
+            "submissions",
+            ["validation_status"],
+            unique=False,
+        )
+    existing_fks = [fk["name"] for fk in insp.get_foreign_keys("submissions")]
+    if "fk_submissions_validated_by" not in existing_fks:
+        op.create_foreign_key(
+            "fk_submissions_validated_by", "submissions", "users", ["validated_by"], ["id"]
+        )
 
 
 def downgrade() -> None:

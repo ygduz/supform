@@ -11,6 +11,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.openrosa import router as openrosa_router
 from app.api.v1.router import api_router
 from app.core.config import settings
 from app.core.exceptions import install_exception_handlers
@@ -72,6 +73,7 @@ def create_app() -> FastAPI:
 
     install_exception_handlers(app)
     app.include_router(api_router)
+    app.include_router(openrosa_router)
 
     @app.get("/health", tags=["meta"])
     async def health(db: AsyncSession = Depends(get_db)) -> JSONResponse:

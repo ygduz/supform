@@ -30,6 +30,7 @@ export type ElementType =
   | "date"
   | "time"
   | "datetime"
+  | "date_range"
   | "boolean"
   | "matrix"
   | "group"
@@ -37,8 +38,16 @@ export type ElementType =
   | "file"
   | "image"
   | "signature"
+  | "address"
   | "geopoint"
+  | "geotrace"
+  | "geoshape"
   | "barcode"
+  | "start"
+  | "end"
+  | "today"
+  | "deviceid"
+  | "username"
   | "calculated"
   | "hidden"
   | "note"
@@ -80,6 +89,7 @@ export interface RepeatSettings {
   min?: number;
   max?: number;
   addButtonText?: I18nString;
+  entryLabel?: I18nString;
 }
 
 export interface Element {
@@ -105,11 +115,18 @@ export interface Element {
   meta?: Record<string, unknown>;
 }
 
+export interface NextPageRule {
+  condition: Expression;
+  page: string;
+}
+
 export interface Page {
   name: string;
   title?: I18nString;
   description?: I18nString;
   visibleIf?: Expression;
+  /** Conditional branching: first matching rule wins; falls back to sequential if none match. */
+  nextPageIf?: NextPageRule[];
   elements: Element[];
 }
 
@@ -133,6 +150,8 @@ export interface FormSettings {
   closeDate?: string;
   maxResponses?: number;
   submitButtonText?: I18nString;
+  /** Heading shown on the thank-you screen (defaults to "Thank you!"). */
+  confirmationTitle?: I18nString;
   confirmationMessage?: I18nString;
   /** Optional welcome screen shown before the first step (paged / one-question modes). */
   welcomeTitle?: I18nString;
@@ -144,6 +163,15 @@ export interface FormSettings {
   /** Score selected-option points and show an outcome on the thank-you screen. */
   quizMode?: boolean;
   outcomes?: Outcome[];
+  qualityChecks?: QualityChecks;
+  workflowSteps?: string[];
+}
+
+export interface QualityChecks {
+  /** Submissions completed faster than this many seconds are flagged "too_fast". Default 30. */
+  minDurationSeconds?: number;
+  /** Geopoint answers outside [minLat, minLng, maxLat, maxLng] are flagged "geo_outlier". */
+  expectedGeoBbox?: [number, number, number, number];
 }
 
 export interface FormSchema {

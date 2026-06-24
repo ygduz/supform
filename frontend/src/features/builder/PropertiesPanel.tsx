@@ -1,9 +1,14 @@
+import { Button, Input } from "@/components";
 import { localize } from "@/lib/i18n";
 import { useBuilderStore } from "@/stores/builderStore";
 import type { Choice, Element, I18nString, Validation } from "@/types/form-schema";
-import { hasOptionList } from "./model";
+import { FormulaBuilder } from "./FormulaBuilder";
+import { LogicBuilder } from "./LogicBuilder";
+import { fieldMeta } from "./fieldMeta";
+import { hasOptionList, isContainerType, isPresentationalType } from "./model";
 
-const PRESENTATIONAL = new Set(["note", "section", "html"]);
+// Local to this panel — drives which validation inputs (min/max) render. Narrower than
+// isNumericType: rating/scale have no meaningful min/max validation UI.
 const NUMERIC = new Set(["number", "integer", "decimal"]);
 const TEXTUAL = new Set(["text", "longtext", "email"]);
 
@@ -16,70 +21,92 @@ export function PropertiesPanel({ element }: { element: Element }) {
   const languages = store.schema.languages ?? [];
   const defaultLang = store.schema.defaultLanguage ?? "en";
 
-  const canRequire =
-    !PRESENTATIONAL.has(type) && type !== "group" && type !== "repeat" && type !== "calculated";
+  const canRequire = !isPresentationalType(type) && !isContainerType(type) && type !== "calculated";
 
   const setValidation = (patch: Partial<Validation>) =>
     update(name, { validation: { ...(element.validation ?? {}), ...patch } });
 
+  const meta = fieldMeta(type);
+
   return (
     <div className="props">
-      <h3>Question settings</h3>
+      <header className="props-header">
+        <span className="props-icon" aria-hidden="true">
+          {meta.icon}
+        </span>
+        <div className="props-titles">
+          <span className="props-type">{meta.label}</span>
+          <code className="props-key" title="Field key (used in exports & logic)">
+            {name}
+          </code>
+        </div>
+      </header>
 
-      <I18nProp
-        label="Label"
-        value={element.label}
-        languages={languages}
-        defaultLang={defaultLang}
-        onChange={(v) => update(name, { label: v })}
-      />
-      <I18nProp
-        label="Help text"
-        value={element.hint}
-        languages={languages}
-        defaultLang={defaultLang}
-        placeholder="Optional guidance shown under the question"
-        onChange={(v) => update(name, { hint: v })}
-      />
-
-      {TEXTUAL.has(type) && (
+      <fieldset className="prop-fieldset">
+        <legend>Basics</legend>
         <I18nProp
-          label="Placeholder"
-          value={element.placeholder}
+          label="Label"
+          value={element.label}
           languages={languages}
           defaultLang={defaultLang}
-          onChange={(v) => update(name, { placeholder: v })}
+          onChange={(v) => update(name, { label: v })}
         />
-      )}
+        <p className="prop-caption">
+          Tip: insert a previous answer with <code>{"{field_key}"}</code> — e.g.{" "}
+          <code>{"Hi {first_name}!"}</code>
+        </p>
+        <I18nProp
+          label="Help text"
+          value={element.hint}
+          languages={languages}
+          defaultLang={defaultLang}
+          placeholder="Optional guidance shown under the question"
+          onChange={(v) => update(name, { hint: v })}
+        />
 
-      {canRequire && (
-        <label className="prop prop-check">
-          <input
-            type="checkbox"
-            checked={Boolean(element.required)}
-            onChange={(e) => update(name, { required: e.target.checked })}
+        {TEXTUAL.has(type) && (
+          <I18nProp
+            label="Placeholder"
+            value={element.placeholder}
+            languages={languages}
+            defaultLang={defaultLang}
+            onChange={(v) => update(name, { placeholder: v })}
           />
-          <span>Required</span>
-        </label>
-      )}
+        )}
+
+        {canRequire && (
+          <label className="prop prop-check">
+            <input
+              type="checkbox"
+              checked={Boolean(element.required)}
+              onChange={(e) => update(name, { required: e.target.checked })}
+            />
+            <span>Required</span>
+          </label>
+        )}
+      </fieldset>
 
       {hasOptionList(type) && (
-        <ListEditor
-          title="Options"
-          items={element.options ?? []}
-          onAdd={() => store.addOption(name)}
-          onUpdate={(i, label) => store.updateOption(name, i, choiceFrom(label))}
-          onRemove={(i) => store.removeOption(name, i)}
-          onScore={
-            store.schema.settings?.quizMode
-              ? (i, score) => store.updateOption(name, i, { score })
-              : undefined
-          }
-        />
+        <fieldset className="prop-fieldset">
+          <legend>Choices</legend>
+          <ListEditor
+            title="Options"
+            items={element.options ?? []}
+            onAdd={() => store.addOption(name)}
+            onUpdate={(i, label) => store.updateOption(name, i, choiceFrom(label))}
+            onRemove={(i) => store.removeOption(name, i)}
+            onScore={
+              store.schema.settings?.quizMode
+                ? (i, score) => store.updateOption(name, i, { score })
+                : undefined
+            }
+          />
+        </fieldset>
       )}
 
       {type === "matrix" && (
-        <>
+        <fieldset className="prop-fieldset">
+          <legend>Matrix</legend>
           <ListEditor
             title="Rows"
             items={element.rows ?? []}
@@ -94,24 +121,62 @@ export function PropertiesPanel({ element }: { element: Element }) {
             onUpdate={(i, label) => store.updateColumn(name, i, choiceFrom(label))}
             onRemove={(i) => store.removeColumn(name, i)}
           />
-        </>
+        </fieldset>
       )}
 
       {type === "repeat" && (
-        <div className="prop-group">
-          <NumberProp
-            label="Min entries"
-            value={element.repeat?.min}
-            onChange={(v) => update(name, { repeat: { ...element.repeat, min: v ?? 0 } })}
-          />
-          <NumberProp
-            label="Max entries"
-            value={element.repeat?.max}
-            onChange={(v) =>
-              update(name, { repeat: { ...element.repeat, min: element.repeat?.min ?? 0, max: v } })
-            }
-          />
-        </div>
+        <fieldset className="prop-fieldset">
+          <legend>Repeat</legend>
+          <div className="prop-label">
+            <Input
+              label="Entry label"
+              type="text"
+              placeholder="e.g. Member, Asset, Incident"
+              value={
+                typeof element.repeat?.entryLabel === "string"
+                  ? element.repeat.entryLabel
+                  : ((element.repeat?.entryLabel as Record<string, string> | undefined)?.en ?? "")
+              }
+              onChange={(e) =>
+                update(name, { repeat: { ...element.repeat, entryLabel: e.target.value } })
+              }
+            />
+          </div>
+          <div className="prop-group">
+            <NumberProp
+              label="Min entries"
+              value={element.repeat?.min}
+              onChange={(v) => update(name, { repeat: { ...element.repeat, min: v ?? 0 } })}
+            />
+            <NumberProp
+              label="Max entries"
+              value={element.repeat?.max}
+              onChange={(v) =>
+                update(name, {
+                  repeat: { ...element.repeat, min: element.repeat?.min ?? 0, max: v },
+                })
+              }
+            />
+          </div>
+          <div className="prop-label">
+            <Input
+              label='"Add" button text'
+              type="text"
+              placeholder="e.g. Add another member"
+              value={
+                typeof element.repeat?.addButtonText === "string"
+                  ? element.repeat.addButtonText
+                  : ((element.repeat?.addButtonText as Record<string, string> | undefined)?.en ??
+                    "")
+              }
+              onChange={(e) =>
+                update(name, {
+                  repeat: { ...element.repeat, addButtonText: e.target.value },
+                })
+              }
+            />
+          </div>
+        </fieldset>
       )}
 
       {/* Validation rules */}
@@ -179,25 +244,25 @@ export function PropertiesPanel({ element }: { element: Element }) {
       {/* Logic */}
       <fieldset className="prop-fieldset">
         <legend>Logic</legend>
-        <LogicProp
+        <LogicBuilder
           label="Show this question only if…"
           value={element.visibleIf}
-          placeholder="e.g. age >= 18"
+          excludeName={name}
           onChange={(v) => update(name, { visibleIf: v })}
         />
         {canRequire && (
-          <LogicProp
+          <LogicBuilder
             label="Required only if…"
             value={element.requiredIf}
-            placeholder="e.g. has_account == true"
+            excludeName={name}
             onChange={(v) => update(name, { requiredIf: v })}
           />
         )}
         {type === "calculated" && (
-          <LogicProp
+          <FormulaBuilder
             label="Calculate value"
             value={element.calculate}
-            placeholder="e.g. price * quantity"
+            excludeName={name}
             onChange={(v) => update(name, { calculate: v })}
           />
         )}
@@ -218,15 +283,14 @@ function TextProp(props: {
   onChange: (v: string) => void;
 }) {
   return (
-    <label className="prop">
-      <span>{props.label}</span>
-      <input
-        type="text"
+    <div className="prop">
+      <Input
+        label={props.label}
         value={props.value}
         placeholder={props.placeholder}
         onChange={(e) => props.onChange(e.target.value)}
       />
-    </label>
+    </div>
   );
 }
 
@@ -307,9 +371,9 @@ function NumberProp(props: {
   onChange: (v: number | undefined) => void;
 }) {
   return (
-    <label className="prop">
-      <span>{props.label}</span>
-      <input
+    <div className="prop">
+      <Input
+        label={props.label}
         type="number"
         value={props.value ?? ""}
         onChange={(e) => {
@@ -317,27 +381,7 @@ function NumberProp(props: {
           props.onChange(raw === "" ? undefined : Number(raw));
         }}
       />
-    </label>
-  );
-}
-
-function LogicProp(props: {
-  label: string;
-  value: string | undefined;
-  placeholder?: string;
-  onChange: (v: string | undefined) => void;
-}) {
-  return (
-    <label className="prop">
-      <span>{props.label}</span>
-      <input
-        type="text"
-        className="logic-input"
-        value={props.value ?? ""}
-        placeholder={props.placeholder}
-        onChange={(e) => props.onChange(e.target.value || undefined)}
-      />
-    </label>
+    </div>
   );
 }
 
@@ -372,14 +416,14 @@ function ListEditor(props: {
               }
             />
           )}
-          <button type="button" title="Remove" onClick={() => props.onRemove(i)}>
+          <Button variant="ghost" size="sm" title="Remove" onClick={() => props.onRemove(i)}>
             ✕
-          </button>
+          </Button>
         </div>
       ))}
-      <button type="button" className="link-button" onClick={props.onAdd}>
+      <Button variant="ghost" size="sm" onClick={props.onAdd}>
         + Add {props.title.replace(/s$/, "").toLowerCase()}
-      </button>
+      </Button>
     </div>
   );
 }

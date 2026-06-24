@@ -9,25 +9,15 @@
  * recurse through the whole tree, so they work the same at the top level or inside a
  * group/repeat. Users edit `label`; `name` is auto-managed.
  */
-import type { Choice, Element, ElementType, FormSchema, Page } from "@/types/form-schema";
-
-export const DEFAULT_LABELS: Partial<Record<ElementType, string>> = {
-  text: "Short text question",
-  longtext: "Long answer question",
-  email: "Email question",
-  single_choice: "Single choice question",
-  multi_choice: "Multiple choice question",
-  dropdown: "Dropdown question",
-  rating: "Rating question",
-  scale: "Scale question",
-  number: "Number question",
-  date: "Date question",
-  boolean: "Yes / no question",
-  matrix: "Matrix question",
-  file: "File upload",
-  group: "Section",
-  repeat: "Repeating group",
-};
+import type {
+  Choice,
+  Element,
+  ElementType,
+  FormSchema,
+  I18nString,
+  Page,
+} from "@/types/form-schema";
+import { defaultLabelFor } from "./fieldMeta";
 
 const CHOICE_TYPES: ReadonlySet<string> = new Set([
   "single_choice",
@@ -38,6 +28,23 @@ const CHOICE_TYPES: ReadonlySet<string> = new Set([
 
 const CONTAINER_TYPES: ReadonlySet<string> = new Set(["group", "repeat"]);
 
+/** Display-only types that collect no answer value (info text, raw HTML). */
+const PRESENTATIONAL_TYPES: ReadonlySet<string> = new Set(["note", "section", "html"]);
+
+/**
+ * Types whose answer value is a number (or ordered scale that maps to a number).
+ * NOTE: `calculated` is intentionally excluded here — it IS numeric for formula operands
+ * (FormulaBuilder adds it locally) but is NOT user-answerable, so it doesn't belong in
+ * the shared set that drives operator selection and analytics.
+ */
+const NUMERIC_TYPES: ReadonlySet<string> = new Set([
+  "number",
+  "integer",
+  "decimal",
+  "rating",
+  "scale",
+]);
+
 export function isChoiceType(type: ElementType): boolean {
   return CHOICE_TYPES.has(type);
 }
@@ -46,9 +53,37 @@ export function isContainerType(type: ElementType): boolean {
   return CONTAINER_TYPES.has(type);
 }
 
+/** Display-only types (note / html) that never carry a respondent answer. */
+export function isPresentationalType(type: ElementType): boolean {
+  return PRESENTATIONAL_TYPES.has(type);
+}
+
+/** Types with no answer value of their own: presentational text and containers. */
+export function isNoValueType(type: ElementType): boolean {
+  return isPresentationalType(type) || isContainerType(type);
+}
+
+/** Types whose answer value is numeric. See NUMERIC_TYPES comment for what is excluded. */
+export function isNumericType(type: ElementType): boolean {
+  return NUMERIC_TYPES.has(type);
+}
+
 /** Types that carry an editable list of choice `options`. */
 export function hasOptionList(type: ElementType): boolean {
   return isChoiceType(type) || type === "rating" || type === "scale";
+}
+
+/**
+ * Confirm before deleting a section that still holds questions (they go with it).
+ * Returns true when the deletion should proceed.
+ */
+export function confirmDeleteContainer(type: ElementType, childCount: number): boolean {
+  if (!isContainerType(type) || childCount === 0) return true;
+  return window.confirm(
+    `Delete this section and the ${childCount} ${
+      childCount === 1 ? "question" : "questions"
+    } inside it?\n\nTip: use Ungroup (⊟) to keep the questions.`,
+  );
 }
 
 export function createEmptyForm(): FormSchema {
@@ -89,7 +124,7 @@ function freshName(taken: Set<string>): string {
   return `q${i}`;
 }
 
-function nextName(schema: FormSchema): string {
+export function nextName(schema: FormSchema): string {
   return freshName(new Set(allElements(schema).map((e) => e.name)));
 }
 
@@ -149,7 +184,7 @@ function transformSiblings(
 }
 
 function makeElement(type: ElementType, name: string): Element {
-  const el: Element = { type, name, label: DEFAULT_LABELS[type] ?? "Question" };
+  const el: Element = { type, name, label: defaultLabelFor(type) };
   if (hasOptionList(type)) {
     el.options =
       type === "scale"
@@ -183,6 +218,121 @@ function cloneSubtree(el: Element, taken: Set<string>): Element {
 }
 
 // ---------------------------------------------------------------- element ops
+
+/** Insert a new element of `type` at a precise position (used by palette drag-to-canvas). */
+export function addElementAt(
+  schema: FormSchema,
+  type: ElementType,
+  target: { pageIndex: number; parentName?: string },
+  index: number,
+): { schema: FormSchema; name: string } {
+  const name = nextName(schema);
+  const el = makeElement(type, name);
+
+  if (target.parentName) {
+    const next = mapElement(schema, target.parentName, (parent) => {
+      const children = [...(parent.elements ?? [])];
+      children.splice(Math.max(0, Math.min(index, children.length)), 0, el);
+      return { ...parent, elements: children };
+    });
+    return { schema: next, name };
+  }
+
+  const pages = schema.pages.map((p, i) => {
+    if (i !== target.pageIndex) return p;
+    const children = [...p.elements];
+    children.splice(Math.max(0, Math.min(index, children.length)), 0, el);
+    return { ...p, elements: children };
+  });
+  return { schema: { ...schema, pages }, name };
+}
+
+/**
+ * Wrap a set of sibling elements into a new group in-place.
+ * All names must live in the same sibling list — if they span containers or pages the
+ * schema is returned unchanged (groupName will be empty string).
+ */
+export function groupElements(
+  schema: FormSchema,
+  names: string[],
+): { schema: FormSchema; groupName: string } {
+  if (names.length < 2) return { schema, groupName: "" };
+
+  const nameSet = new Set(names);
+  const newGroupName = nextName(schema);
+  let groupName = "";
+
+  const tryGroup = (siblings: Element[]): Element[] | null => {
+    const indices: number[] = [];
+    siblings.forEach((e, i) => {
+      if (nameSet.has(e.name)) indices.push(i);
+    });
+    if (indices.length !== names.length) return null;
+
+    const minIdx = Math.min(...indices);
+    const ordered = [...indices].sort((a, b) => a - b).map((i) => siblings[i]);
+    const group: Element = {
+      type: "group",
+      name: newGroupName,
+      label: defaultLabelFor("group"),
+      elements: ordered,
+    };
+    groupName = newGroupName;
+
+    const remaining = siblings.filter((e) => !nameSet.has(e.name));
+    const insertPos = siblings.slice(0, minIdx).filter((e) => !nameSet.has(e.name)).length;
+    return [...remaining.slice(0, insertPos), group, ...remaining.slice(insertPos)];
+  };
+
+  let changed = false;
+  const walkList = (elements: Element[]): Element[] => {
+    if (changed) return elements;
+    const grouped = tryGroup(elements);
+    if (grouped) {
+      changed = true;
+      return grouped;
+    }
+    let listChanged = false;
+    const mapped = elements.map((el) => {
+      if (!el.elements || changed) return el;
+      const next = walkList(el.elements);
+      if (next !== el.elements) {
+        listChanged = true;
+        return { ...el, elements: next };
+      }
+      return el;
+    });
+    return listChanged ? mapped : elements;
+  };
+
+  const pages = schema.pages.map((p) => {
+    const walked = walkList(p.elements);
+    return walked !== p.elements ? { ...p, elements: walked } : p;
+  });
+
+  if (!changed) return { schema, groupName: "" };
+  return { schema: { ...schema, pages }, groupName };
+}
+
+/**
+ * Dissolve a group/repeat: replace it with its children at the same position in the
+ * parent's list. Returns the schema unchanged if `name` is not a container.
+ */
+export function ungroupElement(
+  schema: FormSchema,
+  name: string,
+): { schema: FormSchema; childNames: string[] } {
+  const el = findElement(schema, name);
+  if (!el || !isContainerType(el.type)) return { schema, childNames: [] };
+  const children = el.elements ?? [];
+  const next = transformSiblings(schema, name, (siblings, idx) => [
+    ...siblings.slice(0, idx),
+    ...children,
+    ...siblings.slice(idx + 1),
+  ]);
+  return { schema: next, childNames: children.map((c) => c.name) };
+}
+
 export function addElement(
   schema: FormSchema,
   type: ElementType,
@@ -245,6 +395,54 @@ export function moveElement(schema: FormSchema, name: string, toIndex: number): 
     copy.splice(clamped, 0, moved);
     return copy;
   });
+}
+
+/** True when `name` is (or is nested anywhere inside) the element `ancestorName`. */
+export function isDescendantOf(schema: FormSchema, name: string, ancestorName: string): boolean {
+  if (name === ancestorName) return true;
+  const ancestor = findElement(schema, ancestorName);
+  if (!ancestor?.elements) return false;
+  const walk = (els: Element[]): boolean =>
+    els.some((el) => el.name === name || (el.elements ? walk(el.elements) : false));
+  return walk(ancestor.elements);
+}
+
+/**
+ * Move an element (with its subtree) to a new parent — a page's top level or a container —
+ * at `index` within the target's child list. Powers drag-and-drop across containers.
+ * No-ops when the move would nest a container inside itself or its own descendants.
+ */
+export function moveElementTo(
+  schema: FormSchema,
+  name: string,
+  target: { pageIndex: number; parentName?: string },
+  index: number,
+): FormSchema {
+  const el = findElement(schema, name);
+  if (!el) return schema;
+  if (target.parentName && isDescendantOf(schema, target.parentName, name)) return schema;
+
+  const without = removeElement(schema, name);
+
+  if (target.parentName) {
+    return mapElement(without, target.parentName, (parent) => {
+      const children = [...(parent.elements ?? [])];
+      const clamped = Math.max(0, Math.min(index, children.length));
+      children.splice(clamped, 0, el);
+      return { ...parent, elements: children };
+    });
+  }
+
+  return {
+    ...without,
+    pages: without.pages.map((p, i) => {
+      if (i !== target.pageIndex) return p;
+      const children = [...p.elements];
+      const clamped = Math.max(0, Math.min(index, children.length));
+      children.splice(clamped, 0, el);
+      return { ...p, elements: children };
+    }),
+  };
 }
 
 export function moveBy(schema: FormSchema, name: string, delta: number): FormSchema {
@@ -337,4 +535,97 @@ export function removePage(schema: FormSchema, index: number): FormSchema {
 
 export function renamePage(schema: FormSchema, index: number, title: string): FormSchema {
   return { ...schema, pages: schema.pages.map((p, i) => (i === index ? { ...p, title } : p)) };
+}
+
+/** Set (or clear, when empty) a page's `visibleIf` condition — skips the whole page. */
+export function setPageVisibleIf(
+  schema: FormSchema,
+  index: number,
+  visibleIf: string | undefined,
+): FormSchema {
+  return {
+    ...schema,
+    pages: schema.pages.map((p, i) =>
+      i === index ? { ...p, visibleIf: visibleIf || undefined } : p,
+    ),
+  };
+}
+
+/** Update the conditional branching rules for a page. */
+export function setPageNextPageIf(
+  schema: FormSchema,
+  index: number,
+  nextPageIf: Array<{ condition: string; page: string }> | undefined,
+): FormSchema {
+  return {
+    ...schema,
+    pages: schema.pages.map((p, i) =>
+      i === index
+        ? { ...p, nextPageIf: nextPageIf && nextPageIf.length > 0 ? nextPageIf : undefined }
+        : p,
+    ),
+  };
+}
+
+// ── i18n migration ──────────────────────────────────────────────
+
+function upgradeI18n(value: I18nString | undefined, lang: string): I18nString | undefined {
+  if (value == null || value === "") return value;
+  if (typeof value !== "string") return value; // already an object
+  return { [lang]: value };
+}
+
+function migrateElement(el: Element, lang: string): Element {
+  const updated: Element = {
+    ...el,
+    label: upgradeI18n(el.label, lang),
+    hint: upgradeI18n(el.hint, lang),
+    placeholder: upgradeI18n(el.placeholder, lang),
+  };
+  if (el.repeat) {
+    updated.repeat = {
+      ...el.repeat,
+      entryLabel: upgradeI18n(el.repeat.entryLabel, lang),
+      addButtonText: upgradeI18n(el.repeat.addButtonText, lang),
+    };
+  }
+  if (el.options) {
+    updated.options = el.options.map((o) => ({ ...o, label: upgradeI18n(o.label, lang) }));
+  }
+  if (el.rows) {
+    updated.rows = el.rows.map((r) => ({ ...r, label: upgradeI18n(r.label, lang) }));
+  }
+  if (el.columns) {
+    updated.columns = el.columns.map((c) => ({ ...c, label: upgradeI18n(c.label, lang) }));
+  }
+  if (el.elements) {
+    updated.elements = el.elements.map((child) => migrateElement(child, lang));
+  }
+  return updated;
+}
+
+/** Convert all plain-string i18n values to `{lang: text}` objects.
+ * Called when the form gains its first translation language so translators
+ * have a source string to work from in every field. */
+export function migrateStringsToI18n(schema: FormSchema, defaultLang: string): FormSchema {
+  const s = schema.settings;
+  return {
+    ...schema,
+    title: upgradeI18n(schema.title, defaultLang) ?? "",
+    description: upgradeI18n(schema.description, defaultLang),
+    settings: s
+      ? {
+          ...s,
+          submitButtonText: upgradeI18n(s.submitButtonText, defaultLang),
+          confirmationMessage: upgradeI18n(s.confirmationMessage, defaultLang),
+          welcomeTitle: upgradeI18n(s.welcomeTitle, defaultLang),
+          welcomeMessage: upgradeI18n(s.welcomeMessage, defaultLang),
+        }
+      : s,
+    pages: schema.pages.map((p) => ({
+      ...p,
+      title: upgradeI18n(p.title, defaultLang) ?? "",
+      elements: p.elements.map((el) => migrateElement(el, defaultLang)),
+    })),
+  };
 }

@@ -1,15 +1,37 @@
 import { type SubmissionRow, type ValidationStatus, api, isAuthenticated } from "@/api/client";
+import { Alert, Button, EmptyState, Modal, Spinner, Tabs } from "@/components";
+import { localize } from "@/lib/i18n";
 import type { FormSchema } from "@/types/form-schema";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import { FormContextNav } from "../form/FormContextNav";
 import { AnalyticsPanel } from "./AnalyticsPanel";
 import { MapPanel } from "./MapPanel";
+import { WorkflowBoard } from "./WorkflowBoard";
 import { buildColumns } from "./columns";
 
 type Status = "loading" | "ready" | "unauth" | "error";
-type Format = "csv" | "xlsx" | "json";
-type View = "analytics" | "table" | "map";
+type Format = "csv" | "xlsx" | "json" | "geojson" | "kml" | "spss" | "xlsform";
+type View = "analytics" | "table" | "map" | "workflow";
 type StatusFilter = "all" | ValidationStatus;
+
+interface EditState {
+  row: SubmissionRow;
+  draft: string; // JSON text edited in the textarea
+  saving: boolean;
+  error: string | null;
+}
+
+const FLAG_LABELS: Record<string, string> = {
+  too_fast: "⚡ Too fast",
+  straight_lining: "↔ Straight-line",
+  geo_outlier: "📍 Geo outlier",
+};
+const FLAG_TITLES: Record<string, string> = {
+  too_fast: "Submitted unusually quickly — may indicate a bot or inattentive respondent",
+  straight_lining: "Same answer selected for all scale/matrix questions",
+  geo_outlier: "GPS location is outside the expected geographic area",
+};
 
 const STATUS_LABELS: Record<ValidationStatus, string> = {
   approved: "Approved",
@@ -32,6 +54,64 @@ export function ResponsesPage() {
   const [error, setError] = useState<string | null>(null);
   const [view, setView] = useState<View>("analytics");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [editState, setEditState] = useState<EditState | null>(null);
+  const [editHistory, setEditHistory] = useState<
+    Array<{ id: string; changed_fields: string[]; created_at: string }>
+  >([]);
+  const [search, setSearch] = useState("");
+  const editRef = useRef<HTMLTextAreaElement>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkBusy, setBulkBusy] = useState(false);
+
+  function toggleSelect(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleSelectAll() {
+    if (selected.size === tableRows.length) {
+      setSelected(new Set());
+    } else {
+      setSelected(new Set(tableRows.map((r) => r.id)));
+    }
+  }
+
+  async function bulkSetStatus(status: ValidationStatus | null) {
+    if (!formId || selected.size === 0) return;
+    setBulkBusy(true);
+    setError(null);
+    try {
+      await Promise.all([...selected].map((id) => api.setValidationStatus(formId, id, status)));
+      setRows((prev) =>
+        prev.map((r) => (selected.has(r.id) ? { ...r, validation_status: status } : r)),
+      );
+      setSelected(new Set());
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setBulkBusy(false);
+    }
+  }
+
+  async function bulkDelete() {
+    if (!formId || selected.size === 0) return;
+    if (!window.confirm(`Delete ${selected.size} response(s)? This cannot be undone.`)) return;
+    setBulkBusy(true);
+    setError(null);
+    try {
+      await Promise.all([...selected].map((id) => api.deleteSubmission(formId, id)));
+      setRows((prev) => prev.filter((r) => !selected.has(r.id)));
+      setSelected(new Set());
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setBulkBusy(false);
+    }
+  }
 
   async function onSetStatus(row: SubmissionRow, next: ValidationStatus | null) {
     if (!formId) return;
@@ -41,6 +121,41 @@ export function ResponsesPage() {
       setRows((prev) => prev.map((r) => (r.id === row.id ? { ...r, validation_status: next } : r)));
     } catch (err) {
       setError((err as Error).message);
+    }
+  }
+
+  function openEdit(row: SubmissionRow) {
+    setEditState({
+      row,
+      draft: JSON.stringify(row.answers, null, 2),
+      saving: false,
+      error: null,
+    });
+    setEditHistory([]);
+    if (formId) {
+      api
+        .getSubmissionEdits(formId, row.id)
+        .then(setEditHistory)
+        .catch(() => {});
+    }
+  }
+
+  async function saveEdit() {
+    if (!formId || !editState) return;
+    let parsed: Record<string, unknown>;
+    try {
+      parsed = JSON.parse(editState.draft);
+    } catch {
+      setEditState((s) => s && { ...s, error: "Invalid JSON — please fix before saving." });
+      return;
+    }
+    setEditState((s) => s && { ...s, saving: true, error: null });
+    try {
+      const updated = await api.editSubmission(formId, editState.row.id, parsed);
+      setRows((prev) => prev.map((r) => (r.id === updated.id ? updated : r)));
+      setEditState(null);
+    } catch (err) {
+      setEditState((s) => s && { ...s, saving: false, error: (err as Error).message });
     }
   }
 
@@ -84,21 +199,53 @@ export function ResponsesPage() {
   }, [formId]);
 
   const columns = useMemo(() => (schema ? buildColumns(schema) : []), [schema]);
+  const hasMedia = useMemo(
+    () =>
+      !!schema &&
+      schema.pages.some((p) => {
+        const walk = (els: typeof p.elements): boolean =>
+          els.some(
+            (el) =>
+              el.type === "file" ||
+              el.type === "image" ||
+              el.type === "signature" ||
+              (el.elements ? walk(el.elements) : false),
+          );
+        return walk(p.elements);
+      }),
+    [schema],
+  );
   const hasGeo = useMemo(
     () =>
       !!schema &&
       schema.pages.some(function check(p): boolean {
         const walk = (els: typeof p.elements): boolean =>
-          els.some((el) => el.type === "geopoint" || (el.elements ? walk(el.elements) : false));
+          els.some(
+            (el) =>
+              el.type === "geopoint" ||
+              el.type === "geotrace" ||
+              el.type === "geoshape" ||
+              (el.elements ? walk(el.elements) : false),
+          );
         return walk(p.elements);
       }),
     [schema],
   );
-  const tableRows = useMemo(
-    () =>
-      statusFilter === "all" ? rows : rows.filter((r) => r.validation_status === statusFilter),
-    [rows, statusFilter],
-  );
+  const tableRows = useMemo(() => {
+    let filtered =
+      statusFilter === "all" ? rows : rows.filter((r) => r.validation_status === statusFilter);
+    if (search.trim()) {
+      const q = search.trim().toLowerCase();
+      filtered = filtered.filter((r) =>
+        Object.values(r.answers).some((v) =>
+          String(v ?? "")
+            .toLowerCase()
+            .includes(q),
+        ),
+      );
+    }
+    return filtered;
+  }, [rows, statusFilter, search]);
 
   const download = useCallback(
     async (format: Format) => {
@@ -118,7 +265,12 @@ export function ResponsesPage() {
     [formId],
   );
 
-  if (status === "loading") return <p className="muted">Loading responses…</p>;
+  if (status === "loading")
+    return (
+      <div className="responses-loading">
+        <Spinner size="lg" />
+      </div>
+    );
 
   if (status === "unauth") {
     return (
@@ -135,14 +287,26 @@ export function ResponsesPage() {
     return (
       <section>
         <h1>Responses</h1>
-        <p className="error">{error}</p>
+        <Alert tone="danger">{error}</Alert>
         <p className="muted">A form must be published before its responses can be viewed.</p>
       </section>
     );
   }
 
+  const viewTabs = [
+    { key: "analytics", label: "Analytics" },
+    { key: "table", label: "Table", count: rows.length },
+    ...(hasGeo ? [{ key: "map", label: "Map" }] : []),
+    { key: "workflow", label: "Workflow" },
+  ];
+
   return (
     <section className="responses">
+      <FormContextNav
+        formId={formId ?? ""}
+        title={schema ? localize(schema.title) : undefined}
+        active="responses"
+      />
       <header className="responses-header">
         <div>
           <h1>Responses</h1>
@@ -151,56 +315,119 @@ export function ResponsesPage() {
           </p>
         </div>
         <div className="export-actions">
-          <span className="muted">Export:</span>
-          <button type="button" onClick={() => download("csv")} disabled={rows.length === 0}>
-            CSV
-          </button>
-          <button type="button" onClick={() => download("xlsx")} disabled={rows.length === 0}>
-            XLSX
-          </button>
-          <button type="button" onClick={() => download("json")} disabled={rows.length === 0}>
-            JSON
-          </button>
+          <Link to={`/forms/${formId}/report`} className="button secondary">
+            Report
+          </Link>
+          <details className="export-dropdown">
+            <summary className="button outline">Export ▾</summary>
+            <div className="export-menu">
+              <button type="button" onClick={() => download("csv")} disabled={rows.length === 0}>
+                CSV
+              </button>
+              <button type="button" onClick={() => download("xlsx")} disabled={rows.length === 0}>
+                XLSX
+              </button>
+              <button type="button" onClick={() => download("json")} disabled={rows.length === 0}>
+                JSON
+              </button>
+              <button type="button" onClick={() => download("spss")} disabled={rows.length === 0}>
+                SPSS
+              </button>
+              <button type="button" onClick={() => download("xlsform")}>
+                XLSForm
+              </button>
+              {hasGeo && (
+                <button
+                  type="button"
+                  onClick={() => download("geojson")}
+                  disabled={rows.length === 0}
+                >
+                  GeoJSON
+                </button>
+              )}
+              {hasGeo && (
+                <button type="button" onClick={() => download("kml")} disabled={rows.length === 0}>
+                  KML
+                </button>
+              )}
+              {hasMedia && (
+                <button
+                  type="button"
+                  onClick={async () => {
+                    if (!formId) return;
+                    try {
+                      const { blob, filename } = await api.exportMediaZip(formId);
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement("a");
+                      a.href = url;
+                      a.download = filename;
+                      a.click();
+                      URL.revokeObjectURL(url);
+                    } catch (err) {
+                      setError((err as Error).message);
+                    }
+                  }}
+                  disabled={rows.length === 0}
+                >
+                  Media ZIP
+                </button>
+              )}
+            </div>
+          </details>
         </div>
       </header>
 
-      {error && <p className="error">{error}</p>}
+      {error && (
+        <Alert tone="danger" onDismiss={() => setError(null)}>
+          {error}
+        </Alert>
+      )}
 
       {rows.length === 0 ? (
-        <p className="muted empty">No responses yet. Share the form to start collecting.</p>
+        <EmptyState
+          icon="📬"
+          title="No responses yet"
+          description="Share the form link to start collecting responses."
+          action={
+            formId ? (
+              <Button
+                variant="primary"
+                onClick={() => {
+                  navigator.clipboard.writeText(`${window.location.origin}/f/${formId}`);
+                }}
+              >
+                Copy share link
+              </Button>
+            ) : undefined
+          }
+        />
       ) : (
         <>
-          <div className="view-tabs">
-            <button
-              type="button"
-              className={view === "analytics" ? "tab active" : "tab"}
-              onClick={() => setView("analytics")}
-            >
-              Analytics
-            </button>
-            <button
-              type="button"
-              className={view === "table" ? "tab active" : "tab"}
-              onClick={() => setView("table")}
-            >
-              Table
-            </button>
-            {hasGeo && (
-              <button
-                type="button"
-                className={view === "map" ? "tab active" : "tab"}
-                onClick={() => setView("map")}
-              >
-                Map
-              </button>
-            )}
-          </div>
+          <Tabs tabs={viewTabs} active={view} onChange={(key) => setView(key as View)} />
 
           {view === "analytics" && schema && <AnalyticsPanel schema={schema} rows={rows} />}
           {view === "map" && schema && <MapPanel schema={schema} rows={rows} />}
+          {view === "workflow" && schema && (
+            <WorkflowBoard
+              schema={schema}
+              submissions={rows}
+              onUpdate={(updated) =>
+                setRows((prev) => prev.map((r) => (r.id === updated.id ? updated : r)))
+              }
+            />
+          )}
 
           {view === "table" && (
             <>
+              <div className="responses-search">
+                <input
+                  type="search"
+                  placeholder="Search responses…"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="responses-search-input"
+                />
+              </div>
               <div className="filter-chips">
                 {STATUS_FILTERS.map((f) => (
                   <button
@@ -213,11 +440,55 @@ export function ResponsesPage() {
                   </button>
                 ))}
               </div>
+              {selected.size > 0 && (
+                <div className="bulk-bar">
+                  <span className="bulk-count">{selected.size} selected</span>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => bulkSetStatus("approved")}
+                    disabled={bulkBusy}
+                  >
+                    Approve
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => bulkSetStatus("on_hold")}
+                    disabled={bulkBusy}
+                  >
+                    On hold
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => bulkSetStatus(null)}
+                    disabled={bulkBusy}
+                  >
+                    Clear status
+                  </Button>
+                  <Button variant="danger" size="sm" onClick={bulkDelete} disabled={bulkBusy}>
+                    Delete
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={() => setSelected(new Set())}>
+                    Deselect all
+                  </Button>
+                </div>
+              )}
               <div className="table-scroll">
                 <table className="responses-table">
                   <thead>
                     <tr>
+                      <th className="th-check">
+                        <input
+                          type="checkbox"
+                          checked={selected.size === tableRows.length && tableRows.length > 0}
+                          onChange={toggleSelectAll}
+                          aria-label="Select all"
+                        />
+                      </th>
                       <th>Status</th>
+                      <th>Flags</th>
                       <th>Submitted</th>
                       {columns.map((col) => (
                         <th key={col.key}>{col.label}</th>
@@ -227,7 +498,15 @@ export function ResponsesPage() {
                   </thead>
                   <tbody>
                     {tableRows.map((row) => (
-                      <tr key={row.id}>
+                      <tr key={row.id} className={selected.has(row.id) ? "row-selected" : ""}>
+                        <td className="td-check">
+                          <input
+                            type="checkbox"
+                            checked={selected.has(row.id)}
+                            onChange={() => toggleSelect(row.id)}
+                            aria-label="Select row"
+                          />
+                        </td>
                         <td>
                           <select
                             className={`status-select ${row.validation_status ?? "none"}`}
@@ -245,18 +524,28 @@ export function ResponsesPage() {
                             ))}
                           </select>
                         </td>
+                        <td className="quality-flags-cell">
+                          {(row.quality_flags ?? []).map((flag) => (
+                            <span
+                              key={flag}
+                              className={`quality-flag quality-flag--${flag}`}
+                              title={FLAG_TITLES[flag] ?? flag}
+                            >
+                              {FLAG_LABELS[flag] ?? flag}
+                            </span>
+                          ))}
+                        </td>
                         <td className="muted">{new Date(row.created_at).toLocaleString()}</td>
                         {columns.map((col) => (
                           <td key={col.key}>{col.value(row.answers)}</td>
                         ))}
-                        <td>
-                          <button
-                            type="button"
-                            className="link-button danger"
-                            onClick={() => onDeleteRow(row)}
-                          >
+                        <td className="row-actions">
+                          <Button variant="ghost" size="sm" onClick={() => openEdit(row)}>
+                            Edit
+                          </Button>
+                          <Button variant="danger" size="sm" onClick={() => onDeleteRow(row)}>
                             Delete
-                          </button>
+                          </Button>
                         </td>
                       </tr>
                     ))}
@@ -267,6 +556,60 @@ export function ResponsesPage() {
           )}
         </>
       )}
+      <Modal
+        open={!!editState}
+        onClose={() => !editState?.saving && setEditState(null)}
+        title="Edit response"
+        width="lg"
+      >
+        {editState && (
+          <>
+            <p className="muted">Submitted {new Date(editState.row.created_at).toLocaleString()}</p>
+            <textarea
+              ref={editRef}
+              className="edit-json"
+              value={editState.draft}
+              onChange={(e) =>
+                setEditState((s) => s && { ...s, draft: e.target.value, error: null })
+              }
+              rows={20}
+              spellCheck={false}
+            />
+            {editState.error && <Alert tone="danger">{editState.error}</Alert>}
+            {editHistory.length > 0 && (
+              <details className="edit-history">
+                <summary className="edit-history-summary">
+                  Edit history ({editHistory.length})
+                </summary>
+                <div className="edit-history-list">
+                  {editHistory.map((e) => (
+                    <div key={e.id} className="edit-history-entry">
+                      <span className="edit-history-time">
+                        {new Date(e.created_at).toLocaleString()}
+                      </span>
+                      <span className="edit-history-fields">
+                        {e.changed_fields.join(", ")} changed
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </details>
+            )}
+            <div className="edit-footer">
+              <Button variant="primary" onClick={saveEdit} loading={editState.saving}>
+                Save changes
+              </Button>
+              <Button
+                variant="ghost"
+                onClick={() => setEditState(null)}
+                disabled={editState.saving}
+              >
+                Cancel
+              </Button>
+            </div>
+          </>
+        )}
+      </Modal>
     </section>
   );
 }

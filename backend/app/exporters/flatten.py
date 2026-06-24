@@ -107,8 +107,8 @@ def _format_value(el: Element, value: Any) -> Any:
         # A file answer is a reference object; show its filename in the cell.
         return value.get("filename") or value.get("url") or ""
     if el.type == "repeat":
-        # MVP: store the nested list as compact JSON in a single cell.
-        # TODO: offer a "long format" export that emits one row per repeat instance.
+        # The CSV "main" sheet stores repeats as compact JSON; long-format repeat data
+        # lives in the per-repeat sheets produced by xlsx_exporter (flatten_repeat_rows).
         return json.dumps(value, default=str, ensure_ascii=False, separators=(",", ":"))
     return value
 

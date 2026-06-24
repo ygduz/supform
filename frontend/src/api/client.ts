@@ -70,10 +70,16 @@ export type ValidationStatus = "approved" | "not_approved" | "on_hold";
 
 export interface SubmissionRow {
   id: string;
+  form_id: string;
   form_version: number;
   answers: Record<string, unknown>;
   created_at: string;
   validation_status: ValidationStatus | null;
+  workflow_step?: string | null;
+  quality_flags: string[];
+  started_at?: string;
+  read_at?: string | null;
+  form_title?: string | null;
 }
 
 /** Reference a file field stores as its answer after upload. */
@@ -106,6 +112,12 @@ export interface FormListItem {
   response_count: number;
 }
 
+export interface FormVersionOut {
+  version: number;
+  created_at: string;
+  title: string | null;
+}
+
 /** An outbound webhook registered on a form. */
 export interface Webhook {
   id: string;
@@ -115,6 +127,24 @@ export interface Webhook {
   active: boolean;
   secret: string;
   created_at: string;
+}
+
+/** A single webhook delivery attempt (success or failure). */
+export interface WebhookDelivery {
+  id: string;
+  webhook_id: string;
+  url: string;
+  status_code: number | null;
+  error: string | null;
+  duration_ms: number | null;
+  is_test: boolean;
+  created_at: string;
+}
+
+export interface QuestionTemplate {
+  id: string;
+  label: string;
+  element: Record<string, unknown>;
 }
 
 export const api = {
@@ -156,6 +186,12 @@ export const api = {
       body: JSON.stringify({ prompt }),
     }),
 
+  aiTranslate: (texts: string[], sourceLang: string, targetLang: string) =>
+    request<{ translations: string[] }>("/api/v1/ai/translate", {
+      method: "POST",
+      body: JSON.stringify({ texts, sourceLang, targetLang }),
+    }),
+
   // projects
   listProjects: () => request<Array<{ id: string; name: string }>>("/api/v1/projects"),
 
@@ -188,6 +224,9 @@ export const api = {
   // forms
   listForms: () => request<FormListItem[]>("/api/v1/forms"),
 
+  duplicateForm: (formId: string) =>
+    request<{ id: string }>(`/api/v1/forms/${formId}/duplicate`, { method: "POST" }),
+
   deleteForm: (formId: string) => request<void>(`/api/v1/forms/${formId}`, { method: "DELETE" }),
 
   getPublishedSchema: (formId: string) => request<FormSchema>(`/api/v1/forms/${formId}/schema`),
@@ -210,9 +249,12 @@ export const api = {
     }),
 
   publish: (formId: string) =>
-    request<{ form_id: string; version: number }>(`/api/v1/forms/${formId}/publish`, {
-      method: "POST",
-    }),
+    request<{ form_id: string; version: number; respondent_url: string }>(
+      `/api/v1/forms/${formId}/publish`,
+      {
+        method: "POST",
+      },
+    ),
 
   // webhooks / integrations
   listWebhooks: (formId: string) => request<Webhook[]>(`/api/v1/forms/${formId}/webhooks`),
@@ -234,11 +276,19 @@ export const api = {
       method: "DELETE",
     }),
 
+  listWebhookDeliveries: (formId: string, webhookId: string) =>
+    request<WebhookDelivery[]>(`/api/v1/forms/${formId}/webhooks/${webhookId}/deliveries`),
+
+  testWebhook: (formId: string, webhookId: string) =>
+    request<WebhookDelivery>(`/api/v1/forms/${formId}/webhooks/${webhookId}/test`, {
+      method: "POST",
+    }),
+
   // submissions
-  submit: (formId: string, answers: Record<string, unknown>) =>
+  submit: (formId: string, answers: Record<string, unknown>, metadata?: Record<string, unknown>) =>
     request(`/api/v1/forms/${formId}/submissions`, {
       method: "POST",
-      body: JSON.stringify({ answers }),
+      body: JSON.stringify({ answers, metadata: metadata ?? {} }),
     }),
 
   listSubmissions: (formId: string) =>
@@ -250,8 +300,38 @@ export const api = {
       body: JSON.stringify({ status }),
     }),
 
+  exportMediaZip: async (formId: string): Promise<{ blob: Blob; filename: string }> => {
+    const res = await fetch(`${BASE}/api/v1/forms/${formId}/export/media`, {
+      headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new ApiError(
+        body?.error?.message ?? `Export failed: ${res.status}`,
+        res.status,
+        body?.error?.details,
+      );
+    }
+    const blob = await res.blob();
+    const cd = res.headers.get("Content-Disposition") ?? "";
+    const match = cd.match(/filename="([^"]+)"/);
+    return { blob, filename: match?.[1] ?? "media.zip" };
+  },
+
+  editSubmission: (formId: string, submissionId: string, answers: Record<string, unknown>) =>
+    request<SubmissionRow>(`/api/v1/forms/${formId}/submissions/${submissionId}`, {
+      method: "PATCH",
+      body: JSON.stringify({ answers }),
+    }),
+
   deleteSubmission: (formId: string, submissionId: string) =>
     request<void>(`/api/v1/forms/${formId}/submissions/${submissionId}`, { method: "DELETE" }),
+
+  setWorkflowStep: (submissionId: string, step: string): Promise<SubmissionRow> =>
+    request<SubmissionRow>(
+      `/api/v1/submissions/${submissionId}/workflow-step?step=${encodeURIComponent(step)}`,
+      { method: "PATCH" },
+    ),
 
   /** Import an XLSForm or ODK XForm file into a new draft form on a project. */
   importForm: async (
@@ -298,10 +378,62 @@ export const api = {
     return res.json();
   },
 
+  // inbox
+  listInbox: (unreadOnly = false): Promise<SubmissionRow[]> =>
+    request<SubmissionRow[]>(`/api/v1/inbox${unreadOnly ? "?unread_only=true" : ""}`),
+
+  markRead: (id: string): Promise<SubmissionRow> =>
+    request<SubmissionRow>(`/api/v1/inbox/${id}/read`, { method: "PATCH" }),
+
+  markAllRead: (): Promise<void> => request<void>("/api/v1/inbox/read-all", { method: "PATCH" }),
+
+  /** Question library */
+  listQuestionTemplates: (): Promise<QuestionTemplate[]> => request("/api/v1/question-library"),
+
+  createQuestionTemplate: (
+    label: string,
+    element: Record<string, unknown>,
+  ): Promise<QuestionTemplate> =>
+    request("/api/v1/question-library", {
+      method: "POST",
+      body: JSON.stringify({ label, element }),
+    }),
+
+  deleteQuestionTemplate: (id: string): Promise<void> =>
+    request(`/api/v1/question-library/${id}`, { method: "DELETE" }),
+
+  listVersions: (formId: string): Promise<FormVersionOut[]> =>
+    request(`/api/v1/forms/${formId}/versions`),
+
+  getVersion: (
+    formId: string,
+    version: number,
+  ): Promise<import("@/types/form-schema").FormSchema> =>
+    request(`/api/v1/forms/${formId}/versions/${version}`),
+
+  getFormAudit: (
+    formId: string,
+  ): Promise<Array<{ id: string; action: string; summary: string | null; created_at: string }>> =>
+    request(`/api/v1/forms/${formId}/audit`),
+
+  getSubmissionEdits: (
+    formId: string,
+    submissionId: string,
+  ): Promise<
+    Array<{
+      id: string;
+      edited_by: string | null;
+      changed_fields: string[];
+      answers_before: Record<string, unknown>;
+      answers_after: Record<string, unknown>;
+      created_at: string;
+    }>
+  > => request(`/api/v1/forms/${formId}/submissions/${submissionId}/edits`),
+
   /** Fetch an export with auth and return the blob + server-suggested filename. */
   exportSubmissions: async (
     formId: string,
-    format: "csv" | "xlsx" | "json",
+    format: "csv" | "xlsx" | "json" | "geojson" | "kml" | "spss" | "xlsform",
   ): Promise<{ blob: Blob; filename: string }> => {
     const res = await fetch(`${BASE}/api/v1/forms/${formId}/export?format=${format}`, {
       headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},

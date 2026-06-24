@@ -1,4 +1,4 @@
-import { type Webhook, api } from "@/api/client";
+import { type Webhook, type WebhookDelivery, api } from "@/api/client";
 import { useCallback, useEffect, useState } from "react";
 
 /**
@@ -105,29 +105,150 @@ export function WebhooksDialog({ formId, onClose }: { formId: string; onClose: (
         <ul className="member-list">
           {hooks.length === 0 && <li className="muted">No webhooks yet.</li>}
           {hooks.map((h) => (
-            <li key={h.id} className="webhook-row">
-              <div className="webhook-main">
-                <span className="webhook-url">{h.url}</span>
-                <small className="muted">
-                  secret: <code>{h.secret}</code>
-                </small>
-              </div>
-              <label className="webhook-active">
-                <input
-                  type="checkbox"
-                  checked={h.active}
-                  onChange={() => onToggle(h)}
-                  aria-label={`Active for ${h.url}`}
-                />
-                Active
-              </label>
-              <button type="button" className="link-button" onClick={() => onRemove(h.id)}>
-                Remove
-              </button>
-            </li>
+            <WebhookRow
+              key={h.id}
+              hook={h}
+              formId={formId}
+              onToggle={() => onToggle(h)}
+              onRemove={() => onRemove(h.id)}
+            />
           ))}
         </ul>
       </div>
     </div>
+  );
+}
+
+function WebhookRow({
+  hook,
+  formId,
+  onToggle,
+  onRemove,
+}: {
+  hook: Webhook;
+  formId: string;
+  onToggle: () => void;
+  onRemove: () => void;
+}) {
+  const [deliveries, setDeliveries] = useState<WebhookDelivery[] | null>(null);
+  const [showDeliveries, setShowDeliveries] = useState(false);
+  const [testing, setTesting] = useState(false);
+  const [testResult, setTestResult] = useState<WebhookDelivery | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  async function loadDeliveries() {
+    const data = await api.listWebhookDeliveries(formId, hook.id);
+    setDeliveries(data);
+  }
+
+  async function toggleDeliveries() {
+    if (!showDeliveries && deliveries === null) {
+      await loadDeliveries();
+    }
+    setShowDeliveries((v) => !v);
+  }
+
+  async function onTest() {
+    setTesting(true);
+    setTestResult(null);
+    try {
+      const result = await api.testWebhook(formId, hook.id);
+      setTestResult(result);
+      // Refresh delivery list if it's open
+      if (showDeliveries) await loadDeliveries();
+    } finally {
+      setTesting(false);
+    }
+  }
+
+  async function copySecret() {
+    await navigator.clipboard.writeText(hook.secret);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  }
+
+  return (
+    <li className="webhook-row">
+      <div className="webhook-main">
+        <span className="webhook-url">{hook.url}</span>
+        <small className="muted webhook-secret">
+          secret: <code>{hook.secret}</code>
+          <button type="button" className="link-button" onClick={copySecret}>
+            {copied ? "Copied!" : "Copy"}
+          </button>
+        </small>
+      </div>
+
+      <div className="webhook-actions">
+        <label className="webhook-active">
+          <input
+            type="checkbox"
+            checked={hook.active}
+            onChange={onToggle}
+            aria-label={`Active for ${hook.url}`}
+          />
+          Active
+        </label>
+        <button
+          type="button"
+          className="link-button"
+          onClick={onTest}
+          disabled={testing}
+          title="Send a test payload to this endpoint"
+        >
+          {testing ? "Sending…" : "Test"}
+        </button>
+        <button type="button" className="link-button" onClick={toggleDeliveries}>
+          {showDeliveries ? "Hide logs" : "Logs"}
+        </button>
+        <button type="button" className="link-button" onClick={onRemove}>
+          Remove
+        </button>
+      </div>
+
+      {testResult && (
+        <div
+          className={`webhook-test-result ${testResult.error ? "webhook-test-fail" : "webhook-test-ok"}`}
+        >
+          {testResult.error
+            ? `Test failed: ${testResult.error}`
+            : `Test sent — ${testResult.status_code} in ${testResult.duration_ms}ms`}
+        </div>
+      )}
+
+      {showDeliveries && (
+        <div className="webhook-deliveries">
+          {deliveries === null ? (
+            <p className="muted">Loading…</p>
+          ) : deliveries.length === 0 ? (
+            <p className="muted">No delivery history yet.</p>
+          ) : (
+            <table className="delivery-table">
+              <thead>
+                <tr>
+                  <th>When</th>
+                  <th>Status</th>
+                  <th>Duration</th>
+                  <th>Note</th>
+                </tr>
+              </thead>
+              <tbody>
+                {deliveries.map((d) => (
+                  <tr key={d.id} className={d.error ? "delivery-row-fail" : "delivery-row-ok"}>
+                    <td>{new Date(d.created_at).toLocaleString()}</td>
+                    <td>
+                      {d.status_code ?? "—"}
+                      {d.is_test && <em className="muted"> test</em>}
+                    </td>
+                    <td>{d.duration_ms != null ? `${d.duration_ms}ms` : "—"}</td>
+                    <td className="delivery-error">{d.error ?? "OK"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      )}
+    </li>
   );
 }

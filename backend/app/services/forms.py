@@ -11,6 +11,7 @@ from app.core.exceptions import NotFoundError, ValidationError
 from app.form_engine import validate_form
 from app.models.export_job import ExportJob
 from app.models.form import Form, FormVersion
+from app.models.form_audit import FormAuditLog
 from app.models.media import MediaFile
 from app.models.project import Project
 from app.models.project_membership import ProjectMembership
@@ -69,6 +70,16 @@ async def list_forms(db: AsyncSession, user_id: uuid.UUID) -> list[tuple[Form, i
     return [(form, count) for form, count in (await db.execute(stmt)).all()]
 
 
+async def _log_action(
+    db: AsyncSession,
+    form_id: uuid.UUID,
+    user_id: uuid.UUID | None,
+    action: str,
+    summary: str | None = None,
+) -> None:
+    db.add(FormAuditLog(form_id=form_id, user_id=user_id, action=action, summary=summary))
+
+
 async def delete_form(db: AsyncSession, form_id: uuid.UUID, user_id: uuid.UUID) -> None:
     """Permanently delete a form and everything hanging off it. Owner-only.
 
@@ -97,7 +108,25 @@ async def create_form(
     )
     db.add(form)
     await db.flush()
+    await _log_action(db, form.id, owner_id, "created")
     return form
+
+
+async def duplicate_form(db: AsyncSession, form_id: uuid.UUID, user_id: uuid.UUID) -> Form:
+    """Create a copy of the form's draft in the same project. Editor+ only."""
+    source = await get_owned_form(db, form_id, user_id, min_role="editor")
+    content = FormSchema.model_validate(source.draft_content)
+    # Give the copy a distinct name so both can live in the form list.
+    content.name = f"{content.name} (copy)"
+    copy = Form(
+        project_id=source.project_id,
+        name=content.name,
+        title=_plain(content.title),
+        draft_content=content.model_dump(by_alias=True, mode="json"),
+    )
+    db.add(copy)
+    await db.flush()
+    return copy
 
 
 async def update_draft(
@@ -108,6 +137,7 @@ async def update_draft(
     form.title = _plain(content.title)
     form.draft_content = content.model_dump(by_alias=True, mode="json")
     await db.flush()
+    await _log_action(db, form_id, user_id, "draft_saved")
     return form
 
 
@@ -116,6 +146,10 @@ async def publish_form(db: AsyncSession, form_id: uuid.UUID, user_id: uuid.UUID)
     form = await get_owned_form(db, form_id, user_id, min_role="editor")
     content = FormSchema.model_validate(form.draft_content)
     _assert_valid(content)
+    # A draft may legitimately be empty mid-edit, but publishing one yields a
+    # blank form respondents can't use — block it at the version boundary.
+    if not any(page.elements for page in content.pages):
+        raise ValidationError("Add at least one question before publishing.")
 
     next_version = (form.current_version or 0) + 1
     content.version = next_version
@@ -128,6 +162,7 @@ async def publish_form(db: AsyncSession, form_id: uuid.UUID, user_id: uuid.UUID)
     form.current_version = next_version
     form.status = "published"
     await db.flush()
+    await _log_action(db, form.id, user_id, "published", f"v{next_version}")
     return snapshot
 
 
@@ -140,6 +175,33 @@ async def get_published_schema(db: AsyncSession, form_id: uuid.UUID) -> FormSche
     )
     version = (await db.execute(stmt)).scalar_one()
     return FormSchema.model_validate(version.content)
+
+
+async def list_form_audit(
+    db: AsyncSession, form_id: uuid.UUID, user_id: uuid.UUID, limit: int = 50
+) -> list[FormAuditLog]:
+    """Return the most recent audit log entries for a form."""
+    await get_owned_form(db, form_id, user_id, min_role="viewer")
+    result = await db.execute(
+        select(FormAuditLog)
+        .where(FormAuditLog.form_id == form_id)
+        .order_by(FormAuditLog.created_at.desc())
+        .limit(limit)
+    )
+    return list(result.scalars())
+
+
+async def list_form_versions(
+    db: AsyncSession, form_id: uuid.UUID, user_id: uuid.UUID
+) -> list[FormVersion]:
+    """Return all published versions of a form, newest first."""
+    await get_owned_form(db, form_id, user_id, min_role="viewer")
+    result = await db.execute(
+        select(FormVersion)
+        .where(FormVersion.form_id == form_id)
+        .order_by(FormVersion.version.desc())
+    )
+    return list(result.scalars())
 
 
 def _assert_valid(content: FormSchema) -> None:

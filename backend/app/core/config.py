@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from functools import lru_cache
 
-from pydantic import Field, model_validator
+from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -33,8 +33,22 @@ class Settings(BaseSettings):
     api_port: int = 8000
     cors_origins: list[str] = Field(default_factory=lambda: ["http://localhost:5173"])
 
+    @field_validator("cors_origins", mode="before")
+    @classmethod
+    def _parse_cors(cls, v: object) -> object:
+        if isinstance(v, str) and not v.startswith("["):
+            return [item.strip() for item in v.split(",") if item.strip()]
+        return v
+
     # Database
     database_url: str = "postgresql+asyncpg://supform:supform@localhost:5432/supform"
+
+    @field_validator("database_url", mode="before")
+    @classmethod
+    def _fix_db_scheme(cls, v: object) -> object:
+        if isinstance(v, str) and v.startswith("postgresql://"):
+            return v.replace("postgresql://", "postgresql+asyncpg://", 1)
+        return v
 
     # Redis / Celery
     redis_url: str = "redis://localhost:6379/0"

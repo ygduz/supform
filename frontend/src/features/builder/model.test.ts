@@ -61,6 +61,93 @@ describe("containers (group / repeat)", () => {
   });
 });
 
+describe("ungroupElement", () => {
+  /** page: q1, group(q3 [q2, q4]), q5 — built by grouping q2+q4 */
+  const grouped = () => {
+    let s = empty();
+    s = m.addElement(s, "text").schema; // q1
+    s = m.addElement(s, "text").schema; // q2
+    s = m.addElement(s, "text").schema; // q3
+    const g = m.groupElements(s, ["q2", "q3"]);
+    return g.schema; // q1, q4(group: q2, q3)
+  };
+
+  it("replaces the group with its children in place", () => {
+    const s = grouped();
+    expect(m.pageElements(s, 0).map((e) => e.name)).toEqual(["q1", "q4"]);
+    const { schema, childNames } = m.ungroupElement(s, "q4");
+    expect(childNames).toEqual(["q2", "q3"]);
+    expect(m.pageElements(schema, 0).map((e) => e.name)).toEqual(["q1", "q2", "q3"]);
+    expect(m.findElement(schema, "q4")).toBeNull();
+  });
+
+  it("removes an empty group", () => {
+    const s = m.addElement(empty(), "group").schema; // q1
+    const { schema, childNames } = m.ungroupElement(s, "q1");
+    expect(childNames).toEqual([]);
+    expect(m.pageElements(schema, 0)).toHaveLength(0);
+  });
+
+  it("no-ops for non-container elements", () => {
+    const s = m.addElement(empty(), "text").schema;
+    const { schema } = m.ungroupElement(s, "q1");
+    expect(schema).toBe(s);
+  });
+});
+
+describe("moveElementTo (cross-container drag & drop)", () => {
+  /** page: q1 (group), q2, q3 */
+  const base = () => {
+    let s = m.addElement(empty(), "group").schema; // q1
+    s = m.addElement(s, "text").schema; // q2
+    s = m.addElement(s, "text").schema; // q3
+    return s;
+  };
+
+  it("moves a top-level element into a group", () => {
+    const s = m.moveElementTo(base(), "q2", { pageIndex: 0, parentName: "q1" }, 0);
+    expect(m.pageElements(s, 0).map((e) => e.name)).toEqual(["q1", "q3"]);
+    expect(m.findElement(s, "q1")?.elements?.map((e) => e.name)).toEqual(["q2"]);
+  });
+
+  it("moves an element out of a group to the page at an index", () => {
+    let s = m.moveElementTo(base(), "q2", { pageIndex: 0, parentName: "q1" }, 0);
+    s = m.moveElementTo(s, "q2", { pageIndex: 0 }, 0);
+    expect(m.pageElements(s, 0).map((e) => e.name)).toEqual(["q2", "q1", "q3"]);
+    expect(m.findElement(s, "q1")?.elements).toHaveLength(0);
+  });
+
+  it("reorders within the same list (remove-then-insert semantics)", () => {
+    const s = m.moveElementTo(base(), "q1", { pageIndex: 0 }, 2);
+    expect(m.pageElements(s, 0).map((e) => e.name)).toEqual(["q2", "q3", "q1"]);
+  });
+
+  it("moves between groups", () => {
+    let s = base();
+    s = m.addElement(s, "group").schema; // q4
+    s = m.moveElementTo(s, "q2", { pageIndex: 0, parentName: "q1" }, 0);
+    s = m.moveElementTo(s, "q2", { pageIndex: 0, parentName: "q4" }, 0);
+    expect(m.findElement(s, "q1")?.elements).toHaveLength(0);
+    expect(m.findElement(s, "q4")?.elements?.map((e) => e.name)).toEqual(["q2"]);
+  });
+
+  it("refuses to drop a container into itself or its descendants", () => {
+    let s = base();
+    s = m.moveElementTo(s, "q2", { pageIndex: 0, parentName: "q1" }, 0);
+    expect(m.moveElementTo(s, "q1", { pageIndex: 0, parentName: "q1" }, 0)).toBe(s);
+    // nested group inside q1, then try to drop q1 into it
+    s = m.addElement(s, "group", { parentName: "q1" }).schema;
+    const nested = m.findElement(s, "q1")?.elements?.find((e) => e.type === "group")?.name;
+    expect(m.moveElementTo(s, "q1", { pageIndex: 0, parentName: nested }, 0)).toBe(s);
+  });
+
+  it("clamps the index and ignores unknown names", () => {
+    const s = m.moveElementTo(base(), "q2", { pageIndex: 0 }, 99);
+    expect(m.pageElements(s, 0).map((e) => e.name)).toEqual(["q1", "q3", "q2"]);
+    expect(m.moveElementTo(s, "nope", { pageIndex: 0 }, 0)).toBe(s);
+  });
+});
+
 describe("duplicateElement", () => {
   it("clones a container subtree with fresh, unique names", () => {
     let s = m.addElement(empty(), "group").schema; // q1

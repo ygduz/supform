@@ -30,6 +30,11 @@ class Submission(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     respondent_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"), nullable=True)
     source: Mapped[str] = mapped_column(String(30), default="web")  # web|api|import|offline
 
+    read_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    # Multi-step approval workflow step.
+    workflow_step: Mapped[str | None] = mapped_column(String(100), nullable=True)
+
     # Review workflow: a reviewer can mark a record approved / not_approved / on_hold.
     validation_status: Mapped[str | None] = mapped_column(String(20), nullable=True, index=True)
     validated_by: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"), nullable=True)
@@ -41,3 +46,13 @@ class Submission(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     def score(self) -> float | None:
         """Quiz score, computed at submit time and stored in metadata (None if not a quiz)."""
         return (self.metadata_ or {}).get("_score")
+
+    @property
+    def quality_flags(self) -> list[str]:
+        """Data quality flags set at submit time (empty list = no issues detected)."""
+        return (self.metadata_ or {}).get("_quality_flags", [])
+
+    @property
+    def started_at(self) -> str | None:
+        """ISO timestamp when the respondent opened the form (from client metadata)."""
+        return (self.metadata_ or {}).get("_started_at")

@@ -1,11 +1,15 @@
 import { ApiError, api } from "@/api/client";
+import { Alert, Button } from "@/components";
+import { isNumericType, isPresentationalType } from "@/lib/fieldTypes";
 import { LanguageContext, formLanguages, languageLabel, localize } from "@/lib/i18n";
 import { isNetworkError, queueSubmission } from "@/lib/offline";
+import { hasSubmitted, markSubmitted } from "@/lib/submissionToken";
 import type { Element, FormSchema, I18nString } from "@/types/form-schema";
 import type { JSX } from "react";
-import { useEffect, useState } from "react";
-import { evaluateBool } from "./expressions";
+import { useEffect, useRef, useState } from "react";
+import { evaluate, evaluateBool } from "./expressions";
 import { renderField } from "./fields/registry";
+import { elementIndex, pipe } from "./piping";
 import { themeToStyle } from "./theme";
 import { type FieldErrors, validateAnswers, validateElements } from "./validation";
 
@@ -19,8 +23,6 @@ interface Step {
   description?: I18nString;
   elements: Element[];
 }
-
-const PRESENTATIONAL = new Set(["note", "section", "html"]);
 
 /** Every answer-bearing name inside an element (descending groups/repeats). */
 function collectNames(el: Element): string[] {
@@ -49,11 +51,9 @@ function scoreFor(schema: FormSchema, answers: Answers): number {
   return total;
 }
 
-const NUMERIC_TYPES = new Set(["number", "integer", "decimal", "scale", "rating"]);
-
 /** Coerce a URL-string prefill value to the shape a field of `type` expects. */
 function coercePrefill(type: string, raw: string): unknown {
-  if (NUMERIC_TYPES.has(type)) {
+  if (isNumericType(type)) {
     const n = Number(raw);
     return Number.isNaN(n) ? raw : n;
   }
@@ -72,6 +72,10 @@ function buildInitialAnswers(schema: FormSchema, search: string): Answers {
         answers[el.name] = coercePrefill(el.type, params.get(el.name) as string);
       } else if (el.type === "hidden" && el.defaultValue !== undefined) {
         answers[el.name] = el.defaultValue;
+      } else if (el.type === "repeat") {
+        // Pre-populate the minimum required number of blank instances.
+        const min = el.repeat?.min ?? 0;
+        if (min > 0) answers[el.name] = Array.from({ length: min }, () => ({}));
       }
       if (el.elements) walk(el.elements);
     }
@@ -85,21 +89,47 @@ function buildInitialAnswers(schema: FormSchema, search: string): Answers {
  * field widgets come from a type registry, and visibility honors `visibleIf` live.
  * Answers can be prefilled from URL query params (e.g. embeds, campaign links).
  */
-export function FormRenderer({ schema, formId }: { schema: FormSchema; formId: string }) {
+export function FormRenderer({
+  schema,
+  formId,
+  previewLang,
+}: { schema: FormSchema; formId: string; previewLang?: string }) {
   const [answers, setAnswers] = useState<Answers>(() =>
     buildInitialAnswers(schema, typeof window !== "undefined" ? window.location.search : ""),
   );
   const [errors, setErrors] = useState<FieldErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
-  const [submitted, setSubmitted] = useState(false);
+  // If the respondent already submitted this form anonymously within the last 24h and
+  // the form disallows multiple submissions, skip straight to the thank-you screen.
+  const [submitted, setSubmitted] = useState(() => {
+    if (formId && schema.settings?.allowMultipleSubmissions === false) {
+      return hasSubmitted(formId);
+    }
+    return false;
+  });
   const [queuedOffline, setQueuedOffline] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [step, setStep] = useState(0);
   const [started, setStarted] = useState(false);
+  const startedAt = useRef(new Date().toISOString());
+  // Scroll-linked progress for long single-page forms (completion psychology: people
+  // persist when they can see how far they've come). Stepped modes use the step bar instead.
+  const [scrollProgress, setScrollProgress] = useState(0);
 
   // Multi-language support: offer a switcher when the form declares >1 language.
   const languages = formLanguages(schema.languages, schema.defaultLanguage);
   const [lang, setLang] = useState(languages[0] ?? schema.defaultLanguage ?? "en");
+  // An admin preview can drive the displayed language from outside.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: only react to previewLang changes
+  useEffect(() => {
+    if (previewLang && previewLang !== lang) setLang(previewLang);
+  }, [previewLang]);
   const L = (value: Parameters<typeof localize>[0]) => localize(value, lang);
+  // Answer piping: localize, then substitute {field} tokens. `scope` lets repeat
+  // instances pipe their own row's values; defaults to the top-level answers.
+  const pIndex = elementIndex(schema);
+  const P = (value: Parameters<typeof localize>[0], scope: Answers = answers) =>
+    pipe(localize(value, lang), pIndex, scope, lang);
 
   const setValue = (name: string, value: unknown) => {
     setAnswers((prev) => ({ ...prev, [name]: value }));
@@ -148,34 +178,43 @@ export function FormRenderer({ schema, formId }: { schema: FormSchema; formId: s
           instances.filter((_, idx) => idx !== i),
         );
 
+      const entryLabel = el.repeat?.entryLabel ? L(el.repeat.entryLabel) : null;
+      const addLabel = el.repeat?.addButtonText
+        ? L(el.repeat.addButtonText)
+        : `+ Add ${entryLabel ?? "entry"}`;
+
       return (
         <fieldset className="repeat" key={el.name}>
           {el.label && <legend>{L(el.label)}</legend>}
-          {instances.length === 0 && <p className="muted">No entries yet.</p>}
+          {instances.length === 0 && (
+            <p className="repeat-empty">No {entryLabel?.toLowerCase() ?? "entries"} yet.</p>
+          )}
           {instances.map((inst, i) => {
             const scope = { ...answers, ...inst };
             return (
               <div className="repeat-instance" key={`${el.name}-${i}`}>
                 <div className="repeat-instance-head">
-                  <span className="muted">Entry {i + 1}</span>
-                  <button
-                    type="button"
-                    className="link-button"
+                  <span className="repeat-instance-label">
+                    {entryLabel ? `${entryLabel} ${i + 1}` : `Entry ${i + 1}`}
+                  </span>
+                  <Button
+                    variant="danger"
+                    size="sm"
                     onClick={() => removeInstance(i)}
                     disabled={instances.length <= min}
                   >
                     Remove
-                  </button>
+                  </Button>
                 </div>
                 {(el.elements ?? []).map((child) => {
-                  if (PRESENTATIONAL.has(child.type) || child.type === "hidden") return null;
+                  if (isPresentationalType(child.type) || child.type === "hidden") return null;
                   if (!evaluateBool(child.visibleIf, scope)) return null;
                   const errorKey = `${el.name}[${i}].${child.name}`;
                   return (
                     <div className="field" key={child.name}>
                       {child.label && (
                         <span className="field-label">
-                          {L(child.label)}
+                          {P(child.label, scope)}
                           {child.required && " *"}
                         </span>
                       )}
@@ -195,36 +234,59 @@ export function FormRenderer({ schema, formId }: { schema: FormSchema; formId: s
               </div>
             );
           })}
-          <button
-            type="button"
-            className="link-button"
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={addInstance}
             disabled={max != null && instances.length >= max}
           >
-            + Add entry
-          </button>
+            {addLabel}
+          </Button>
+          {max != null && (
+            <small className="repeat-count muted">
+              {instances.length} / {max}
+            </small>
+          )}
         </fieldset>
       );
     }
 
-    if (PRESENTATIONAL.has(el.type)) {
+    if (el.type === "calculated") {
+      const computed = el.calculate ? evaluate(el.calculate, answers) : undefined;
+      // Keep the computed value in sync with answers so downstream fields can reference it.
+      if (computed !== undefined && answers[el.name] !== computed) {
+        // Schedule outside render to avoid setState-during-render.
+        setTimeout(() => setValue(el.name, computed), 0);
+      }
+      if (!el.label) return null;
       return (
-        <div className="field" key={el.name}>
-          {el.label && <p className="presentational">{L(el.label)}</p>}
+        <div className="field calculated-field" key={el.name}>
+          <span className="field-label">{P(el.label)}</span>
+          <span className="calculated-value">{computed ?? "—"}</span>
         </div>
       );
     }
 
+    if (isPresentationalType(el.type)) {
+      return (
+        <div className="field" key={el.name}>
+          {el.label && <p className="presentational">{P(el.label)}</p>}
+        </div>
+      );
+    }
+
+    const qNum = questionNumbers.get(el.name);
     return (
       <div className="field" key={el.name}>
         {el.label && (
           <label htmlFor={el.name}>
-            {L(el.label)}
+            {qNum !== undefined && <span className="field-number">{qNum}.</span>}
+            {P(el.label)}
             {el.required && " *"}
           </label>
         )}
         {renderField(el, answers[el.name], (v) => setValue(el.name, v), formId, answers)}
-        {el.hint && <small className="hint">{L(el.hint)}</small>}
+        {el.hint && <small className="hint">{P(el.hint)}</small>}
         {errors[el.name] && <small className="error field-error">{errors[el.name]}</small>}
       </div>
     );
@@ -256,7 +318,43 @@ export function FormRenderer({ schema, formId }: { schema: FormSchema; formId: s
   // Visibility can change with answers; never point past the end.
   const stepIndex = Math.min(step, steps.length - 1);
   const current = steps[stepIndex] ?? { key: "empty", elements: [] };
+
+  // Build a map of top-level visible answerable element name → display number.
+  // Recomputed each render so numbers stay correct as visibility changes.
+  const questionNumbers = new Map<string, number>();
+  {
+    let n = 0;
+    for (const el of current.elements) {
+      if (el.type === "hidden" || isPresentationalType(el.type)) continue;
+      if (!evaluateBool(el.visibleIf, answers)) continue;
+      questionNumbers.set(el.name, ++n);
+    }
+  }
   const isLastStep = stepIndex >= steps.length - 1;
+
+  // A single-step form with many questions benefits from a scroll progress bar even when
+  // the author didn't explicitly enable showProgressBar. Threshold keeps short forms clean.
+  const SCROLL_PROGRESS_THRESHOLD = 6;
+  const answerableCount = current.elements.filter((el) => !isPresentationalType(el.type)).length;
+  const showScrollProgress =
+    steps.length === 1 &&
+    settings?.showProgressBar !== false &&
+    answerableCount >= SCROLL_PROGRESS_THRESHOLD;
+
+  useEffect(() => {
+    if (!showScrollProgress) return;
+    const onScroll = () => {
+      const max = document.documentElement.scrollHeight - window.innerHeight;
+      setScrollProgress(max > 0 ? Math.min(1, window.scrollY / max) : 1);
+    };
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+    };
+  }, [showScrollProgress]);
 
   /** Jump to the first step containing any of the errored fields (after full validation). */
   function stepFor(errorKeys: string[]): number {
@@ -272,6 +370,24 @@ export function FormRenderer({ schema, formId }: { schema: FormSchema; formId: s
       return;
     }
     setErrors({});
+
+    // Evaluate nextPageIf branching rules on the current page (paged mode only).
+    // The current step key matches the page name when mode === "paged".
+    if (mode === "paged") {
+      const currentPage = visiblePages.find((p) => p.name === current.key);
+      if (currentPage?.nextPageIf) {
+        for (const rule of currentPage.nextPageIf) {
+          if (evaluateBool(rule.condition, answers)) {
+            const targetIdx = steps.findIndex((s) => s.key === rule.page);
+            if (targetIdx >= 0) {
+              setStep(targetIdx);
+              return;
+            }
+          }
+        }
+      }
+    }
+
     setStep(Math.min(stepIndex + 1, steps.length - 1));
   }
 
@@ -302,8 +418,12 @@ export function FormRenderer({ schema, formId }: { schema: FormSchema; formId: s
       setSubmitted(true);
       return;
     }
+    setSubmitting(true);
     try {
-      await api.submit(formId, answers);
+      await api.submit(formId, answers, { _started_at: startedAt.current });
+      if (schema.settings?.allowMultipleSubmissions === false) {
+        markSubmitted(formId);
+      }
       setSubmitted(true);
     } catch (err) {
       // The server re-validates: map any field-level 422 details back onto the fields.
@@ -317,10 +437,16 @@ export function FormRenderer({ schema, formId }: { schema: FormSchema; formId: s
       } else {
         setFormError((err as Error).message);
       }
+    } finally {
+      setSubmitting(false);
     }
   }
 
   const theme = schema.theme;
+  // The welcome screen is opt-in and content-driven: it appears only when the author wrote
+  // a welcome title/message (editable in builder Settings). A bare Start gate with no message
+  // is pure friction, so we never force one from structure alone — the title + description at
+  // the top of the form serve as the lightweight intro, MS-Forms style.
   const hasWelcome = Boolean(settings?.welcomeTitle || settings?.welcomeMessage);
 
   // Quiz scoring: pick the matching outcome band; its redirect (if any) wins.
@@ -345,21 +471,57 @@ export function FormRenderer({ schema, formId }: { schema: FormSchema; formId: s
   if (submitted) {
     if (queuedOffline) {
       return (
-        <p className="confirmation">
-          You appear to be offline. Your response was saved on this device and will be submitted
-          automatically when you're back online.
-        </p>
+        <div className="fr-page" style={themeToStyle(theme)}>
+          <div className="confirmation confirmation--offline">
+            <div className="fr-band" />
+            <div className="confirmation-body">
+              <h2 className="confirmation-title">Saved offline</h2>
+              <p>
+                You appear to be offline. Your response was saved on this device and will be
+                submitted automatically when you're back online.
+              </p>
+            </div>
+          </div>
+        </div>
       );
     }
+    const startOver = () => {
+      setAnswers(buildInitialAnswers(schema, ""));
+      setErrors({});
+      setFormError(null);
+      setStep(0);
+      setStarted(false);
+      startedAt.current = new Date().toISOString();
+      setSubmitted(false);
+    };
     return (
-      <div className="confirmation">
-        {settings?.quizMode && (
-          <p className="quiz-score">
-            Your score: <strong>{quizScore}</strong>
-          </p>
-        )}
-        <p>{L(outcome?.message) || L(settings?.confirmationMessage) || "Thanks!"}</p>
-        {redirectUrl && !isLocal && <span className="muted redirect-note">Redirecting…</span>}
+      <div className="fr-page" style={themeToStyle(theme)}>
+        <div className="confirmation">
+          <div className="fr-band" />
+          <div className="confirmation-body">
+            <div className="confirmation-check" aria-hidden="true">
+              ✓
+            </div>
+            <h2 className="confirmation-title">{L(settings?.confirmationTitle) || "Thank you!"}</h2>
+            {settings?.quizMode && (
+              <p className="quiz-score">
+                Your score: <strong>{quizScore}</strong>
+              </p>
+            )}
+            <p>
+              {L(outcome?.message) ||
+                L(settings?.confirmationMessage) ||
+                "Your response was recorded."}
+            </p>
+            {redirectUrl && !isLocal ? (
+              <span className="muted redirect-note">Redirecting…</span>
+            ) : (
+              <button type="button" className="confirmation-again" onClick={startOver}>
+                Submit another response
+              </button>
+            )}
+          </div>
+        </div>
       </div>
     );
   }
@@ -367,91 +529,123 @@ export function FormRenderer({ schema, formId }: { schema: FormSchema; formId: s
   // Welcome screen (paged / one-question modes): a cover + title + Start button.
   if (hasWelcome && !started && mode !== "single") {
     return (
-      <div className="form-renderer welcome-screen" style={themeToStyle(theme)}>
-        {theme?.coverImage && <img className="form-cover" src={theme.coverImage} alt="" />}
-        {theme?.logo && <img className="form-logo" src={theme.logo} alt="" />}
-        <h1>{L(settings?.welcomeTitle) || L(schema.title)}</h1>
-        {settings?.welcomeMessage && <p className="muted">{L(settings.welcomeMessage)}</p>}
-        <button type="button" className="button" onClick={() => setStarted(true)}>
-          Start
-        </button>
+      <div className="fr-page" style={themeToStyle(theme)}>
+        <div className="form-renderer welcome-screen">
+          <div className="fr-titlecard">
+            <div className="fr-band" />
+            <div className="fr-titlecard-body">
+              {theme?.coverImage && <img className="form-cover" src={theme.coverImage} alt="" />}
+              {theme?.logo && <img className="form-logo" src={theme.logo} alt="" />}
+              <h1>{L(settings?.welcomeTitle) || L(schema.title)}</h1>
+              {settings?.welcomeMessage && <p className="fr-desc">{L(settings.welcomeMessage)}</p>}
+              <Button variant="primary" size="lg" onClick={() => setStarted(true)}>
+                Start
+              </Button>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
     <LanguageContext.Provider value={lang}>
-      <form className="form-renderer" style={themeToStyle(theme)} onSubmit={handleSubmit}>
-        {theme?.coverImage && <img className="form-cover" src={theme.coverImage} alt="" />}
-        {theme?.logo && <img className="form-logo" src={theme.logo} alt="" />}
-        {languages.length > 1 && (
-          <div className="lang-switcher">
-            <label htmlFor="form-language">Language</label>
-            <select
-              id="form-language"
-              className="select"
-              value={lang}
-              onChange={(e) => setLang(e.target.value)}
-            >
-              {languages.map((code) => (
-                <option key={code} value={code}>
-                  {languageLabel(code)}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
-        <h1>{L(schema.title)}</h1>
-        {schema.description && <p className="muted">{L(schema.description)}</p>}
-
-        {settings?.showProgressBar && steps.length > 1 && (
-          <progress
-            className="form-progress"
-            value={stepIndex + 1}
-            max={steps.length}
-            aria-label="Form progress"
-          />
-        )}
-
-        <div className="form-step" key={current.key}>
-          {steps.length > 1 && current.title && <h2 className="page-title">{L(current.title)}</h2>}
-          {steps.length > 1 && current.description && (
-            <p className="muted">{L(current.description)}</p>
+      <div className="fr-page" style={themeToStyle(theme)}>
+        <form className="form-renderer" onSubmit={handleSubmit}>
+          {languages.length > 1 && (
+            <div className="lang-switcher">
+              <label htmlFor="form-language">Language</label>
+              <select
+                id="form-language"
+                className="select"
+                value={lang}
+                onChange={(e) => setLang(e.target.value)}
+              >
+                {languages.map((code) => (
+                  <option key={code} value={code}>
+                    {languageLabel(code)}
+                  </option>
+                ))}
+              </select>
+            </div>
           )}
-          {current.elements.map(renderElement)}
-        </div>
 
-        {formError && <p className="error">{formError}</p>}
+          <div className="fr-titlecard">
+            <div className="fr-band" />
+            <div className="fr-titlecard-body">
+              {theme?.coverImage && <img className="form-cover" src={theme.coverImage} alt="" />}
+              {theme?.logo && <img className="form-logo" src={theme.logo} alt="" />}
+              <h1>{L(schema.title)}</h1>
+              {schema.description && <p className="fr-desc">{L(schema.description)}</p>}
 
-        {steps.length > 1 ? (
-          <div className="step-nav">
-            <button
-              type="button"
-              className="button secondary"
-              onClick={goBack}
-              disabled={stepIndex === 0}
-            >
-              Back
-            </button>
-            <span className="muted step-count">
-              {stepIndex + 1} / {steps.length}
-            </span>
-            {isLastStep ? (
-              <button type="submit" className="button">
-                {L(settings?.submitButtonText) || "Submit"}
-              </button>
-            ) : (
-              <button type="button" className="button" onClick={goNext}>
-                Next
-              </button>
-            )}
+              {settings?.showProgressBar && steps.length > 1 && (
+                <progress
+                  className="form-progress"
+                  value={stepIndex + 1}
+                  max={steps.length}
+                  aria-label="Form progress"
+                />
+              )}
+            </div>
           </div>
-        ) : (
-          <button type="submit" className="button">
-            {L(settings?.submitButtonText) || "Submit"}
-          </button>
-        )}
-      </form>
+
+          {showScrollProgress && (
+            <div className="scroll-progress" aria-hidden="true">
+              <div className="scroll-progress-bar" style={{ width: `${scrollProgress * 100}%` }} />
+            </div>
+          )}
+
+          <div className="form-step" key={current.key}>
+            {steps.length > 1 && current.title && (
+              <h2 className="page-title">{L(current.title)}</h2>
+            )}
+            {steps.length > 1 && current.description && (
+              <p className="muted">{L(current.description)}</p>
+            )}
+            {current.elements.map(renderElement)}
+          </div>
+
+          <div className="fr-submit-card">
+            {formError && <Alert tone="danger">{formError}</Alert>}
+
+            {steps.length > 1 ? (
+              <div className="step-nav">
+                <Button variant="outline" onClick={goBack} disabled={stepIndex === 0 || submitting}>
+                  Back
+                </Button>
+                <span className="muted step-count">
+                  Step {stepIndex + 1} of {steps.length}
+                </span>
+                {isLastStep ? (
+                  <Button variant="primary" type="submit" disabled={submitting}>
+                    {submitting ? "Submitting…" : L(settings?.submitButtonText) || "Submit"}
+                  </Button>
+                ) : (
+                  <Button variant="primary" type="button" onClick={goNext}>
+                    Next
+                  </Button>
+                )}
+              </div>
+            ) : (
+              <Button variant="primary" type="submit" disabled={submitting}>
+                {submitting ? "Submitting…" : L(settings?.submitButtonText) || "Submit"}
+              </Button>
+            )}
+
+            {/* Required-field legend — only shown when at least one visible field is required. */}
+            {current.elements.some((el) => el.required && evaluateBool(el.visibleIf, answers)) && (
+              <p className="form-required-note">
+                <span className="required-star">*</span> Required field
+              </p>
+            )}
+            {/* Trust/safety footer (MS-Forms style): reassures respondents on unknown links. */}
+            <p className="form-trust-note">
+              🔒 Never share passwords or sensitive personal details unless you trust this form's
+              owner.
+            </p>
+          </div>
+        </form>
+      </div>
     </LanguageContext.Provider>
   );
 }
