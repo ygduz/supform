@@ -72,6 +72,13 @@ export function BuilderPage() {
   const [hintDismissed, setHintDismissed] = useState(
     () => localStorage.getItem("supform.builderHintDismissed") === "1",
   );
+  const [toast, setToast] = useState<{ msg: string; tone: "success" | "danger" } | null>(null);
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const showToast = (msg: string, tone: "success" | "danger" = "success") => {
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    setToast({ msg, tone });
+    toastTimer.current = setTimeout(() => setToast(null), 4000);
+  };
   const importRef = useRef<HTMLInputElement>(null);
   const isMultilingual = (schema.languages?.length ?? 0) >= 2;
 
@@ -415,10 +422,13 @@ export function BuilderPage() {
             size="sm"
             onClick={async () => {
               await store.publish();
-              // On a clean publish the store clears any error and records the
-              // respondent URL — surface the share dialog so the link is one
-              // click away instead of buried in the More menu.
-              if (!useBuilderStore.getState().error) setShareLink(true);
+              const s = useBuilderStore.getState();
+              if (s.error) {
+                showToast(s.error, "danger");
+              } else {
+                showToast("Form published! Share the link with respondents.");
+                setShareLink(true);
+              }
             }}
             disabled={status === "publishing"}
           >
@@ -820,6 +830,20 @@ export function BuilderPage() {
           </div>
         </dl>
       </Modal>
+
+      {toast && (
+        <output className={`builder-toast builder-toast--${toast.tone}`} aria-live="polite">
+          <span>{toast.msg}</span>
+          <button
+            type="button"
+            className="builder-toast-close"
+            onClick={() => setToast(null)}
+            aria-label="Dismiss"
+          >
+            ✕
+          </button>
+        </output>
+      )}
     </div>
   );
 }

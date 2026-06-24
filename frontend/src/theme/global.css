@@ -6373,3 +6373,231 @@ body,
 .route-loading {
   min-height: 60vh;
 }
+
+/* ================================================================
+   LOADING SKELETON — shimmer animation for form loading state
+   ================================================================ */
+@keyframes shimmer {
+  0% {
+    background-position: -600px 0;
+  }
+  100% {
+    background-position: 600px 0;
+  }
+}
+.skel {
+  border-radius: var(--radius-sm);
+  background: linear-gradient(90deg, var(--surface) 25%, var(--border) 50%, var(--surface) 75%);
+  background-size: 600px 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+.skel-band {
+  height: 12px;
+  border-radius: 0;
+}
+.skel-body {
+  padding: 24px 28px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.skel-h1 {
+  height: 28px;
+  border-radius: var(--radius);
+  width: 55%;
+}
+.skel-line {
+  height: 16px;
+  border-radius: var(--radius-sm);
+}
+.skel-label {
+  height: 14px;
+  border-radius: var(--radius-sm);
+  margin-bottom: 10px;
+}
+.skel-input {
+  height: 38px;
+  border-radius: var(--radius);
+}
+.skel-btn {
+  height: 40px;
+  width: 110px;
+  border-radius: var(--radius);
+}
+
+.form-skeleton {
+  max-width: 720px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.form-skeleton-card {
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--fr-card-radius, var(--radius));
+  overflow: hidden;
+  padding: 22px 28px;
+}
+.form-skeleton-title {
+  padding: 0;
+}
+.form-skeleton-submit {
+  padding: 20px 24px;
+}
+
+/* ================================================================
+   FORM LOAD ERROR — shown when schema fetch fails
+   ================================================================ */
+.form-load-error {
+  max-width: 480px;
+  margin: 48px auto;
+  text-align: center;
+  padding: 40px 32px;
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--fr-card-radius, var(--radius));
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+.form-load-error-icon {
+  font-size: 40px;
+  color: var(--warning);
+  line-height: 1;
+}
+.form-load-error h2 {
+  margin: 0;
+  font-size: var(--text-xl);
+  color: var(--text);
+}
+.form-load-error p {
+  margin: 0;
+  color: var(--muted);
+}
+
+/* ================================================================
+   REQUIRED LEGEND — footnote on respondent form
+   ================================================================ */
+.form-required-note {
+  margin: 0;
+  font-size: var(--text-xs);
+  color: var(--muted);
+}
+.required-star {
+  color: var(--danger);
+  font-weight: 700;
+  margin-right: 2px;
+}
+
+/* ================================================================
+   BUILDER TOAST — transient notification (publish success/error)
+   ================================================================ */
+.builder-toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 18px 12px 20px;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  font-size: var(--text-base);
+  font-weight: 500;
+  animation: toastIn 0.22s var(--ease);
+  min-width: 280px;
+  max-width: 480px;
+}
+.builder-toast--success {
+  background: var(--success);
+  color: #fff;
+}
+.builder-toast--danger {
+  background: var(--danger);
+  color: #fff;
+}
+.builder-toast-close {
+  background: transparent;
+  border: none;
+  color: inherit;
+  opacity: 0.7;
+  cursor: pointer;
+  padding: 2px 4px;
+  font-size: var(--text-sm);
+  line-height: 1;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+.builder-toast-close:hover {
+  opacity: 1;
+}
+@keyframes toastIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+/* ================================================================
+   RESPONDENT FORM — mobile responsive polish
+   ================================================================ */
+@media (max-width: 600px) {
+  .fr-page {
+    padding: 16px 8px 48px;
+  }
+  .fr-titlecard-body {
+    padding: 16px 18px 20px;
+  }
+  .form-renderer .field,
+  .form-renderer .calculated-field,
+  .form-renderer .group,
+  .form-renderer .repeat {
+    padding: 16px 16px;
+  }
+  .fr-submit-card {
+    padding: 16px 16px;
+  }
+  .form-renderer h1 {
+    font-size: 22px;
+  }
+  .step-nav {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .step-count {
+    width: 100%;
+    text-align: center;
+    order: -1;
+  }
+}
+
+/* Form gate screens (closed, login-required) */
+.form-gate {
+  max-width: 520px;
+  margin: 64px auto;
+  padding: 40px 32px;
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--fr-card-radius, var(--radius));
+  box-shadow: var(--shadow-sm);
+  text-align: center;
+}
+.form-gate h1 {
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 400;
+  margin: 0 0 12px;
+}
+.form-gate p {
+  margin: 0;
+  color: var(--muted);
+}
