@@ -155,15 +155,11 @@ export function ElementCard({
       data-el-name={element.name}
       data-connecting={connectingFrom === element.name ? "" : undefined}
     >
-      <div className="el-row">
-        {/* Explicit drag activator: pointer drags from interactive children (the card-body
-            button, inputs) are ignored by dnd-kit, so the handle carries the listeners. */}
-        <span
-          className="drag-handle"
-          title="Drag to reorder"
-          aria-hidden="true"
-          {...(groupingSource ? {} : { ...attributes, ...listeners })}
-        >
+      {/* The whole row is the drag activator — pressing anywhere on the card (not just the
+          grip) reorders it. Interactive children (inputs, action buttons) stop pointer
+          propagation so they still click/type without starting a drag. */}
+      <div className="el-row" {...(groupingSource ? {} : { ...attributes, ...listeners })}>
+        <span className="drag-handle" title="Drag to reorder" aria-hidden="true">
           ⋮⋮
         </span>
 
@@ -206,7 +202,9 @@ export function ElementCard({
             placeholder={editing ? "Question text" : ""}
             readOnly={!editing}
             onChange={editing ? (e) => update(element.name, { label: e.target.value }) : undefined}
-            onPointerDown={(e) => e.stopPropagation()}
+            // Only swallow the pointer while editing (so you can place the caret / select
+            // text). When not editing, let it bubble so a press on the title starts a drag.
+            onPointerDown={editing ? (e) => e.stopPropagation() : undefined}
             onClick={(e) => e.stopPropagation()}
           />
           {element.required && editing ? <span className="el-required">*</span> : null}
@@ -225,7 +223,8 @@ export function ElementCard({
           </span>
         </button>
 
-        <div className="el-actions">
+        {/* Action controls must not initiate a card drag. */}
+        <div className="el-actions" onPointerDown={(e) => e.stopPropagation()}>
           {!container && (
             <button
               type="button"

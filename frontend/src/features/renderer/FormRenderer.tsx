@@ -108,6 +108,7 @@ export function FormRenderer({
     return false;
   });
   const [queuedOffline, setQueuedOffline] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [step, setStep] = useState(0);
   const [started, setStarted] = useState(false);
   const startedAt = useRef(new Date().toISOString());
@@ -417,6 +418,7 @@ export function FormRenderer({
       setSubmitted(true);
       return;
     }
+    setSubmitting(true);
     try {
       await api.submit(formId, answers, { _started_at: startedAt.current });
       if (schema.settings?.allowMultipleSubmissions === false) {
@@ -435,6 +437,8 @@ export function FormRenderer({
       } else {
         setFormError((err as Error).message);
       }
+    } finally {
+      setSubmitting(false);
     }
   }
 
@@ -606,15 +610,15 @@ export function FormRenderer({
 
             {steps.length > 1 ? (
               <div className="step-nav">
-                <Button variant="outline" onClick={goBack} disabled={stepIndex === 0}>
+                <Button variant="outline" onClick={goBack} disabled={stepIndex === 0 || submitting}>
                   Back
                 </Button>
                 <span className="muted step-count">
-                  {stepIndex + 1} / {steps.length}
+                  Step {stepIndex + 1} of {steps.length}
                 </span>
                 {isLastStep ? (
-                  <Button variant="primary" type="submit">
-                    {L(settings?.submitButtonText) || "Submit"}
+                  <Button variant="primary" type="submit" disabled={submitting}>
+                    {submitting ? "Submitting…" : L(settings?.submitButtonText) || "Submit"}
                   </Button>
                 ) : (
                   <Button variant="primary" type="button" onClick={goNext}>
@@ -623,11 +627,17 @@ export function FormRenderer({
                 )}
               </div>
             ) : (
-              <Button variant="primary" type="submit">
-                {L(settings?.submitButtonText) || "Submit"}
+              <Button variant="primary" type="submit" disabled={submitting}>
+                {submitting ? "Submitting…" : L(settings?.submitButtonText) || "Submit"}
               </Button>
             )}
 
+            {/* Required-field legend — only shown when at least one visible field is required. */}
+            {current.elements.some((el) => el.required && evaluateBool(el.visibleIf, answers)) && (
+              <p className="form-required-note">
+                <span className="required-star">*</span> Required field
+              </p>
+            )}
             {/* Trust/safety footer (MS-Forms style): reassures respondents on unknown links. */}
             <p className="form-trust-note">
               🔒 Never share passwords or sensitive personal details unless you trust this form's

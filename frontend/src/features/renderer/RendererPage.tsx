@@ -35,8 +35,26 @@ export function RendererPage() {
   });
 
   if (formId === "demo") return <FormRenderer schema={DEMO} formId="demo" />;
-  if (isLoading) return <p>Loading…</p>;
-  if (error || !data) return <p>Could not load this form.</p>;
+  if (isLoading) return <FormSkeleton />;
+  if (error || !data)
+    return (
+      <div className="fr-page">
+        <div className="form-load-error">
+          <span className="form-load-error-icon" aria-hidden="true">
+            ⚠
+          </span>
+          <h2>Couldn't load this form</h2>
+          <p className="muted">Check your connection and try again, or contact the form owner.</p>
+          <button
+            type="button"
+            className="btn btn--outline"
+            onClick={() => window.location.reload()}
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
 
   const settings = data.settings;
   if (isClosed(settings?.closeDate)) {
@@ -59,6 +77,32 @@ export function RendererPage() {
   }
 
   return <FormRenderer schema={data} formId={formId} />;
+}
+
+function FormSkeleton() {
+  return (
+    <div className="fr-page">
+      <div className="form-skeleton">
+        <div className="form-skeleton-card form-skeleton-title">
+          <div className="skel skel-band" />
+          <div className="skel-body">
+            <div className="skel skel-h1" />
+            <div className="skel skel-line" style={{ width: "70%" }} />
+            <div className="skel skel-line" style={{ width: "50%" }} />
+          </div>
+        </div>
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="form-skeleton-card">
+            <div className="skel skel-label" style={{ width: `${40 + i * 15}%` }} />
+            <div className="skel skel-input" />
+          </div>
+        ))}
+        <div className="form-skeleton-card form-skeleton-submit">
+          <div className="skel skel-btn" />
+        </div>
+      </div>
+    </div>
+  );
 }
 
 // A tiny built-in demo so the renderer is viewable without a backend.

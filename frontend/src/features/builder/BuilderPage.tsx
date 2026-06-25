@@ -72,6 +72,13 @@ export function BuilderPage() {
   const [hintDismissed, setHintDismissed] = useState(
     () => localStorage.getItem("supform.builderHintDismissed") === "1",
   );
+  const [toast, setToast] = useState<{ msg: string; tone: "success" | "danger" } | null>(null);
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const showToast = (msg: string, tone: "success" | "danger" = "success") => {
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    setToast({ msg, tone });
+    toastTimer.current = setTimeout(() => setToast(null), 4000);
+  };
   const importRef = useRef<HTMLInputElement>(null);
   const isMultilingual = (schema.languages?.length ?? 0) >= 2;
 
@@ -150,21 +157,9 @@ export function BuilderPage() {
 
     if (activeId === overId) return;
 
-    // Drag a non-container card directly onto another non-container card → group them.
-    const isZone = (id: string) => id.startsWith("dz:") || id.startsWith("page:");
-    const activeElForGroup = findElement(schema, activeId);
-    const overElForGroup = findElement(schema, overId);
-    if (
-      !isZone(overId) &&
-      activeElForGroup &&
-      overElForGroup &&
-      !isContainerType(activeElForGroup.type) &&
-      !isContainerType(overElForGroup.type)
-    ) {
-      store.confirmGrouping(activeId, overId);
-      return;
-    }
-
+    // Drag always reorders — grouping is only triggered via the explicit "Group with another"
+    // overflow-menu action (not by dropping one card on top of another), so that a
+    // whole-card drag to reorder doesn't accidentally create a section.
     store.moveInto(activeId, { pageIndex: loc.pageIndex, parentName: loc.parentName }, loc.index);
   }
 
@@ -427,10 +422,13 @@ export function BuilderPage() {
             size="sm"
             onClick={async () => {
               await store.publish();
-              // On a clean publish the store clears any error and records the
-              // respondent URL — surface the share dialog so the link is one
-              // click away instead of buried in the More menu.
-              if (!useBuilderStore.getState().error) setShareLink(true);
+              const s = useBuilderStore.getState();
+              if (s.error) {
+                showToast(s.error, "danger");
+              } else {
+                showToast("Form published! Share the link with respondents.");
+                setShareLink(true);
+              }
             }}
             disabled={status === "publishing"}
           >
@@ -528,9 +526,12 @@ export function BuilderPage() {
               type="button"
               className="panel-toggle"
               title={paletteOpen ? "Collapse fields panel" : "Expand fields panel"}
+              aria-label={paletteOpen ? "Collapse fields panel" : "Expand fields panel"}
               onClick={() => setPaletteOpen((o) => !o)}
             >
-              {paletteOpen ? "‹" : "›"}
+              <span className="panel-toggle-chip" aria-hidden="true">
+                {paletteOpen ? "‹" : "›"}
+              </span>
             </button>
           </aside>
 
@@ -680,9 +681,12 @@ export function BuilderPage() {
               type="button"
               className="panel-toggle"
               title={inspectorOpen ? "Collapse inspector" : "Expand inspector"}
+              aria-label={inspectorOpen ? "Collapse inspector" : "Expand inspector"}
               onClick={() => setInspectorOpen((o) => !o)}
             >
-              {inspectorOpen ? "›" : "‹"}
+              <span className="panel-toggle-chip" aria-hidden="true">
+                {inspectorOpen ? "›" : "‹"}
+              </span>
             </button>
             <div className="inspector-inner">
               <div className="tabs">
@@ -826,6 +830,20 @@ export function BuilderPage() {
           </div>
         </dl>
       </Modal>
+
+      {toast && (
+        <output className={`builder-toast builder-toast--${toast.tone}`} aria-live="polite">
+          <span>{toast.msg}</span>
+          <button
+            type="button"
+            className="builder-toast-close"
+            onClick={() => setToast(null)}
+            aria-label="Dismiss"
+          >
+            ✕
+          </button>
+        </output>
+      )}
     </div>
   );
 }
