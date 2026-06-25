@@ -40,6 +40,11 @@ class Settings(BaseSettings):
         default_factory=lambda: ["http://localhost:5173"]
     )
 
+    # Optional regex matched against the request Origin. Use this for platforms that mint a
+    # fresh deploy URL each push (e.g. Vercel preview deployments), so you don't have to keep
+    # a static allowlist in sync. Example: ``https://.*\.vercel\.app``
+    cors_origin_regex: str = ""
+
     @field_validator("cors_origins", mode="before")
     @classmethod
     def _parse_cors(cls, v: object) -> object:
@@ -49,8 +54,10 @@ class Settings(BaseSettings):
                 try:
                     return json.loads(v)
                 except Exception:
-                    pass
-            return [item.strip() for item in v.split(",") if item.strip()]
+                    # Brackets but not valid JSON (e.g. unquoted urls) — strip them and
+                    # fall back to comma-splitting so a malformed value still works.
+                    v = v[1:-1] if v.endswith("]") else v[1:]
+            return [item.strip().strip("\"'") for item in v.split(",") if item.strip()]
         return v
 
     # Database
