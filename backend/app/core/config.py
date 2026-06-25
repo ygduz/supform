@@ -5,10 +5,12 @@ All settings are prefixed with ``SUPFORM_`` (see ``.env.example``).
 
 from __future__ import annotations
 
+import json
 from functools import lru_cache
+from typing import Annotated
 
 from pydantic import Field, field_validator, model_validator
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -31,12 +33,23 @@ class Settings(BaseSettings):
     # API
     api_host: str = "0.0.0.0"
     api_port: int = 8000
-    cors_origins: list[str] = Field(default_factory=lambda: ["http://localhost:5173"])
+    # NoDecode stops pydantic-settings from JSON-decoding the raw env value before our
+    # validator runs — otherwise a comma-separated string (or any non-JSON value) crashes
+    # the whole app at import time. We do all the parsing ourselves below.
+    cors_origins: Annotated[list[str], NoDecode] = Field(
+        default_factory=lambda: ["http://localhost:5173"]
+    )
 
     @field_validator("cors_origins", mode="before")
     @classmethod
     def _parse_cors(cls, v: object) -> object:
-        if isinstance(v, str) and not v.startswith("["):
+        if isinstance(v, str):
+            v = v.strip()
+            if v.startswith("["):
+                try:
+                    return json.loads(v)
+                except Exception:
+                    pass
             return [item.strip() for item in v.split(",") if item.strip()]
         return v
 
