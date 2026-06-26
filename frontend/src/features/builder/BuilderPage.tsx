@@ -56,6 +56,9 @@ type Tab =
   | "steps"
   | "activity";
 
+/** Rightward drag distance (px) that turns a card-on-card drop into a grouping action. */
+const GROUP_NUDGE_PX = 48;
+
 /** Crisp stroked chevron for the panel collapse toggles — replaces the thin ‹/› glyph. */
 function Chevron({ dir }: { dir: "left" | "right" }) {
   return (
@@ -116,6 +119,9 @@ export function BuilderPage() {
   // ---- group-link mode ----
   // null = not active; string = the name of the card that initiated grouping
   const [groupingSource, setGroupingSource] = useState<string | null>(null);
+  // Pointer position where the drag began (from the activator pointerdown). The drag end
+  // event omits pointer coords, so we reconstruct the live pointer as start + delta.
+  const dragStartPoint = useRef<{ x: number; y: number } | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -138,21 +144,66 @@ export function BuilderPage() {
   function handleDragStart(e: DragStartEvent) {
     const id = String(e.active.id);
     setActiveDragId(id);
+    const ae = e.activatorEvent as { clientX?: number; clientY?: number };
+    dragStartPoint.current =
+      ae.clientX !== undefined && ae.clientY !== undefined
+        ? { x: ae.clientX, y: ae.clientY }
+        : null;
     // Select the element being dragged (not for palette items).
     if (!id.startsWith("palette:")) store.select(id);
   }
 
   function handleDragOver(e: DragOverEvent) {
     setOverDragId(e.over ? String(e.over.id) : null);
+    // Broadcast whether releasing now would GROUP, so the hovered card shows the cue.
+    const target = groupDropTarget(e);
+    store.setDropTarget(target, target ? "group" : "move");
+  }
+
+  /**
+   * The question card a release would GROUP with, or null when the drop should reorder.
+   *
+   * Grouping intent is a *rightward nudge* onto another card (like indent-to-nest in an
+   * outliner). We key off horizontal drag distance rather than a vertical "centre band"
+   * because dnd-kit's sortable shifts cards vertically under the cursor mid-drag, which
+   * makes any vertical hit-test unreliable — horizontal delta is unaffected by that shift.
+   * The target card is hit-tested from the live pointer (activator event + delta).
+   */
+  function groupDropTarget(e: DragOverEvent | DragEndEvent): string | null {
+    const activeId = String(e.active.id);
+    if (activeId.startsWith("palette:")) return null;
+    if (e.delta.x < GROUP_NUDGE_PX) return null; // not a deliberate sideways nudge → reorder
+    const start = dragStartPoint.current;
+    if (!start) return null;
+    const x = start.x + e.delta.x;
+    const y = start.y + e.delta.y;
+    const card = (document.elementFromPoint(x, y) as HTMLElement | null)?.closest<HTMLElement>(
+      "[data-el-name]",
+    );
+    const name = card?.dataset.elName;
+    if (!card || !name || name === activeId) return null;
+    const overEl = findElement(schema, name);
+    if (!overEl || isContainerType(overEl.type)) return null;
+    return name;
   }
 
   function handleDragEnd(e: DragEndEvent) {
     setActiveDragId(null);
     setOverDragId(null);
+    store.setDropTarget(null, null);
     const { active, over } = e;
-    if (!over) return;
-
     const activeId = String(active.id);
+
+    // Drag-to-group: a rightward nudge onto another question groups them (or, when the
+    // target lives in a section, drops the dragged card into that section). Checked before
+    // the `over` guard so a drop onto a nested child (which can yield over=null) still works.
+    const groupTarget = groupDropTarget(e);
+    if (groupTarget) {
+      store.groupOrJoin(activeId, groupTarget);
+      return;
+    }
+
+    if (!over) return;
     const overId = String(over.id);
 
     // Zones store their location directly; element cards store it under `location`.
@@ -184,9 +235,8 @@ export function BuilderPage() {
 
     if (activeId === overId) return;
 
-    // Drag always reorders — grouping is only triggered via the explicit "Group with another"
-    // overflow-menu action (not by dropping one card on top of another), so that a
-    // whole-card drag to reorder doesn't accidentally create a section.
+    // Edge-of-card drops reorder; centre-of-card drops are handled by the grouping branch
+    // above. The overflow-menu "Group with another" action remains as a keyboard-free path.
     store.moveInto(activeId, { pageIndex: loc.pageIndex, parentName: loc.parentName }, loc.index);
   }
 
@@ -505,6 +555,8 @@ export function BuilderPage() {
         onDragCancel={() => {
           setActiveDragId(null);
           setOverDragId(null);
+          dragStartPoint.current = null;
+          store.setDropTarget(null, null);
         }}
       >
         <div
