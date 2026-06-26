@@ -68,6 +68,8 @@ interface BuilderState {
   loadTemplate: (schema: FormSchema) => void;
   undo: () => void;
   redo: () => void;
+  /** Revert to any point in the in-session edit timeline ([...past, current, ...future]). */
+  jumpTo: (index: number) => void;
   /** Plain select — sets focus to one element and clears multi-select. */
   select: (name: string | null) => void;
   /** Toggle one element in/out of the multi-select set (Ctrl/Cmd+click). */
@@ -330,6 +332,28 @@ export const useBuilderStore = create<BuilderState>((rawSet, get) => {
           past: [...s.past, s.schema].slice(-HISTORY_LIMIT),
           future: s.future.slice(1),
           activePage: Math.min(s.activePage, next.pages.length - 1),
+          selectedName: null,
+          selectedNames: new Set<string>(),
+          dirty: true,
+        }),
+      );
+      scheduleAutosave();
+    },
+
+    jumpTo: (index) => {
+      // The full timeline is past (oldest→newest) + current + future (next→latest). Picking
+      // any index makes that snapshot current and re-splits the rest into past/future, so
+      // you can keep stepping back and forth afterwards — git-checkout, not a destructive reset.
+      const s = get();
+      const timeline = [...s.past, s.schema, ...s.future];
+      const target = timeline[index];
+      if (!target || target === s.schema) return;
+      quiet(() =>
+        rawSet({
+          schema: target,
+          past: timeline.slice(0, index),
+          future: timeline.slice(index + 1),
+          activePage: Math.min(s.activePage, target.pages.length - 1),
           selectedName: null,
           selectedNames: new Set<string>(),
           dirty: true,

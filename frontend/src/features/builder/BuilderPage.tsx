@@ -26,6 +26,7 @@ import { saveMyTemplate } from "../templates/myTemplates";
 import { ActivityPanel } from "./ActivityPanel";
 import { BirdsEyePreview } from "./BirdsEyePreview";
 import { BuilderCanvas, type DropLocation } from "./BuilderCanvas";
+import { EditHistoryPanel } from "./EditHistoryPanel";
 import { LogicBuilder } from "./LogicBuilder";
 import { MindMapPanel } from "./MindMapPanel";
 import { OverviewPanel } from "./OverviewPanel";
@@ -52,7 +53,28 @@ type Tab =
   | "preview"
   | "mindmap"
   | "history"
+  | "steps"
   | "activity";
+
+/** Crisp stroked chevron for the panel collapse toggles — replaces the thin ‹/› glyph. */
+function Chevron({ dir }: { dir: "left" | "right" }) {
+  return (
+    <svg
+      className="panel-toggle-chevron"
+      viewBox="0 0 24 24"
+      width="15"
+      height="15"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.4"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d={dir === "left" ? "M15 18l-6-6 6-6" : "M9 18l6-6-6-6"} />
+    </svg>
+  );
+}
 
 export function BuilderPage() {
   const { formId = "new" } = useParams();
@@ -81,6 +103,11 @@ export function BuilderPage() {
   };
   const importRef = useRef<HTMLInputElement>(null);
   const isMultilingual = (schema.languages?.length ?? 0) >= 2;
+
+  // When a card is selected, surface its settings without requiring a manual tab switch.
+  useEffect(() => {
+    if (selectedName) setTab("properties");
+  }, [selectedName]);
 
   // ---- drag state (shared across palette + canvas) ----
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
@@ -310,6 +337,17 @@ export function BuilderPage() {
   const elements = pageElements(schema, activePage);
   const selected = selectedName ? findElement(schema, selectedName) : null;
 
+  // Clicking the empty canvas background (not a card or interactive control) clears the
+  // selection — the "click away to deselect" convention every design tool follows. Card
+  // clicks and control clicks are excluded so they keep their own behavior.
+  function handleCanvasBackgroundClick(e: React.MouseEvent) {
+    // Connector-drawing and group-link modes own their own click handling; don't interfere.
+    if (groupingSource || store.connectingFrom) return;
+    const t = e.target as HTMLElement;
+    if (t.closest(".el-card") || t.closest("button, input, textarea, select, a, label")) return;
+    if (selectedName || selectedNames.size > 0) store.clearSelection();
+  }
+
   // Active drag ghost content (for the overlay).
   const activePaletteType = activeDragId?.startsWith("palette:")
     ? (activeDragId.slice("palette:".length) as ElementType)
@@ -530,13 +568,17 @@ export function BuilderPage() {
               onClick={() => setPaletteOpen((o) => !o)}
             >
               <span className="panel-toggle-chip" aria-hidden="true">
-                {paletteOpen ? "‹" : "›"}
+                <Chevron dir={paletteOpen ? "left" : "right"} />
               </span>
             </button>
           </aside>
 
           {/* Canvas */}
-          <section className={`canvas${groupingSource ? " linking" : ""}`}>
+          {/* biome-ignore lint/a11y/useKeyWithClickEvents: click-to-deselect duplicates the Esc handler */}
+          <section
+            className={`canvas${groupingSource ? " linking" : ""}`}
+            onClick={handleCanvasBackgroundClick}
+          >
             <div className="page-bar">
               {schema.pages.map((p, i) => (
                 <Button
@@ -652,7 +694,15 @@ export function BuilderPage() {
             )}
 
             {elements.length === 0 ? (
-              <p className="muted empty">Pick a question type on the left to start building.</p>
+              <div className="canvas-empty">
+                <div className="canvas-empty-icon" aria-hidden="true">
+                  ⊕
+                </div>
+                <p className="canvas-empty-heading">Start building your form</p>
+                <p className="canvas-empty-body">
+                  Click a field type in the left panel to add it, or drag one onto the canvas.
+                </p>
+              </div>
             ) : (
               <BuilderCanvas
                 elements={elements}
@@ -685,7 +735,7 @@ export function BuilderPage() {
               onClick={() => setInspectorOpen((o) => !o)}
             >
               <span className="panel-toggle-chip" aria-hidden="true">
-                {inspectorOpen ? "›" : "‹"}
+                <Chevron dir={inspectorOpen ? "right" : "left"} />
               </span>
             </button>
             <div className="inspector-inner">
@@ -699,6 +749,7 @@ export function BuilderPage() {
                     ...(isMultilingual ? (["translate"] as Tab[]) : []),
                     "preview",
                     "mindmap",
+                    "steps",
                     ...(formId !== "new" ? (["history", "activity"] as Tab[]) : []),
                   ] as Tab[]
                 ).map((t) => (
@@ -708,15 +759,36 @@ export function BuilderPage() {
                     size="sm"
                     className={tab === t ? "tab active" : "tab"}
                     onClick={() => setTab(t)}
+                    title={
+                      t === "overview"
+                        ? "Overview — all fields at a glance"
+                        : t === "properties"
+                          ? "Properties — edit this field"
+                          : t === "theme"
+                            ? "Theme — colours & fonts"
+                            : t === "settings"
+                              ? "Settings — form behaviour"
+                              : t === "translate"
+                                ? "Translations"
+                                : t === "preview"
+                                  ? "Live preview"
+                                  : t === "mindmap"
+                                    ? "Mind map"
+                                    : t === "steps"
+                                      ? "Edit history — revert to any point"
+                                      : t === "history"
+                                        ? "Version history"
+                                        : "Activity log"
+                    }
                   >
                     {t === "overview"
                       ? "Map"
                       : t === "translate"
                         ? "🌐"
                         : t === "history"
-                          ? "Hist"
+                          ? "History"
                           : t === "activity"
-                            ? "Log"
+                            ? "Activity"
                             : t === "mindmap"
                               ? "Mind"
                               : t === "preview"
@@ -736,8 +808,11 @@ export function BuilderPage() {
               {tab === "theme" && <ThemePanel />}
               {tab === "settings" && <SettingsPanel />}
               {tab === "translate" && <TranslatePanel />}
-              {tab === "preview" && <BirdsEyePreview schema={schema} />}
+              {tab === "preview" && (
+                <BirdsEyePreview schema={schema} onOpenFull={() => setPreviewOpen(true)} />
+              )}
               {tab === "mindmap" && <MindMapPanel />}
+              {tab === "steps" && <EditHistoryPanel />}
               {tab === "activity" && formId !== "new" && <ActivityPanel formId={formId} />}
               {tab === "history" && formId !== "new" && (
                 <VersionHistoryPanel

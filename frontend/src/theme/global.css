@@ -120,7 +120,10 @@ body {
 .button {
   display: inline-block;
   background: var(--primary);
-  color: var(--surface-raised);
+  /* Pure white, not the cream --surface-raised: cream on terracotta dips below the
+     AA contrast threshold and reads as a washed-out, "faded" label. */
+  color: #fff;
+  font-weight: 600;
   border: none;
   border-radius: var(--radius);
   padding: 10px 18px;
@@ -201,7 +204,8 @@ button:focus-visible {
 
 .btn--primary {
   background: var(--primary);
-  color: var(--surface-raised);
+  color: #fff;
+  font-weight: 600;
 }
 .btn--primary:hover {
   background: var(--primary-hover);
@@ -237,7 +241,8 @@ button:focus-visible {
 
 .btn--danger {
   background: var(--danger);
-  color: var(--surface-raised);
+  color: #fff;
+  font-weight: 600;
 }
 .btn--danger:hover {
   background: var(--danger-hover);
@@ -1441,25 +1446,34 @@ body,
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 26px;
-  height: 26px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   border: 1px solid var(--border);
   background: var(--surface-raised);
-  color: var(--muted);
-  font-size: 16px;
-  line-height: 1;
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.12);
-  transition: color 0.12s, background 0.12s, border-color 0.12s;
+  color: var(--text-secondary);
+  line-height: 0;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08), 0 2px 6px rgba(15, 23, 42, 0.06);
+  transition: color 0.12s, background 0.12s, border-color 0.12s, box-shadow 0.12s, transform 0.12s;
+}
+.panel-toggle-chevron {
+  display: block;
 }
 .panel-toggle:hover .panel-toggle-chip {
   color: var(--primary);
   border-color: var(--primary);
   background: var(--surface);
+  box-shadow: 0 2px 4px rgba(199, 93, 58, 0.18), 0 4px 10px rgba(199, 93, 58, 0.12);
 }
-/* Collapsed rails are wider, so the whole strip reads as a clickable affordance. */
+.panel-toggle:active .panel-toggle-chip {
+  transform: scale(0.92);
+}
+/* Collapsed rails are wider, so the whole strip reads as a clickable affordance.
+   These MUST be scoped to each pane's own aside: the .builder-body wrapper also carries
+   the `*-collapsed` class, so an unscoped `.inspector-collapsed .panel-toggle` would leak
+   onto the palette's toggle and stretch it to fill the column — hiding the palette list. */
 .palette-collapsed .palette .panel-toggle,
-.inspector-collapsed .panel-toggle {
+.inspector.inspector-collapsed .panel-toggle {
   width: 100%;
 }
 
@@ -1486,7 +1500,7 @@ body,
   border-left: 1px solid var(--border);
   background: var(--surface-raised);
 }
-.palette-collapsed .panel-toggle {
+.palette-collapsed .palette .panel-toggle {
   border-left: none;
 }
 
@@ -1505,7 +1519,7 @@ body,
   flex-shrink: 0;
   width: 24px;
 }
-.inspector-collapsed .panel-toggle {
+.inspector.inspector-collapsed .panel-toggle {
   border-right: none;
 }
 .inspector-inner {
@@ -1711,6 +1725,98 @@ body,
   color: var(--muted);
 }
 
+/* ── Edit-history timeline (Steps tab): git-like revert-to-any-point ── */
+.edit-history {
+  padding: 12px 0;
+}
+.edit-history-intro {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  margin: 0 0 12px;
+  line-height: 1.45;
+}
+.edit-history-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  position: relative;
+}
+/* The connecting rail behind the dots. */
+.edit-history-list::before {
+  content: "";
+  position: absolute;
+  left: 5px;
+  top: 8px;
+  bottom: 8px;
+  width: 2px;
+  background: var(--border);
+}
+.eh-row {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+  padding-left: 2px;
+}
+.eh-dot {
+  position: relative;
+  z-index: 1;
+  flex-shrink: 0;
+  width: 12px;
+  height: 12px;
+  margin-top: 11px;
+  border-radius: 50%;
+  background: var(--surface-raised);
+  border: 2px solid var(--subtle);
+}
+.eh-row.current > .eh-dot {
+  background: var(--primary);
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-light);
+}
+.eh-row.future > .eh-dot {
+  border-style: dashed;
+}
+.eh-entry {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  text-align: left;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  padding: 7px 9px;
+  margin: 3px 0;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+}
+.eh-entry:hover:not(:disabled) {
+  background: var(--surface);
+  border-color: var(--primary);
+}
+.eh-entry:disabled {
+  cursor: default;
+}
+.eh-label {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text);
+}
+.eh-row.current .eh-label {
+  color: var(--primary);
+}
+.eh-row.future .eh-label {
+  color: var(--muted);
+}
+.eh-meta {
+  font-size: 11px;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .page-branching {
   margin-top: 12px;
   display: flex;
@@ -1766,6 +1872,34 @@ body,
 .canvas .empty {
   padding: 48px 16px;
   text-align: center;
+}
+.canvas-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 64px 32px;
+  text-align: center;
+}
+.canvas-empty-icon {
+  font-size: 36px;
+  color: var(--primary);
+  opacity: 0.4;
+  margin-bottom: 14px;
+  line-height: 1;
+}
+.canvas-empty-heading {
+  font-size: var(--text-lg);
+  font-weight: 600;
+  color: var(--text);
+  margin: 0 0 8px;
+}
+.canvas-empty-body {
+  font-size: var(--text-sm);
+  color: var(--muted);
+  max-width: 280px;
+  line-height: 1.6;
+  margin: 0;
 }
 .el-list {
   list-style: none;
@@ -5153,10 +5287,30 @@ body,
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
 }
+.bep-header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
 .bep-hint {
   font-size: 11px;
   font-weight: 400;
   color: var(--muted);
+}
+.bep-openfull {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--primary);
+  background: var(--primary-light);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  padding: 3px 8px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.12s, border-color 0.12s;
+}
+.bep-openfull:hover {
+  border-color: var(--primary);
 }
 .bep-outer {
   overflow-y: auto;
@@ -6252,8 +6406,9 @@ body,
 .el-overflow-btn {
   font-size: 15px;
   line-height: 1;
-  padding: 2px 5px;
+  padding: 5px 9px;
   letter-spacing: 1px;
+  min-width: 30px;
 }
 
 .el-overflow-menu {
