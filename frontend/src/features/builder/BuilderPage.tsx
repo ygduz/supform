@@ -104,6 +104,11 @@ export function BuilderPage() {
   const importRef = useRef<HTMLInputElement>(null);
   const isMultilingual = (schema.languages?.length ?? 0) >= 2;
 
+  // When a card is selected, surface its settings without requiring a manual tab switch.
+  useEffect(() => {
+    if (selectedName) setTab("properties");
+  }, [selectedName]);
+
   // ---- drag state (shared across palette + canvas) ----
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
   const [overDragId, setOverDragId] = useState<string | null>(null);
@@ -689,7 +694,15 @@ export function BuilderPage() {
             )}
 
             {elements.length === 0 ? (
-              <p className="muted empty">Pick a question type on the left to start building.</p>
+              <div className="canvas-empty">
+                <div className="canvas-empty-icon" aria-hidden="true">
+                  ⊕
+                </div>
+                <p className="canvas-empty-heading">Start building your form</p>
+                <p className="canvas-empty-body">
+                  Click a field type in the left panel to add it, or drag one onto the canvas.
+                </p>
+              </div>
             ) : (
               <BuilderCanvas
                 elements={elements}
@@ -746,15 +759,36 @@ export function BuilderPage() {
                     size="sm"
                     className={tab === t ? "tab active" : "tab"}
                     onClick={() => setTab(t)}
+                    title={
+                      t === "overview"
+                        ? "Overview — all fields at a glance"
+                        : t === "properties"
+                          ? "Properties — edit this field"
+                          : t === "theme"
+                            ? "Theme — colours & fonts"
+                            : t === "settings"
+                              ? "Settings — form behaviour"
+                              : t === "translate"
+                                ? "Translations"
+                                : t === "preview"
+                                  ? "Live preview"
+                                  : t === "mindmap"
+                                    ? "Mind map"
+                                    : t === "steps"
+                                      ? "Edit history — revert to any point"
+                                      : t === "history"
+                                        ? "Version history"
+                                        : "Activity log"
+                    }
                   >
                     {t === "overview"
                       ? "Map"
                       : t === "translate"
                         ? "🌐"
                         : t === "history"
-                          ? "Hist"
+                          ? "History"
                           : t === "activity"
-                            ? "Log"
+                            ? "Activity"
                             : t === "mindmap"
                               ? "Mind"
                               : t === "preview"

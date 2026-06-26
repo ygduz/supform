@@ -50,8 +50,17 @@ export function ElementCard({
   groupingSource,
   onGroupLink,
 }: Props) {
-  const { select, selectToggle, selectRange, update, moveBy, duplicate, remove, ungroup } =
-    useBuilderStore();
+  const {
+    select,
+    selectToggle,
+    selectRange,
+    update,
+    moveBy,
+    duplicate,
+    remove,
+    ungroup,
+    clearSelection,
+  } = useBuilderStore();
   const collapsed = useBuilderStore((s) => s.collapsedNames.has(element.name));
   const toggleCollapsed = useBuilderStore((s) => s.toggleCollapsed);
   const connectingFrom = useBuilderStore((s) => s.connectingFrom);
@@ -133,6 +142,8 @@ export function ElementCard({
       selectToggle(element.name);
     } else if (e.shiftKey) {
       selectRange(element.name);
+    } else if (selectedName === element.name && selectedNames.size <= 1) {
+      clearSelection();
     } else {
       select(element.name);
     }

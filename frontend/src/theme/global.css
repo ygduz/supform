@@ -1873,6 +1873,34 @@ body,
   padding: 48px 16px;
   text-align: center;
 }
+.canvas-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 64px 32px;
+  text-align: center;
+}
+.canvas-empty-icon {
+  font-size: 36px;
+  color: var(--primary);
+  opacity: 0.4;
+  margin-bottom: 14px;
+  line-height: 1;
+}
+.canvas-empty-heading {
+  font-size: var(--text-lg);
+  font-weight: 600;
+  color: var(--text);
+  margin: 0 0 8px;
+}
+.canvas-empty-body {
+  font-size: var(--text-sm);
+  color: var(--muted);
+  max-width: 280px;
+  line-height: 1.6;
+  margin: 0;
+}
 .el-list {
   list-style: none;
   margin: 0;
@@ -6378,8 +6406,9 @@ body,
 .el-overflow-btn {
   font-size: 15px;
   line-height: 1;
-  padding: 2px 5px;
+  padding: 5px 9px;
   letter-spacing: 1px;
+  min-width: 30px;
 }
 
 .el-overflow-menu {
