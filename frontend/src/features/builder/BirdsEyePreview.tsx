@@ -15,7 +15,10 @@ const FORM_NATURAL_WIDTH = 640;
  * the computed scale would drop below MIN_SCALE the view stops shrinking and
  * the outer container scrolls instead.
  */
-export function BirdsEyePreview({ schema }: { schema: FormSchema }) {
+export function BirdsEyePreview({
+  schema,
+  onOpenFull,
+}: { schema: FormSchema; onOpenFull?: () => void }) {
   const outerRef = useRef<HTMLDivElement>(null);
   const innerRef = useRef<HTMLDivElement>(null);
   const [panelWidth, setPanelWidth] = useState(300);
@@ -48,7 +51,14 @@ export function BirdsEyePreview({ schema }: { schema: FormSchema }) {
     <div className="bep-wrap">
       <div className="bep-header">
         <span>Live preview</span>
-        <span className="bep-hint">scaled · read-only</span>
+        <div className="bep-header-right">
+          <span className="bep-hint">scaled · read-only</span>
+          {onOpenFull && (
+            <button type="button" className="bep-openfull" onClick={onOpenFull}>
+              Open full ↗
+            </button>
+          )}
+        </div>
       </div>
       <div className="bep-outer" ref={outerRef}>
         {/* Sized wrapper so the outer div knows how tall the scaled content is */}
