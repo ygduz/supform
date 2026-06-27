@@ -3127,6 +3127,27 @@ body,
   margin: 0;
   font-size: 20px;
 }
+.share-tabs {
+  display: flex;
+  gap: 4px;
+  margin: 12px 0 4px;
+  border-bottom: 1px solid var(--border);
+}
+.share-tabs .tab {
+  appearance: none;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 6px 12px;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+.share-tabs .tab.active {
+  color: var(--text-primary);
+  border-bottom-color: var(--primary);
+}
 .share-add {
   display: flex;
   gap: 8px;

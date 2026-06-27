@@ -35,7 +35,6 @@ import { PropertiesPanel } from "./PropertiesPanel";
 import { QuestionLibraryPanel } from "./QuestionLibraryPanel";
 import { SettingsPanel } from "./SettingsPanel";
 import { ShareDialog } from "./ShareDialog";
-import { ShareLinkDialog } from "./ShareLinkDialog";
 import { ThemePanel } from "./ThemePanel";
 import { TranslatePanel } from "./TranslatePanel";
 import { WebhooksDialog } from "./WebhooksDialog";
@@ -82,8 +81,7 @@ export function BuilderPage() {
   const init = useBuilderStore((s) => s.init);
   const { schema, selectedName, selectedNames, activePage, status, error, dirty } = store;
   const [tab, setTab] = useState<Tab>("overview");
-  const [sharing, setSharing] = useState(false);
-  const [shareLink, setShareLink] = useState(false);
+  const [shareTab, setShareTab] = useState<"link" | "people" | null>(null);
   const [integrations, setIntegrations] = useState(false);
   const [showLibrary, setShowLibrary] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -451,12 +449,12 @@ export function BuilderPage() {
             <summary aria-label="More actions">More ▾</summary>
             <div className="toolbar-more-menu">
               {store.formId ? (
-                <button type="button" onClick={() => setShareLink(true)}>
+                <button type="button" onClick={() => setShareTab("link")}>
                   Share link
                 </button>
               ) : null}
               {store.projectId ? (
-                <button type="button" onClick={() => setSharing(true)}>
+                <button type="button" onClick={() => setShareTab("people")}>
                   Share access
                 </button>
               ) : null}
@@ -511,7 +509,7 @@ export function BuilderPage() {
                 showToast(s.error, "danger");
               } else {
                 showToast("Form published! Share the link with respondents.");
-                setShareLink(true);
+                setShareTab("link");
               }
             }}
             disabled={status === "publishing"}
@@ -894,14 +892,16 @@ export function BuilderPage() {
       </DndContext>
 
       {previewOpen && <PreviewModal schema={schema} onClose={() => setPreviewOpen(false)} />}
-      {sharing && store.projectId && (
-        <ShareDialog projectId={store.projectId} onClose={() => setSharing(false)} />
+      {shareTab && (
+        <ShareDialog
+          formId={store.formId ?? undefined}
+          projectId={store.projectId ?? undefined}
+          initialTab={shareTab}
+          onClose={() => setShareTab(null)}
+        />
       )}
       {integrations && store.formId && (
         <WebhooksDialog formId={store.formId} onClose={() => setIntegrations(false)} />
-      )}
-      {shareLink && store.formId && (
-        <ShareLinkDialog formId={store.formId} onClose={() => setShareLink(false)} />
       )}
       <Modal
         open={shortcutsOpen}
