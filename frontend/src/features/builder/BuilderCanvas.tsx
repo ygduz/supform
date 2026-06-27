@@ -40,7 +40,21 @@ export function BuilderCanvas({
   const setViewportName = useBuilderStore((s) => s.setViewportName);
   const connectingFrom = useBuilderStore((s) => s.connectingFrom);
   const cancelConnect = useBuilderStore((s) => s.cancelConnect);
+  const compactNames = useBuilderStore((s) => s.compactNames);
+  const compactAll = useBuilderStore((s) => s.compactAll);
+  const clearCompact = useBuilderStore((s) => s.clearCompact);
   const multiCount = selectedNames.size;
+
+  // All non-container question names on this page (for the compact-all toggle).
+  const questionNames: string[] = [];
+  const collectNames = (els: Element[]) => {
+    for (const el of els) {
+      if (el.elements) collectNames(el.elements);
+      else questionNames.push(el.name);
+    }
+  };
+  collectNames(elements);
+  const allCompact = questionNames.length > 0 && questionNames.every((n) => compactNames.has(n));
   // Changes whenever cards are added/removed/reordered, so the observer re-binds.
   const cardKey = `${pageIndex}:${elements.map((e) => e.name).join(",")}`;
 
@@ -104,6 +118,23 @@ export function BuilderCanvas({
         <h2>{formTitle}</h2>
         {formDescription ? <p>{formDescription}</p> : null}
       </div>
+
+      {questionNames.length > 1 && (
+        <div className="canvas-compact-bar">
+          <button
+            type="button"
+            className="canvas-compact-toggle"
+            onClick={() => (allCompact ? clearCompact() : compactAll(questionNames))}
+            title={
+              allCompact
+                ? "Expand all questions to full height"
+                : "Collapse all questions to one line — new questions stay full size"
+            }
+          >
+            {allCompact ? "▾ Expand all" : "▸ Collapse all"}
+          </button>
+        </div>
+      )}
 
       {groupingSource && (
         <div className="group-link-hint">

@@ -52,6 +52,11 @@ interface BuilderState {
   selectedNames: Set<string>;
   /** Names of container elements currently collapsed on the canvas (UI-only). */
   collapsedNames: Set<string>;
+  /** Names of question cards collapsed to one line (height-compact mode, UI-only). */
+  compactNames: Set<string>;
+  /** Live drag-to-group hint: the card under the cursor and whether the drop will group. */
+  dropTargetName: string | null;
+  dropMode: "move" | "group" | null;
   /** Name of the top-most question currently in the canvas viewport (scroll-spy, UI-only). */
   viewportName: string | null;
   activePage: number;
@@ -106,10 +111,20 @@ interface BuilderState {
   groupSelected: () => void;
   /** Wrap two named elements into a new group (drag-onto / group-link). No-op if same. */
   confirmGrouping: (source: string, target: string) => void;
+  /** Drag-to-group: drop `dragged` onto `target` — joins target's group, or makes a new one. */
+  groupOrJoin: (dragged: string, target: string) => void;
   /** Dissolve a group/repeat, lifting its children into the parent's list. */
   ungroup: (name: string) => void;
   /** Toggle a container card's collapsed state (UI-only; not part of the schema). */
   toggleCollapsed: (name: string) => void;
+  /** Toggle one question card's one-line compact state (UI-only). */
+  toggleCompact: (name: string) => void;
+  /** Collapse the given question cards to one line (compact mode). */
+  compactAll: (names: string[]) => void;
+  /** Expand every compacted card. */
+  clearCompact: () => void;
+  /** Set the live drag-to-group hint (which card is under the cursor and the drop mode). */
+  setDropTarget: (name: string | null, mode: "move" | "group" | null) => void;
   /** Report the question currently scrolled into the canvas viewport (scroll-spy). */
   setViewportName: (name: string | null) => void;
   /** Duplicate all selected elements (each after itself). */
@@ -211,6 +226,9 @@ export const useBuilderStore = create<BuilderState>((rawSet, get) => {
     selectedName: null,
     selectedNames: new Set<string>(),
     collapsedNames: new Set<string>(),
+    compactNames: new Set<string>(),
+    dropTargetName: null,
+    dropMode: null,
     viewportName: null,
     connectingFrom: null,
     pendingConnection: null,
@@ -506,6 +524,13 @@ export const useBuilderStore = create<BuilderState>((rawSet, get) => {
         return { schema, selectedName: groupName, selectedNames: new Set([groupName]) };
       }),
 
+    groupOrJoin: (dragged, target) =>
+      set((s) => {
+        const { schema, groupName } = model.groupOrJoin(s.schema, dragged, target);
+        if (!groupName || schema === s.schema) return {};
+        return { schema, selectedName: groupName, selectedNames: new Set([groupName]) };
+      }),
+
     ungroup: (name) =>
       set((s) => {
         const { schema, childNames } = model.ungroupElement(s.schema, name);
@@ -522,6 +547,22 @@ export const useBuilderStore = create<BuilderState>((rawSet, get) => {
 
     toggleCollapsed: (name) => {
       rawSet({ collapsedNames: toggleSetItem(get().collapsedNames, name) });
+    },
+
+    toggleCompact: (name) => {
+      rawSet({ compactNames: toggleSetItem(get().compactNames, name) });
+    },
+    compactAll: (names) => {
+      rawSet({ compactNames: new Set([...get().compactNames, ...names]) });
+    },
+    clearCompact: () => {
+      if (get().compactNames.size > 0) rawSet({ compactNames: new Set<string>() });
+    },
+    setDropTarget: (name, mode) => {
+      const s = get();
+      if (s.dropTargetName !== name || s.dropMode !== mode) {
+        rawSet({ dropTargetName: name, dropMode: mode });
+      }
     },
 
     setViewportName: (name) => {

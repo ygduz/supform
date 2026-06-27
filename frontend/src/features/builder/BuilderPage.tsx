@@ -3,32 +3,16 @@ import { Button, Modal } from "@/components";
 import { localize } from "@/lib/i18n";
 import { useBuilderStore } from "@/stores/builderStore";
 import type { ElementType, FormSchema } from "@/types/form-schema";
-import {
-  type CollisionDetection,
-  DndContext,
-  type DragEndEvent,
-  type DragOverEvent,
-  DragOverlay,
-  type DragStartEvent,
-  KeyboardSensor,
-  PointerSensor,
-  closestCorners,
-  pointerWithin,
-  rectIntersection,
-  useSensor,
-  useSensors,
-} from "@dnd-kit/core";
-import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { DndContext, DragOverlay } from "@dnd-kit/core";
+import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { formToText } from "../import/textForm";
 import { saveMyTemplate } from "../templates/myTemplates";
 import { ActivityPanel } from "./ActivityPanel";
 import { BirdsEyePreview } from "./BirdsEyePreview";
-import { BuilderCanvas, type DropLocation } from "./BuilderCanvas";
-import { EditHistoryPanel } from "./EditHistoryPanel";
+import { BuilderCanvas } from "./BuilderCanvas";
+import { HistoryPanel } from "./HistoryPanel";
 import { LogicBuilder } from "./LogicBuilder";
-import { MindMapPanel } from "./MindMapPanel";
 import { OverviewPanel } from "./OverviewPanel";
 import { PaletteItem } from "./PaletteItem";
 import { PreviewModal } from "./PreviewModal";
@@ -36,13 +20,13 @@ import { PropertiesPanel } from "./PropertiesPanel";
 import { QuestionLibraryPanel } from "./QuestionLibraryPanel";
 import { SettingsPanel } from "./SettingsPanel";
 import { ShareDialog } from "./ShareDialog";
-import { ShareLinkDialog } from "./ShareLinkDialog";
 import { ThemePanel } from "./ThemePanel";
 import { TranslatePanel } from "./TranslatePanel";
-import { VersionHistoryPanel } from "./VersionHistoryPanel";
 import { WebhooksDialog } from "./WebhooksDialog";
-import { confirmDeleteContainer, findElement, isContainerType, pageElements } from "./model";
+import { findElement, pageElements } from "./model";
 import { ADVANCED_PALETTE, COMMON_PALETTE, ELEMENT_PALETTE } from "./palette";
+import { useBuilderDrag } from "./useBuilderDrag";
+import { useBuilderShortcuts } from "./useBuilderShortcuts";
 
 type Tab =
   | "overview"
@@ -51,9 +35,7 @@ type Tab =
   | "settings"
   | "translate"
   | "preview"
-  | "mindmap"
   | "history"
-  | "steps"
   | "activity";
 
 /** Crisp stroked chevron for the panel collapse toggles — replaces the thin ‹/› glyph. */
@@ -83,8 +65,7 @@ export function BuilderPage() {
   const init = useBuilderStore((s) => s.init);
   const { schema, selectedName, selectedNames, activePage, status, error, dirty } = store;
   const [tab, setTab] = useState<Tab>("overview");
-  const [sharing, setSharing] = useState(false);
-  const [shareLink, setShareLink] = useState(false);
+  const [shareTab, setShareTab] = useState<"link" | "people" | null>(null);
   const [integrations, setIntegrations] = useState(false);
   const [showLibrary, setShowLibrary] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -109,86 +90,21 @@ export function BuilderPage() {
     if (selectedName) setTab("properties");
   }, [selectedName]);
 
-  // ---- drag state (shared across palette + canvas) ----
-  const [activeDragId, setActiveDragId] = useState<string | null>(null);
-  const [overDragId, setOverDragId] = useState<string | null>(null);
-
   // ---- group-link mode ----
   // null = not active; string = the name of the card that initiated grouping
   const [groupingSource, setGroupingSource] = useState<string | null>(null);
 
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
-  );
-
-  // Pointer-first collision detection: what's directly under the cursor wins. This makes
-  // dropping a question *out* of a section (onto the page-level drop zone or another
-  // top-level card) reliable — closestCorners alone tends to snap back to the nested
-  // SortableContext whose rect overlaps the pointer. Falls back to rect-based strategies
-  // when the pointer isn't over any droppable (e.g. fast drags past the edge).
-  const collisionDetection = useCallback<CollisionDetection>((args) => {
-    const byPointer = pointerWithin(args);
-    if (byPointer.length > 0) return byPointer;
-    const byRect = rectIntersection(args);
-    if (byRect.length > 0) return byRect;
-    return closestCorners(args);
-  }, []);
-
-  function handleDragStart(e: DragStartEvent) {
-    const id = String(e.active.id);
-    setActiveDragId(id);
-    // Select the element being dragged (not for palette items).
-    if (!id.startsWith("palette:")) store.select(id);
-  }
-
-  function handleDragOver(e: DragOverEvent) {
-    setOverDragId(e.over ? String(e.over.id) : null);
-  }
-
-  function handleDragEnd(e: DragEndEvent) {
-    setActiveDragId(null);
-    setOverDragId(null);
-    const { active, over } = e;
-    if (!over) return;
-
-    const activeId = String(active.id);
-    const overId = String(over.id);
-
-    // Zones store their location directly; element cards store it under `location`.
-    const data = over.data.current as (DropLocation & { location?: DropLocation }) | undefined;
-    let loc: DropLocation | undefined =
-      data?.location ?? (data?.pageIndex !== undefined ? data : undefined);
-    if (!loc) return;
-
-    // Dropping onto a section card means "into the section" (appended at the end),
-    // unless the dragged item is already a direct child of that section.
-    const overEl = findElement(schema, overId);
-    if (overEl && isContainerType(overEl.type)) {
-      const isOwnChild = overEl.elements?.some((c) => c.name === activeId) ?? false;
-      if (!isOwnChild && overId !== activeId) {
-        loc = {
-          pageIndex: loc.pageIndex,
-          parentName: overEl.name,
-          index: overEl.elements?.length ?? 0,
-        };
-      }
-    }
-
-    if (activeId.startsWith("palette:")) {
-      // Palette drag → insert new element at the drop target's position.
-      const type = activeId.slice("palette:".length) as ElementType;
-      store.addAt(type, { pageIndex: loc.pageIndex, parentName: loc.parentName }, loc.index);
-      return;
-    }
-
-    if (activeId === overId) return;
-
-    // Drag always reorders — grouping is only triggered via the explicit "Group with another"
-    // overflow-menu action (not by dropping one card on top of another), so that a
-    // whole-card drag to reorder doesn't accidentally create a section.
-    store.moveInto(activeId, { pageIndex: loc.pageIndex, parentName: loc.parentName }, loc.index);
-  }
+  // ---- drag & drop (sensors, collision detection, start/over/end handlers) ----
+  const {
+    sensors,
+    collisionDetection,
+    activeDragId,
+    overDragId,
+    handleDragStart,
+    handleDragOver,
+    handleDragEnd,
+    handleDragCancel,
+  } = useBuilderDrag();
 
   // ---- exports/imports ----
   function download(content: string, mime: string, ext: string) {
@@ -249,90 +165,13 @@ export function BuilderPage() {
     return () => window.removeEventListener("beforeunload", warn);
   }, [dirty]);
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      const target = e.target as HTMLElement | null;
-      const inText =
-        target instanceof HTMLInputElement ||
-        target instanceof HTMLTextAreaElement ||
-        target?.isContentEditable;
-
-      // "?" opens the keyboard-shortcuts legend (when not typing into a field).
-      if (e.key === "?" && !inText) {
-        e.preventDefault();
-        setShortcutsOpen((o) => !o);
-        return;
-      }
-
-      // Esc: close the shortcuts help, cancel group-link mode, or clear selection.
-      if (e.key === "Escape") {
-        if (shortcutsOpen) {
-          setShortcutsOpen(false);
-        } else if (groupingSource) {
-          setGroupingSource(null);
-        } else {
-          store.clearSelection();
-        }
-        return;
-      }
-
-      // Delete / Backspace: remove selected elements (when not typing).
-      if ((e.key === "Delete" || e.key === "Backspace") && !inText) {
-        if (selectedNames.size > 1) {
-          e.preventDefault();
-          store.removeSelected();
-        } else if (selectedName) {
-          e.preventDefault();
-          // Deleting a section takes its questions with it — confirm first.
-          const el = findElement(schema, selectedName);
-          if (el && !confirmDeleteContainer(el.type, el.elements?.length ?? 0)) return;
-          store.remove(selectedName);
-        }
-        return;
-      }
-
-      if (!(e.ctrlKey || e.metaKey) || inText) return;
-
-      // Ctrl+Z / Ctrl+Shift+Z undo/redo.
-      if (e.key.toLowerCase() === "z") {
-        e.preventDefault();
-        if (e.shiftKey) useBuilderStore.getState().redo();
-        else useBuilderStore.getState().undo();
-        return;
-      }
-
-      // Ctrl+G: group selection.
-      if (e.key.toLowerCase() === "g") {
-        e.preventDefault();
-        if (selectedNames.size >= 2) store.groupSelected();
-        return;
-      }
-
-      // Ctrl+D: duplicate selection or focused element.
-      if (e.key.toLowerCase() === "d") {
-        e.preventDefault();
-        if (selectedNames.size >= 2) store.duplicateSelected();
-        else if (selectedName) store.duplicate(selectedName);
-        return;
-      }
-
-      // Ctrl+A: select all top-level elements on the active page.
-      if (e.key.toLowerCase() === "a") {
-        e.preventDefault();
-        const names = pageElements(schema, activePage).map((el) => el.name);
-        if (names.length > 0) {
-          useBuilderStore.setState({
-            selectedNames: new Set(names),
-            selectedName: names[0],
-          });
-        }
-        return;
-      }
-    };
-
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [groupingSource, shortcutsOpen, selectedName, selectedNames, schema, activePage, store]);
+  useBuilderShortcuts({
+    shortcutsOpen,
+    setShortcutsOpen,
+    closeShortcuts: () => setShortcutsOpen(false),
+    groupingSource,
+    clearGroupingSource: () => setGroupingSource(null),
+  });
 
   const elements = pageElements(schema, activePage);
   const selected = selectedName ? findElement(schema, selectedName) : null;
@@ -405,12 +244,12 @@ export function BuilderPage() {
             <summary aria-label="More actions">More ▾</summary>
             <div className="toolbar-more-menu">
               {store.formId ? (
-                <button type="button" onClick={() => setShareLink(true)}>
+                <button type="button" onClick={() => setShareTab("link")}>
                   Share link
                 </button>
               ) : null}
               {store.projectId ? (
-                <button type="button" onClick={() => setSharing(true)}>
+                <button type="button" onClick={() => setShareTab("people")}>
                   Share access
                 </button>
               ) : null}
@@ -465,7 +304,7 @@ export function BuilderPage() {
                 showToast(s.error, "danger");
               } else {
                 showToast("Form published! Share the link with respondents.");
-                setShareLink(true);
+                setShareTab("link");
               }
             }}
             disabled={status === "publishing"}
@@ -502,10 +341,7 @@ export function BuilderPage() {
         onDragStart={handleDragStart}
         onDragOver={handleDragOver}
         onDragEnd={handleDragEnd}
-        onDragCancel={() => {
-          setActiveDragId(null);
-          setOverDragId(null);
-        }}
+        onDragCancel={handleDragCancel}
       >
         <div
           className={`builder-body${paletteOpen ? "" : " palette-collapsed"}${inspectorOpen ? "" : " inspector-collapsed"}`}
@@ -748,9 +584,8 @@ export function BuilderPage() {
                     "settings",
                     ...(isMultilingual ? (["translate"] as Tab[]) : []),
                     "preview",
-                    "mindmap",
-                    "steps",
-                    ...(formId !== "new" ? (["history", "activity"] as Tab[]) : []),
+                    "history",
+                    ...(formId !== "new" ? (["activity"] as Tab[]) : []),
                   ] as Tab[]
                 ).map((t) => (
                   <Button
@@ -772,13 +607,9 @@ export function BuilderPage() {
                                 ? "Translations"
                                 : t === "preview"
                                   ? "Live preview"
-                                  : t === "mindmap"
-                                    ? "Mind map"
-                                    : t === "steps"
-                                      ? "Edit history — revert to any point"
-                                      : t === "history"
-                                        ? "Version history"
-                                        : "Activity log"
+                                  : t === "history"
+                                    ? "History — session edits & published versions"
+                                    : "Activity log"
                     }
                   >
                     {t === "overview"
@@ -789,11 +620,9 @@ export function BuilderPage() {
                           ? "History"
                           : t === "activity"
                             ? "Activity"
-                            : t === "mindmap"
-                              ? "Mind"
-                              : t === "preview"
-                                ? "Live"
-                                : t.charAt(0).toUpperCase() + t.slice(1)}
+                            : t === "preview"
+                              ? "Live"
+                              : t.charAt(0).toUpperCase() + t.slice(1)}
                   </Button>
                 ))}
               </div>
@@ -811,11 +640,9 @@ export function BuilderPage() {
               {tab === "preview" && (
                 <BirdsEyePreview schema={schema} onOpenFull={() => setPreviewOpen(true)} />
               )}
-              {tab === "mindmap" && <MindMapPanel />}
-              {tab === "steps" && <EditHistoryPanel />}
               {tab === "activity" && formId !== "new" && <ActivityPanel formId={formId} />}
-              {tab === "history" && formId !== "new" && (
-                <VersionHistoryPanel
+              {tab === "history" && (
+                <HistoryPanel
                   formId={formId}
                   onRestoreVersion={async (version) => {
                     const versionSchema = await api.getVersion(formId, version);
@@ -855,14 +682,16 @@ export function BuilderPage() {
       </DndContext>
 
       {previewOpen && <PreviewModal schema={schema} onClose={() => setPreviewOpen(false)} />}
-      {sharing && store.projectId && (
-        <ShareDialog projectId={store.projectId} onClose={() => setSharing(false)} />
+      {shareTab && (
+        <ShareDialog
+          formId={store.formId ?? undefined}
+          projectId={store.projectId ?? undefined}
+          initialTab={shareTab}
+          onClose={() => setShareTab(null)}
+        />
       )}
       {integrations && store.formId && (
         <WebhooksDialog formId={store.formId} onClose={() => setIntegrations(false)} />
-      )}
-      {shareLink && store.formId && (
-        <ShareLinkDialog formId={store.formId} onClose={() => setShareLink(false)} />
       )}
       <Modal
         open={shortcutsOpen}

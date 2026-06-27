@@ -198,3 +198,51 @@ describe("pages", () => {
     expect(m.pageElements(s, 1)).toHaveLength(1);
   });
 });
+
+describe("groupOrJoin (drag-to-group)", () => {
+  // Build a flat form with three text questions q1, q2, q3.
+  const three = (): FormSchema => {
+    let s = empty();
+    s = m.addElement(s, "text").schema; // q1
+    s = m.addElement(s, "text").schema; // q2
+    s = m.addElement(s, "text").schema; // q3
+    return s;
+  };
+
+  it("wraps two top-level questions into a new group", () => {
+    const { schema, groupName } = m.groupOrJoin(three(), "q3", "q1");
+    expect(groupName).not.toBe("");
+    const group = m.findElement(schema, groupName);
+    expect(group?.type).toBe("group");
+    const childNames = (group?.elements ?? []).map((c) => c.name).sort();
+    expect(childNames).toEqual(["q1", "q3"]);
+    // q3 was lifted out of the top level into the group.
+    expect(m.pageElements(schema, 0).some((e) => e.name === "q3")).toBe(false);
+  });
+
+  it("joins a question into the target's existing group", () => {
+    // First make a group of q1 + q2, then drop q3 onto q1 (a child) → joins same group.
+    const grouped = m.groupOrJoin(three(), "q2", "q1");
+    const { schema, groupName } = m.groupOrJoin(grouped.schema, "q3", "q1");
+    expect(groupName).toBe(grouped.groupName); // same group, not a new one
+    const group = m.findElement(schema, groupName);
+    expect((group?.elements ?? []).map((c) => c.name).sort()).toEqual(["q1", "q2", "q3"]);
+    // No nested group was created.
+    const nested = (group?.elements ?? []).filter((c) => c.type === "group");
+    expect(nested).toHaveLength(0);
+  });
+
+  it("is a no-op when source and target are the same", () => {
+    const start = three();
+    const { schema, groupName } = m.groupOrJoin(start, "q1", "q1");
+    expect(groupName).toBe("");
+    expect(schema).toBe(start); // same reference back → genuinely unchanged
+  });
+
+  it("locate reports page, parent, and index", () => {
+    const grouped = m.groupOrJoin(three(), "q2", "q1");
+    const loc = m.locate(grouped.schema, "q1");
+    expect(loc?.parentName).toBe(grouped.groupName);
+    expect(loc?.index).toBe(0);
+  });
+});
