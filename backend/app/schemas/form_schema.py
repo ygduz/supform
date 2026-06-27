@@ -71,13 +71,23 @@ class ElementType(StrEnum):
 
 
 class Choice(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
 
     value: str | int | float | bool
     label: I18nString | None = None
     visible_if: str | None = Field(default=None, alias="visibleIf")
     score: float | None = None  # points awarded when chosen (quiz mode)
+    correct: bool | None = None  # marks a correct answer (quiz mode grading)
     meta: dict[str, Any] = Field(default_factory=dict)
+
+
+class Feedback(BaseModel):
+    """Quiz mode: messages shown on the results screen after grading a question."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    correct: I18nString | None = None
+    incorrect: I18nString | None = None
 
 
 class Outcome(BaseModel):
@@ -144,6 +154,13 @@ class Element(BaseModel):
     elements: list[Element] | None = None
     repeat: RepeatSettings | None = None
 
+    # quiz grading (see app.form_engine.scoring)
+    points: float | None = None  # points for a correct answer (default 1 when graded)
+    correct_answer: bool | int | float | str | list[Any] | None = Field(
+        default=None, alias="correctAnswer"
+    )
+    feedback: Feedback | None = None
+
     meta: dict[str, Any] = Field(default_factory=dict)
 
 
@@ -177,14 +194,26 @@ class Theme(BaseModel):
     logo: str | None = None
 
 
+class QualityChecks(BaseModel):
+    """Thresholds for automated data-quality flags computed at submission time."""
+
+    model_config = ConfigDict(populate_by_name=True, extra="allow")
+
+    min_duration_seconds: int | None = Field(default=None, alias="minDurationSeconds")
+    expected_geo_bbox: list[float] | None = Field(default=None, alias="expectedGeoBbox")
+
+
 class FormSettings(BaseModel):
     model_config = ConfigDict(populate_by_name=True, extra="allow")
 
     display_mode: str = Field(default="paged", alias="displayMode")
     show_progress_bar: bool = Field(default=True, alias="showProgressBar")
     shuffle_questions: bool = Field(default=False, alias="shuffleQuestions")
+    shuffle_options: bool = Field(default=False, alias="shuffleOptions")
     allow_multiple_submissions: bool = Field(default=True, alias="allowMultipleSubmissions")
     require_login: bool = Field(default=False, alias="requireLogin")
+    accepting_responses: bool = Field(default=True, alias="acceptingResponses")
+    open_date: str | None = Field(default=None, alias="openDate")
     close_date: str | None = Field(default=None, alias="closeDate")
     max_responses: int | None = Field(default=None, alias="maxResponses")
     submit_button_text: I18nString | None = Field(default=None, alias="submitButtonText")
@@ -195,10 +224,11 @@ class FormSettings(BaseModel):
     redirect_url: str | None = Field(default=None, alias="redirectUrl")
     notify_emails: list[str] = Field(default_factory=list, alias="notifyEmails")
     quiz_mode: bool = Field(default=False, alias="quizMode")
-    workflow_steps: list[str] = []
+    show_correct_answers: bool = Field(default=True, alias="showCorrectAnswers")
+    workflow_steps: list[str] = Field(default_factory=list, alias="workflowSteps")
     outcomes: list[Outcome] = Field(default_factory=list)
     # Data quality: thresholds for automated flag checks run at submit time.
-    quality_checks: dict[str, Any] | None = Field(default=None, alias="qualityChecks")
+    quality_checks: QualityChecks | None = Field(default=None, alias="qualityChecks")
 
 
 class FormSchema(BaseModel):
