@@ -3,29 +3,14 @@ import { Button, Modal } from "@/components";
 import { localize } from "@/lib/i18n";
 import { useBuilderStore } from "@/stores/builderStore";
 import type { ElementType, FormSchema } from "@/types/form-schema";
-import {
-  type CollisionDetection,
-  DndContext,
-  type DragEndEvent,
-  type DragOverEvent,
-  DragOverlay,
-  type DragStartEvent,
-  KeyboardSensor,
-  PointerSensor,
-  closestCorners,
-  pointerWithin,
-  rectIntersection,
-  useSensor,
-  useSensors,
-} from "@dnd-kit/core";
-import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { DndContext, DragOverlay } from "@dnd-kit/core";
+import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { formToText } from "../import/textForm";
 import { saveMyTemplate } from "../templates/myTemplates";
 import { ActivityPanel } from "./ActivityPanel";
 import { BirdsEyePreview } from "./BirdsEyePreview";
-import { BuilderCanvas, type DropLocation } from "./BuilderCanvas";
+import { BuilderCanvas } from "./BuilderCanvas";
 import { HistoryPanel } from "./HistoryPanel";
 import { LogicBuilder } from "./LogicBuilder";
 import { OverviewPanel } from "./OverviewPanel";
@@ -38,8 +23,10 @@ import { ShareDialog } from "./ShareDialog";
 import { ThemePanel } from "./ThemePanel";
 import { TranslatePanel } from "./TranslatePanel";
 import { WebhooksDialog } from "./WebhooksDialog";
-import { confirmDeleteContainer, findElement, isContainerType, pageElements } from "./model";
+import { findElement, pageElements } from "./model";
 import { ADVANCED_PALETTE, COMMON_PALETTE, ELEMENT_PALETTE } from "./palette";
+import { useBuilderDrag } from "./useBuilderDrag";
+import { useBuilderShortcuts } from "./useBuilderShortcuts";
 
 type Tab =
   | "overview"
@@ -50,9 +37,6 @@ type Tab =
   | "preview"
   | "history"
   | "activity";
-
-/** Rightward drag distance (px) that turns a card-on-card drop into a grouping action. */
-const GROUP_NUDGE_PX = 48;
 
 /** Crisp stroked chevron for the panel collapse toggles — replaces the thin ‹/› glyph. */
 function Chevron({ dir }: { dir: "left" | "right" }) {
@@ -106,133 +90,21 @@ export function BuilderPage() {
     if (selectedName) setTab("properties");
   }, [selectedName]);
 
-  // ---- drag state (shared across palette + canvas) ----
-  const [activeDragId, setActiveDragId] = useState<string | null>(null);
-  const [overDragId, setOverDragId] = useState<string | null>(null);
-
   // ---- group-link mode ----
   // null = not active; string = the name of the card that initiated grouping
   const [groupingSource, setGroupingSource] = useState<string | null>(null);
-  // Pointer position where the drag began (from the activator pointerdown). The drag end
-  // event omits pointer coords, so we reconstruct the live pointer as start + delta.
-  const dragStartPoint = useRef<{ x: number; y: number } | null>(null);
 
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
-  );
-
-  // Pointer-first collision detection: what's directly under the cursor wins. This makes
-  // dropping a question *out* of a section (onto the page-level drop zone or another
-  // top-level card) reliable — closestCorners alone tends to snap back to the nested
-  // SortableContext whose rect overlaps the pointer. Falls back to rect-based strategies
-  // when the pointer isn't over any droppable (e.g. fast drags past the edge).
-  const collisionDetection = useCallback<CollisionDetection>((args) => {
-    const byPointer = pointerWithin(args);
-    if (byPointer.length > 0) return byPointer;
-    const byRect = rectIntersection(args);
-    if (byRect.length > 0) return byRect;
-    return closestCorners(args);
-  }, []);
-
-  function handleDragStart(e: DragStartEvent) {
-    const id = String(e.active.id);
-    setActiveDragId(id);
-    const ae = e.activatorEvent as { clientX?: number; clientY?: number };
-    dragStartPoint.current =
-      ae.clientX !== undefined && ae.clientY !== undefined
-        ? { x: ae.clientX, y: ae.clientY }
-        : null;
-    // Select the element being dragged (not for palette items).
-    if (!id.startsWith("palette:")) store.select(id);
-  }
-
-  function handleDragOver(e: DragOverEvent) {
-    setOverDragId(e.over ? String(e.over.id) : null);
-    // Broadcast whether releasing now would GROUP, so the hovered card shows the cue.
-    const target = groupDropTarget(e);
-    store.setDropTarget(target, target ? "group" : "move");
-  }
-
-  /**
-   * The question card a release would GROUP with, or null when the drop should reorder.
-   *
-   * Grouping intent is a *rightward nudge* onto another card (like indent-to-nest in an
-   * outliner). We key off horizontal drag distance rather than a vertical "centre band"
-   * because dnd-kit's sortable shifts cards vertically under the cursor mid-drag, which
-   * makes any vertical hit-test unreliable — horizontal delta is unaffected by that shift.
-   * The target card is hit-tested from the live pointer (activator event + delta).
-   */
-  function groupDropTarget(e: DragOverEvent | DragEndEvent): string | null {
-    const activeId = String(e.active.id);
-    if (activeId.startsWith("palette:")) return null;
-    if (e.delta.x < GROUP_NUDGE_PX) return null; // not a deliberate sideways nudge → reorder
-    const start = dragStartPoint.current;
-    if (!start) return null;
-    const x = start.x + e.delta.x;
-    const y = start.y + e.delta.y;
-    const card = (document.elementFromPoint(x, y) as HTMLElement | null)?.closest<HTMLElement>(
-      "[data-el-name]",
-    );
-    const name = card?.dataset.elName;
-    if (!card || !name || name === activeId) return null;
-    const overEl = findElement(schema, name);
-    if (!overEl || isContainerType(overEl.type)) return null;
-    return name;
-  }
-
-  function handleDragEnd(e: DragEndEvent) {
-    setActiveDragId(null);
-    setOverDragId(null);
-    store.setDropTarget(null, null);
-    const { active, over } = e;
-    const activeId = String(active.id);
-
-    // Drag-to-group: a rightward nudge onto another question groups them (or, when the
-    // target lives in a section, drops the dragged card into that section). Checked before
-    // the `over` guard so a drop onto a nested child (which can yield over=null) still works.
-    const groupTarget = groupDropTarget(e);
-    if (groupTarget) {
-      store.groupOrJoin(activeId, groupTarget);
-      return;
-    }
-
-    if (!over) return;
-    const overId = String(over.id);
-
-    // Zones store their location directly; element cards store it under `location`.
-    const data = over.data.current as (DropLocation & { location?: DropLocation }) | undefined;
-    let loc: DropLocation | undefined =
-      data?.location ?? (data?.pageIndex !== undefined ? data : undefined);
-    if (!loc) return;
-
-    // Dropping onto a section card means "into the section" (appended at the end),
-    // unless the dragged item is already a direct child of that section.
-    const overEl = findElement(schema, overId);
-    if (overEl && isContainerType(overEl.type)) {
-      const isOwnChild = overEl.elements?.some((c) => c.name === activeId) ?? false;
-      if (!isOwnChild && overId !== activeId) {
-        loc = {
-          pageIndex: loc.pageIndex,
-          parentName: overEl.name,
-          index: overEl.elements?.length ?? 0,
-        };
-      }
-    }
-
-    if (activeId.startsWith("palette:")) {
-      // Palette drag → insert new element at the drop target's position.
-      const type = activeId.slice("palette:".length) as ElementType;
-      store.addAt(type, { pageIndex: loc.pageIndex, parentName: loc.parentName }, loc.index);
-      return;
-    }
-
-    if (activeId === overId) return;
-
-    // Edge-of-card drops reorder; centre-of-card drops are handled by the grouping branch
-    // above. The overflow-menu "Group with another" action remains as a keyboard-free path.
-    store.moveInto(activeId, { pageIndex: loc.pageIndex, parentName: loc.parentName }, loc.index);
-  }
+  // ---- drag & drop (sensors, collision detection, start/over/end handlers) ----
+  const {
+    sensors,
+    collisionDetection,
+    activeDragId,
+    overDragId,
+    handleDragStart,
+    handleDragOver,
+    handleDragEnd,
+    handleDragCancel,
+  } = useBuilderDrag();
 
   // ---- exports/imports ----
   function download(content: string, mime: string, ext: string) {
@@ -293,90 +165,13 @@ export function BuilderPage() {
     return () => window.removeEventListener("beforeunload", warn);
   }, [dirty]);
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      const target = e.target as HTMLElement | null;
-      const inText =
-        target instanceof HTMLInputElement ||
-        target instanceof HTMLTextAreaElement ||
-        target?.isContentEditable;
-
-      // "?" opens the keyboard-shortcuts legend (when not typing into a field).
-      if (e.key === "?" && !inText) {
-        e.preventDefault();
-        setShortcutsOpen((o) => !o);
-        return;
-      }
-
-      // Esc: close the shortcuts help, cancel group-link mode, or clear selection.
-      if (e.key === "Escape") {
-        if (shortcutsOpen) {
-          setShortcutsOpen(false);
-        } else if (groupingSource) {
-          setGroupingSource(null);
-        } else {
-          store.clearSelection();
-        }
-        return;
-      }
-
-      // Delete / Backspace: remove selected elements (when not typing).
-      if ((e.key === "Delete" || e.key === "Backspace") && !inText) {
-        if (selectedNames.size > 1) {
-          e.preventDefault();
-          store.removeSelected();
-        } else if (selectedName) {
-          e.preventDefault();
-          // Deleting a section takes its questions with it — confirm first.
-          const el = findElement(schema, selectedName);
-          if (el && !confirmDeleteContainer(el.type, el.elements?.length ?? 0)) return;
-          store.remove(selectedName);
-        }
-        return;
-      }
-
-      if (!(e.ctrlKey || e.metaKey) || inText) return;
-
-      // Ctrl+Z / Ctrl+Shift+Z undo/redo.
-      if (e.key.toLowerCase() === "z") {
-        e.preventDefault();
-        if (e.shiftKey) useBuilderStore.getState().redo();
-        else useBuilderStore.getState().undo();
-        return;
-      }
-
-      // Ctrl+G: group selection.
-      if (e.key.toLowerCase() === "g") {
-        e.preventDefault();
-        if (selectedNames.size >= 2) store.groupSelected();
-        return;
-      }
-
-      // Ctrl+D: duplicate selection or focused element.
-      if (e.key.toLowerCase() === "d") {
-        e.preventDefault();
-        if (selectedNames.size >= 2) store.duplicateSelected();
-        else if (selectedName) store.duplicate(selectedName);
-        return;
-      }
-
-      // Ctrl+A: select all top-level elements on the active page.
-      if (e.key.toLowerCase() === "a") {
-        e.preventDefault();
-        const names = pageElements(schema, activePage).map((el) => el.name);
-        if (names.length > 0) {
-          useBuilderStore.setState({
-            selectedNames: new Set(names),
-            selectedName: names[0],
-          });
-        }
-        return;
-      }
-    };
-
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [groupingSource, shortcutsOpen, selectedName, selectedNames, schema, activePage, store]);
+  useBuilderShortcuts({
+    shortcutsOpen,
+    setShortcutsOpen,
+    closeShortcuts: () => setShortcutsOpen(false),
+    groupingSource,
+    clearGroupingSource: () => setGroupingSource(null),
+  });
 
   const elements = pageElements(schema, activePage);
   const selected = selectedName ? findElement(schema, selectedName) : null;
@@ -546,12 +341,7 @@ export function BuilderPage() {
         onDragStart={handleDragStart}
         onDragOver={handleDragOver}
         onDragEnd={handleDragEnd}
-        onDragCancel={() => {
-          setActiveDragId(null);
-          setOverDragId(null);
-          dragStartPoint.current = null;
-          store.setDropTarget(null, null);
-        }}
+        onDragCancel={handleDragCancel}
       >
         <div
           className={`builder-body${paletteOpen ? "" : " palette-collapsed"}${inspectorOpen ? "" : " inspector-collapsed"}`}
