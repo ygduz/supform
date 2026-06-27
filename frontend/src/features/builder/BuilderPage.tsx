@@ -10,15 +10,14 @@ import { ActivityPanel } from "./ActivityPanel";
 import { BirdsEyePreview } from "./BirdsEyePreview";
 import { BuilderCanvas } from "./BuilderCanvas";
 import { BuilderHint } from "./BuilderHint";
+import { BuilderPalette } from "./BuilderPalette";
 import { Chevron } from "./Chevron";
 import { DragGhost } from "./DragGhost";
 import { HistoryPanel } from "./HistoryPanel";
 import { LogicBuilder } from "./LogicBuilder";
 import { OverviewPanel } from "./OverviewPanel";
-import { PaletteItem } from "./PaletteItem";
 import { PreviewModal } from "./PreviewModal";
 import { PropertiesPanel } from "./PropertiesPanel";
-import { QuestionLibraryPanel } from "./QuestionLibraryPanel";
 import { SettingsPanel } from "./SettingsPanel";
 import { ShareDialog } from "./ShareDialog";
 import { ShortcutsModal } from "./ShortcutsModal";
@@ -27,7 +26,7 @@ import { TranslatePanel } from "./TranslatePanel";
 import { WebhooksDialog } from "./WebhooksDialog";
 import { exportFormJson, exportFormText, importFormJson, saveFormAsTemplate } from "./exportImport";
 import { findElement, pageElements } from "./model";
-import { ADVANCED_PALETTE, COMMON_PALETTE, ELEMENT_PALETTE } from "./palette";
+import { ELEMENT_PALETTE } from "./palette";
 import { useBuilderDrag } from "./useBuilderDrag";
 import { useBuilderShortcuts } from "./useBuilderShortcuts";
 import { Toast, useToast } from "./useToast";
@@ -276,67 +275,12 @@ export function BuilderPage() {
           className={`builder-body${paletteOpen ? "" : " palette-collapsed"}${inspectorOpen ? "" : " inspector-collapsed"}`}
         >
           {/* Palette */}
-          <aside className="palette">
-            {paletteOpen && (
-              <div className="palette-content">
-                <div className="palette-tabs">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className={!showLibrary ? "palette-tab active" : "palette-tab"}
-                    onClick={() => setShowLibrary(false)}
-                  >
-                    Fields
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className={showLibrary ? "palette-tab active" : "palette-tab"}
-                    onClick={() => setShowLibrary(true)}
-                  >
-                    Library
-                  </Button>
-                </div>
-                {showLibrary ? (
-                  <QuestionLibraryPanel onClose={() => setShowLibrary(false)} />
-                ) : (
-                  <>
-                    <p className="palette-heading">Add a question</p>
-                    {COMMON_PALETTE.map((item) => (
-                      <PaletteItem
-                        key={item.type}
-                        type={item.type}
-                        label={item.label}
-                        icon={item.icon}
-                      />
-                    ))}
-                    <details className="palette-more">
-                      <summary>More types</summary>
-                      {ADVANCED_PALETTE.map((item) => (
-                        <PaletteItem
-                          key={item.type}
-                          type={item.type}
-                          label={item.label}
-                          icon={item.icon}
-                        />
-                      ))}
-                    </details>
-                  </>
-                )}
-              </div>
-            )}
-            <button
-              type="button"
-              className="panel-toggle"
-              title={paletteOpen ? "Collapse fields panel" : "Expand fields panel"}
-              aria-label={paletteOpen ? "Collapse fields panel" : "Expand fields panel"}
-              onClick={() => setPaletteOpen((o) => !o)}
-            >
-              <span className="panel-toggle-chip" aria-hidden="true">
-                <Chevron dir={paletteOpen ? "left" : "right"} />
-              </span>
-            </button>
-          </aside>
+          <BuilderPalette
+            open={paletteOpen}
+            setOpen={setPaletteOpen}
+            showLibrary={showLibrary}
+            setShowLibrary={setShowLibrary}
+          />
 
           {/* Canvas */}
           {/* biome-ignore lint/a11y/useKeyWithClickEvents: click-to-deselect duplicates the Esc handler */}
