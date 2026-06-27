@@ -26,6 +26,7 @@ import { findElement, pageElements } from "./model";
 import { ADVANCED_PALETTE, COMMON_PALETTE, ELEMENT_PALETTE } from "./palette";
 import { useBuilderDrag } from "./useBuilderDrag";
 import { useBuilderShortcuts } from "./useBuilderShortcuts";
+import { Toast, useToast } from "./useToast";
 
 type Tab =
   | "overview"
@@ -74,13 +75,7 @@ export function BuilderPage() {
   const [hintDismissed, setHintDismissed] = useState(
     () => localStorage.getItem("supform.builderHintDismissed") === "1",
   );
-  const [toast, setToast] = useState<{ msg: string; tone: "success" | "danger" } | null>(null);
-  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const showToast = (msg: string, tone: "success" | "danger" = "success") => {
-    if (toastTimer.current) clearTimeout(toastTimer.current);
-    setToast({ msg, tone });
-    toastTimer.current = setTimeout(() => setToast(null), 4000);
-  };
+  const { toast, showToast, dismiss: dismissToast } = useToast();
   const importRef = useRef<HTMLInputElement>(null);
   const isMultilingual = (schema.languages?.length ?? 0) >= 2;
 
@@ -697,19 +692,7 @@ export function BuilderPage() {
         </dl>
       </Modal>
 
-      {toast && (
-        <output className={`builder-toast builder-toast--${toast.tone}`} aria-live="polite">
-          <span>{toast.msg}</span>
-          <button
-            type="button"
-            className="builder-toast-close"
-            onClick={() => setToast(null)}
-            aria-label="Dismiss"
-          >
-            ✕
-          </button>
-        </output>
-      )}
+      <Toast toast={toast} onDismiss={dismissToast} />
     </div>
   );
 }
