@@ -1,5 +1,5 @@
 import { api } from "@/api/client";
-import { Button, Modal } from "@/components";
+import { Button } from "@/components";
 import { localize } from "@/lib/i18n";
 import { useBuilderStore } from "@/stores/builderStore";
 import type { ElementType } from "@/types/form-schema";
@@ -9,6 +9,9 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { ActivityPanel } from "./ActivityPanel";
 import { BirdsEyePreview } from "./BirdsEyePreview";
 import { BuilderCanvas } from "./BuilderCanvas";
+import { BuilderHint } from "./BuilderHint";
+import { Chevron } from "./Chevron";
+import { DragGhost } from "./DragGhost";
 import { HistoryPanel } from "./HistoryPanel";
 import { LogicBuilder } from "./LogicBuilder";
 import { OverviewPanel } from "./OverviewPanel";
@@ -18,6 +21,7 @@ import { PropertiesPanel } from "./PropertiesPanel";
 import { QuestionLibraryPanel } from "./QuestionLibraryPanel";
 import { SettingsPanel } from "./SettingsPanel";
 import { ShareDialog } from "./ShareDialog";
+import { ShortcutsModal } from "./ShortcutsModal";
 import { ThemePanel } from "./ThemePanel";
 import { TranslatePanel } from "./TranslatePanel";
 import { WebhooksDialog } from "./WebhooksDialog";
@@ -37,26 +41,6 @@ type Tab =
   | "preview"
   | "history"
   | "activity";
-
-/** Crisp stroked chevron for the panel collapse toggles — replaces the thin ‹/› glyph. */
-function Chevron({ dir }: { dir: "left" | "right" }) {
-  return (
-    <svg
-      className="panel-toggle-chevron"
-      viewBox="0 0 24 24"
-      width="15"
-      height="15"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2.4"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d={dir === "left" ? "M15 18l-6-6 6-6" : "M9 18l6-6-6-6"} />
-    </svg>
-  );
-}
 
 export function BuilderPage() {
   const { formId = "new" } = useParams();
@@ -271,25 +255,13 @@ export function BuilderPage() {
         </div>
       </header>
 
-      {!hintDismissed && (
-        <div className="builder-hint">
-          <span>
-            <strong>1.</strong> Add a question · <strong>2.</strong> Preview · <strong>3.</strong>{" "}
-            Publish &amp; share. Press <kbd>?</kbd> for shortcuts.
-          </span>
-          <button
-            type="button"
-            className="builder-hint-close"
-            aria-label="Dismiss"
-            onClick={() => {
-              localStorage.setItem("supform.builderHintDismissed", "1");
-              setHintDismissed(true);
-            }}
-          >
-            ✕
-          </button>
-        </div>
-      )}
+      <BuilderHint
+        dismissed={hintDismissed}
+        onDismiss={() => {
+          localStorage.setItem("supform.builderHintDismissed", "1");
+          setHintDismissed(true);
+        }}
+      />
 
       {/* One DndContext covers both the palette (useDraggable) and the canvas (useSortable). */}
       <DndContext
@@ -613,28 +585,7 @@ export function BuilderPage() {
         </div>
 
         <DragOverlay dropAnimation={{ duration: 180, easing: "cubic-bezier(.2,.8,.3,1)" }}>
-          {activePaletteItem ? (
-            <div className="palette-item drag-ghost">
-              <span aria-hidden="true">{activePaletteItem.icon}</span> {activePaletteItem.label}
-            </div>
-          ) : activeCanvasElement ? (
-            <div className="el-card drag-ghost">
-              <div className="el-row">
-                <span className="drag-handle" aria-hidden="true">
-                  ⋮⋮
-                </span>
-                <span className="el-card-body">
-                  <span className="el-label">
-                    {localize(activeCanvasElement.label) || activeCanvasElement.name}
-                  </span>
-                  <span className="el-type">{activeCanvasElement.type.replace(/_/g, " ")}</span>
-                </span>
-                {activeCanvasElement.elements?.length ? (
-                  <span className="drag-count">{activeCanvasElement.elements.length} inside</span>
-                ) : null}
-              </div>
-            </div>
-          ) : null}
+          <DragGhost paletteItem={activePaletteItem} canvasElement={activeCanvasElement} />
         </DragOverlay>
       </DndContext>
 
@@ -650,47 +601,7 @@ export function BuilderPage() {
       {integrations && store.formId && (
         <WebhooksDialog formId={store.formId} onClose={() => setIntegrations(false)} />
       )}
-      <Modal
-        open={shortcutsOpen}
-        onClose={() => setShortcutsOpen(false)}
-        title="Keyboard shortcuts"
-        width="sm"
-      >
-        <dl className="shortcuts-list">
-          <div>
-            <dt>Ctrl/⌘ + Z</dt>
-            <dd>Undo</dd>
-          </div>
-          <div>
-            <dt>Ctrl/⌘ + Shift + Z</dt>
-            <dd>Redo</dd>
-          </div>
-          <div>
-            <dt>Ctrl/⌘ + D</dt>
-            <dd>Duplicate selection</dd>
-          </div>
-          <div>
-            <dt>Ctrl/⌘ + G</dt>
-            <dd>Group selected questions</dd>
-          </div>
-          <div>
-            <dt>Ctrl/⌘ + A</dt>
-            <dd>Select all on page</dd>
-          </div>
-          <div>
-            <dt>Delete / Backspace</dt>
-            <dd>Remove selection</dd>
-          </div>
-          <div>
-            <dt>Esc</dt>
-            <dd>Clear selection</dd>
-          </div>
-          <div>
-            <dt>?</dt>
-            <dd>Toggle this help</dd>
-          </div>
-        </dl>
-      </Modal>
+      <ShortcutsModal open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
 
       <Toast toast={toast} onDismiss={dismissToast} />
     </div>
