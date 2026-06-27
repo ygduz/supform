@@ -6,23 +6,15 @@ import type { ElementType } from "@/types/form-schema";
 import { DndContext, DragOverlay } from "@dnd-kit/core";
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ActivityPanel } from "./ActivityPanel";
-import { BirdsEyePreview } from "./BirdsEyePreview";
 import { BuilderCanvas } from "./BuilderCanvas";
 import { BuilderHint } from "./BuilderHint";
+import { BuilderInspector, type Tab } from "./BuilderInspector";
 import { BuilderPalette } from "./BuilderPalette";
-import { Chevron } from "./Chevron";
 import { DragGhost } from "./DragGhost";
-import { HistoryPanel } from "./HistoryPanel";
 import { LogicBuilder } from "./LogicBuilder";
-import { OverviewPanel } from "./OverviewPanel";
 import { PreviewModal } from "./PreviewModal";
-import { PropertiesPanel } from "./PropertiesPanel";
-import { SettingsPanel } from "./SettingsPanel";
 import { ShareDialog } from "./ShareDialog";
 import { ShortcutsModal } from "./ShortcutsModal";
-import { ThemePanel } from "./ThemePanel";
-import { TranslatePanel } from "./TranslatePanel";
 import { WebhooksDialog } from "./WebhooksDialog";
 import { exportFormJson, exportFormText, importFormJson, saveFormAsTemplate } from "./exportImport";
 import { findElement, pageElements } from "./model";
@@ -30,16 +22,6 @@ import { ELEMENT_PALETTE } from "./palette";
 import { useBuilderDrag } from "./useBuilderDrag";
 import { useBuilderShortcuts } from "./useBuilderShortcuts";
 import { Toast, useToast } from "./useToast";
-
-type Tab =
-  | "overview"
-  | "properties"
-  | "theme"
-  | "settings"
-  | "translate"
-  | "preview"
-  | "history"
-  | "activity";
 
 export function BuilderPage() {
   const { formId = "new" } = useParams();
@@ -435,97 +417,22 @@ export function BuilderPage() {
           </section>
 
           {/* Inspector */}
-          <aside className={`inspector${inspectorOpen ? "" : " inspector-collapsed"}`}>
-            <button
-              type="button"
-              className="panel-toggle"
-              title={inspectorOpen ? "Collapse inspector" : "Expand inspector"}
-              aria-label={inspectorOpen ? "Collapse inspector" : "Expand inspector"}
-              onClick={() => setInspectorOpen((o) => !o)}
-            >
-              <span className="panel-toggle-chip" aria-hidden="true">
-                <Chevron dir={inspectorOpen ? "right" : "left"} />
-              </span>
-            </button>
-            <div className="inspector-inner">
-              <div className="tabs">
-                {(
-                  [
-                    "overview",
-                    "properties",
-                    "theme",
-                    "settings",
-                    ...(isMultilingual ? (["translate"] as Tab[]) : []),
-                    "preview",
-                    "history",
-                    ...(formId !== "new" ? (["activity"] as Tab[]) : []),
-                  ] as Tab[]
-                ).map((t) => (
-                  <Button
-                    key={t}
-                    variant="ghost"
-                    size="sm"
-                    className={tab === t ? "tab active" : "tab"}
-                    onClick={() => setTab(t)}
-                    title={
-                      t === "overview"
-                        ? "Overview — all fields at a glance"
-                        : t === "properties"
-                          ? "Properties — edit this field"
-                          : t === "theme"
-                            ? "Theme — colours & fonts"
-                            : t === "settings"
-                              ? "Settings — form behaviour"
-                              : t === "translate"
-                                ? "Translations"
-                                : t === "preview"
-                                  ? "Live preview"
-                                  : t === "history"
-                                    ? "History — session edits & published versions"
-                                    : "Activity log"
-                    }
-                  >
-                    {t === "overview"
-                      ? "Map"
-                      : t === "translate"
-                        ? "🌐"
-                        : t === "history"
-                          ? "History"
-                          : t === "activity"
-                            ? "Activity"
-                            : t === "preview"
-                              ? "Live"
-                              : t.charAt(0).toUpperCase() + t.slice(1)}
-                  </Button>
-                ))}
-              </div>
-
-              {tab === "overview" && <OverviewPanel />}
-              {tab === "properties" &&
-                (selected ? (
-                  <PropertiesPanel element={selected} />
-                ) : (
-                  <p className="muted">Select a question to edit its settings.</p>
-                ))}
-              {tab === "theme" && <ThemePanel />}
-              {tab === "settings" && <SettingsPanel />}
-              {tab === "translate" && <TranslatePanel />}
-              {tab === "preview" && (
-                <BirdsEyePreview schema={schema} onOpenFull={() => setPreviewOpen(true)} />
-              )}
-              {tab === "activity" && formId !== "new" && <ActivityPanel formId={formId} />}
-              {tab === "history" && (
-                <HistoryPanel
-                  formId={formId}
-                  onRestoreVersion={async (version) => {
-                    const versionSchema = await api.getVersion(formId, version);
-                    store.loadTemplate(versionSchema);
-                    await store.save();
-                  }}
-                />
-              )}
-            </div>
-          </aside>
+          <BuilderInspector
+            open={inspectorOpen}
+            setOpen={setInspectorOpen}
+            tab={tab}
+            setTab={setTab}
+            isMultilingual={isMultilingual}
+            formId={formId}
+            selected={selected}
+            schema={schema}
+            onOpenPreview={() => setPreviewOpen(true)}
+            onRestoreVersion={async (version) => {
+              const versionSchema = await api.getVersion(formId, version);
+              store.loadTemplate(versionSchema);
+              await store.save();
+            }}
+          />
         </div>
 
         <DragOverlay dropAnimation={{ duration: 180, easing: "cubic-bezier(.2,.8,.3,1)" }}>
