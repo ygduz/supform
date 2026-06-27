@@ -3,9 +3,10 @@ import { useEffect, useRef, useState } from "react";
 import { FormRenderer } from "../renderer/FormRenderer";
 
 /** Minimum CSS scale — below this text is illegible, so we stop zooming out and scroll. */
-const MIN_SCALE = 0.4;
-/** The width at which FormRenderer is designed to render. */
-const FORM_NATURAL_WIDTH = 640;
+const MIN_SCALE = 0.28;
+/** The width at which FormRenderer is designed to render. A wider natural width makes the
+ *  scaled preview smaller, giving more of an overall, zoomed-out picture of the form. */
+const FORM_NATURAL_WIDTH = 820;
 
 /**
  * Birds-eye live preview of the form.

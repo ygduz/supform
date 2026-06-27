@@ -1592,7 +1592,7 @@ body,
   background: var(--surface-sunken);
   overflow-y: auto;
   height: 100%;
-  padding: 16px 16px 80px;
+  padding: 12px 12px 40px;
 }
 
 /* Page tabs */
@@ -1723,6 +1723,22 @@ body,
 .version-title {
   font-size: var(--text-sm);
   color: var(--muted);
+}
+
+/* ── Unified History panel: in-session edits + published versions ── */
+.history-panel {
+  padding: 12px 0;
+}
+.history-section + .history-section {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+.history-section-title {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 8px;
 }
 
 /* ── Edit-history timeline (Steps tab): git-like revert-to-any-point ── */
@@ -1910,6 +1926,7 @@ body,
   gap: 4px;
 }
 .el-card {
+  position: relative;
   display: flex;
   flex-direction: column;
   background: var(--surface-raised);
@@ -1921,7 +1938,7 @@ body,
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 10px;
+  padding: 6px 10px;
   /* The whole row is the drag activator (dnd-kit listeners live here); interactive
      children stop propagation so they still click/type without starting a drag. */
   cursor: grab;
@@ -2164,7 +2181,7 @@ body,
 /* ---- bulk action bar ---- */
 .canvas-inner {
   position: relative;
-  max-width: 768px;
+  max-width: 880px;
   margin: 0 auto;
 }
 
@@ -2177,8 +2194,8 @@ body,
   border-top: 4px solid var(--primary);
   border-radius: var(--radius);
   box-shadow: var(--shadow-sm);
-  padding: 14px 18px;
-  margin-bottom: 8px;
+  padding: 12px 16px;
+  margin-bottom: 6px;
 }
 .canvas-form-header h2 {
   margin: 0;
@@ -3109,6 +3126,27 @@ body,
 .modal-head h2 {
   margin: 0;
   font-size: 20px;
+}
+.share-tabs {
+  display: flex;
+  gap: 4px;
+  margin: 12px 0 4px;
+  border-bottom: 1px solid var(--border);
+}
+.share-tabs .tab {
+  appearance: none;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 6px 12px;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+.share-tabs .tab.active {
+  color: var(--text-primary);
+  border-bottom-color: var(--primary);
 }
 .share-add {
   display: flex;
@@ -4102,14 +4140,77 @@ body,
   line-height: 1;
   box-shadow: 0 2px 8px rgba(199, 93, 58, 0.4);
 }
+/* Faintly visible at rest so the logic handle is discoverable, full on hover. */
+.el-card .el-port {
+  opacity: 0.45;
+  cursor: grab;
+}
 .el-card:hover .el-port,
 .el-port.active {
   opacity: 1;
+}
+.el-port:active {
+  cursor: grabbing;
 }
 .el-port.active {
   background: var(--primary-hover);
   box-shadow: 0 0 0 4px rgba(199, 93, 58, 0.25), 0 2px 8px rgba(199, 93, 58, 0.4);
   transform: translateY(-50%) scale(1.15);
+}
+
+/* Drag-to-group cue: the card under the cursor will swallow the dragged question. */
+.el-card.group-cue {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px var(--primary), 0 0 0 6px rgba(199, 93, 58, 0.18);
+}
+.el-card.group-cue::after {
+  content: "Drop to group";
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  transform: translateY(-50%);
+  font-size: 11px;
+  font-weight: 600;
+  color: #fff;
+  background: var(--primary);
+  padding: 2px 8px;
+  border-radius: 999px;
+  pointer-events: none;
+  z-index: 12;
+}
+
+/* Height-compact card: one line, no preview body. */
+.el-card.compact .el-row {
+  padding-top: 5px;
+  padding-bottom: 5px;
+}
+.el-card.compact .el-type {
+  display: none;
+}
+.el-compact-toggle {
+  font-size: 13px;
+}
+
+/* Centered "collapse all / expand all" control above the canvas list. */
+.canvas-compact-bar {
+  display: flex;
+  justify-content: center;
+  margin: 0 0 8px;
+}
+.canvas-compact-toggle {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 4px 14px;
+  cursor: pointer;
+  transition: color 0.12s, border-color 0.12s, background 0.12s;
+}
+.canvas-compact-toggle:hover {
+  color: var(--primary);
+  border-color: var(--primary);
 }
 
 /* Connecting mode: highlight eligible targets */
@@ -5333,6 +5434,20 @@ body,
   /* pointer-events: none lets cursor pass through — preview is read-only */
   pointer-events: none;
   user-select: none;
+}
+/* Densify the live preview: shorter rows and capped tall inputs so more of the form fits
+   on screen for an overall picture. The full preview modal keeps natural heights. */
+.bep-inner .field {
+  margin-bottom: 10px;
+}
+.bep-inner textarea,
+.bep-inner .field input,
+.bep-inner .field select {
+  min-height: 0;
+}
+.bep-inner textarea {
+  max-height: 64px;
+  overflow: hidden;
 }
 
 /* ── Mind map panel ──────────────────────────────────────────── */

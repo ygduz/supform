@@ -314,6 +314,73 @@ export function groupElements(
   return { schema: { ...schema, pages }, groupName };
 }
 
+/** Where an element lives: its page, its direct parent container (if any), and its index. */
+export function locate(
+  schema: FormSchema,
+  name: string,
+): { pageIndex: number; parentName?: string; index: number } | null {
+  for (let pi = 0; pi < schema.pages.length; pi++) {
+    const walk = (
+      els: Element[],
+      parent: string | undefined,
+    ): { pageIndex: number; parentName?: string; index: number } | null => {
+      const idx = els.findIndex((e) => e.name === name);
+      if (idx >= 0) return { pageIndex: pi, parentName: parent, index: idx };
+      for (const el of els) {
+        if (el.elements) {
+          const r = walk(el.elements, el.name);
+          if (r) return r;
+        }
+      }
+      return null;
+    };
+    const r = walk(schema.pages[pi].elements, undefined);
+    if (r) return r;
+  }
+  return null;
+}
+
+/**
+ * Drag-to-group: drop `dragged` onto `target`.
+ * - If `target` already lives inside a group/section, `dragged` JOINS that group right
+ *   after the target.
+ * - Otherwise the two are wrapped into a brand-new group at the target's position.
+ * Returns the (possibly unchanged) schema and the resulting group's name ("" = no-op).
+ */
+export function groupOrJoin(
+  schema: FormSchema,
+  dragged: string,
+  target: string,
+): { schema: FormSchema; groupName: string } {
+  if (dragged === target) return { schema, groupName: "" };
+  // Can't nest a container into one of its own descendants.
+  if (isDescendantOf(schema, target, dragged)) return { schema, groupName: "" };
+  const targetLoc = locate(schema, target);
+  if (!targetLoc) return { schema, groupName: "" };
+
+  // Target sits inside a group/section → the dragged question simply joins that group.
+  if (targetLoc.parentName) {
+    const next = moveElementTo(
+      schema,
+      dragged,
+      { pageIndex: targetLoc.pageIndex, parentName: targetLoc.parentName },
+      targetLoc.index + 1,
+    );
+    return next === schema
+      ? { schema, groupName: "" }
+      : { schema: next, groupName: targetLoc.parentName };
+  }
+
+  // Both top-level → relocate the dragged card next to the target, then wrap into a group.
+  const moved = moveElementTo(
+    schema,
+    dragged,
+    { pageIndex: targetLoc.pageIndex, parentName: undefined },
+    targetLoc.index + 1,
+  );
+  return groupElements(moved, [target, dragged]);
+}
+
 /**
  * Dissolve a group/repeat: replace it with its children at the same position in the
  * parent's list. Returns the schema unchanged if `name` is not a container.

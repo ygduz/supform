@@ -63,9 +63,15 @@ export function ElementCard({
   } = useBuilderStore();
   const collapsed = useBuilderStore((s) => s.collapsedNames.has(element.name));
   const toggleCollapsed = useBuilderStore((s) => s.toggleCollapsed);
+  const compact = useBuilderStore((s) => s.compactNames.has(element.name));
+  const toggleCompact = useBuilderStore((s) => s.toggleCompact);
   const connectingFrom = useBuilderStore((s) => s.connectingFrom);
   const startConnect = useBuilderStore((s) => s.startConnect);
   const requestConnect = useBuilderStore((s) => s.requestConnect);
+  const cancelConnect = useBuilderStore((s) => s.cancelConnect);
+  const groupCue = useBuilderStore(
+    (s) => s.dropMode === "group" && s.dropTargetName === element.name,
+  );
   const container = isContainerType(element.type);
   const childCount = element.elements?.length ?? 0;
 
@@ -121,6 +127,8 @@ export function ElementCard({
       ? "drop-target"
       : "",
     isGroupTarget ? "group-target" : "",
+    groupCue ? "group-cue" : "",
+    compact && !container ? "compact" : "",
   ]
     .filter(Boolean)
     .join(" ");
@@ -156,6 +164,35 @@ export function ElementCard({
     } else {
       onGroupLink(element.name);
     }
+  }
+
+  // Drag the ⚡ logic handle to another question to wire up conditional logic. A plain
+  // click (no drag) falls back to click-to-connect mode (handled by onClick).
+  function handlePortPointerDown(e: React.PointerEvent) {
+    e.stopPropagation();
+    if (e.button !== 0) return;
+    const startX = e.clientX;
+    const startY = e.clientY;
+    let dragging = false;
+    startConnect(element.name);
+    const move = (ev: PointerEvent) => {
+      if (!dragging && Math.hypot(ev.clientX - startX, ev.clientY - startY) > 6) {
+        dragging = true;
+      }
+    };
+    const up = (ev: PointerEvent) => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      if (!dragging) return; // treat as a click → stay in connect mode
+      const card = (
+        document.elementFromPoint(ev.clientX, ev.clientY) as HTMLElement | null
+      )?.closest<HTMLElement>("[data-el-name]");
+      const name = card?.dataset.elName;
+      if (name && name !== element.name) requestConnect(name);
+      else cancelConnect();
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
   }
 
   return (
@@ -239,14 +276,15 @@ export function ElementCard({
           {!container && (
             <button
               type="button"
-              title="Add conditional logic — show or hide another question based on this answer"
-              className={connectingFrom === element.name ? "active" : ""}
+              className="el-compact-toggle"
+              title={compact ? "Expand this question" : "Collapse this question to one line"}
+              aria-expanded={!compact}
               onClick={(e) => {
                 e.stopPropagation();
-                startConnect(element.name);
+                toggleCompact(element.name);
               }}
             >
-              ⚡
+              {compact ? "▸" : "▾"}
             </button>
           )}
           <button type="button" title="Duplicate" onClick={() => duplicate(element.name)}>
@@ -344,7 +382,7 @@ export function ElementCard({
         </div>
       </div>
 
-      {(!container || collapsed) && !isDragging && (
+      {(!container || collapsed) && !isDragging && !(compact && !container) && (
         <div
           className="el-preview"
           onClick={handleCardClick}
@@ -393,14 +431,11 @@ export function ElementCard({
           className={`el-port${connectingFrom === element.name ? " active" : ""}`}
           title={
             connectingFrom === element.name
-              ? "Connecting… click a target question or press Esc"
-              : "Add conditional logic — click then click the trigger question"
+              ? "Connecting… drop on a question, or click one — Esc to cancel"
+              : "Drag to a question to add conditional logic (or click, then click the trigger)"
           }
-          onPointerDown={(e) => e.stopPropagation()}
-          onClick={(e) => {
-            e.stopPropagation();
-            startConnect(element.name);
-          }}
+          onPointerDown={handlePortPointerDown}
+          onClick={(e) => e.stopPropagation()}
           aria-label="Add conditional logic"
         >
           ⚡
