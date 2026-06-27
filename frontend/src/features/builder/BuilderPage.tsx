@@ -9,14 +9,11 @@ import { useNavigate, useParams } from "react-router-dom";
 import { BuilderCanvas } from "./BuilderCanvas";
 import { BuilderHint } from "./BuilderHint";
 import { BuilderInspector, type Tab } from "./BuilderInspector";
+import { BuilderModals } from "./BuilderModals";
 import { BuilderPalette } from "./BuilderPalette";
 import { BuilderToolbar } from "./BuilderToolbar";
 import { DragGhost } from "./DragGhost";
 import { LogicBuilder } from "./LogicBuilder";
-import { PreviewModal } from "./PreviewModal";
-import { ShareDialog } from "./ShareDialog";
-import { ShortcutsModal } from "./ShortcutsModal";
-import { WebhooksDialog } from "./WebhooksDialog";
 import { findElement, pageElements } from "./model";
 import { ELEMENT_PALETTE } from "./palette";
 import { useBuilderDrag } from "./useBuilderDrag";
@@ -331,19 +328,16 @@ export function BuilderPage() {
         </DragOverlay>
       </DndContext>
 
-      {previewOpen && <PreviewModal schema={schema} onClose={() => setPreviewOpen(false)} />}
-      {shareTab && (
-        <ShareDialog
-          formId={store.formId ?? undefined}
-          projectId={store.projectId ?? undefined}
-          initialTab={shareTab}
-          onClose={() => setShareTab(null)}
-        />
-      )}
-      {integrations && store.formId && (
-        <WebhooksDialog formId={store.formId} onClose={() => setIntegrations(false)} />
-      )}
-      <ShortcutsModal open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
+      <BuilderModals
+        previewOpen={previewOpen}
+        onClosePreview={() => setPreviewOpen(false)}
+        shareTab={shareTab}
+        onCloseShare={() => setShareTab(null)}
+        integrations={integrations}
+        onCloseIntegrations={() => setIntegrations(false)}
+        shortcutsOpen={shortcutsOpen}
+        onCloseShortcuts={() => setShortcutsOpen(false)}
+      />
 
       <Toast toast={toast} onDismiss={dismissToast} />
     </div>
