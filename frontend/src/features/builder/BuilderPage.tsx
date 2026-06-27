@@ -4,19 +4,19 @@ import { localize } from "@/lib/i18n";
 import { useBuilderStore } from "@/stores/builderStore";
 import type { ElementType } from "@/types/form-schema";
 import { DndContext, DragOverlay } from "@dnd-kit/core";
-import { useEffect, useRef, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import { BuilderCanvas } from "./BuilderCanvas";
 import { BuilderHint } from "./BuilderHint";
 import { BuilderInspector, type Tab } from "./BuilderInspector";
 import { BuilderPalette } from "./BuilderPalette";
+import { BuilderToolbar } from "./BuilderToolbar";
 import { DragGhost } from "./DragGhost";
 import { LogicBuilder } from "./LogicBuilder";
 import { PreviewModal } from "./PreviewModal";
 import { ShareDialog } from "./ShareDialog";
 import { ShortcutsModal } from "./ShortcutsModal";
 import { WebhooksDialog } from "./WebhooksDialog";
-import { exportFormJson, exportFormText, importFormJson, saveFormAsTemplate } from "./exportImport";
 import { findElement, pageElements } from "./model";
 import { ELEMENT_PALETTE } from "./palette";
 import { useBuilderDrag } from "./useBuilderDrag";
@@ -28,7 +28,7 @@ export function BuilderPage() {
   const navigate = useNavigate();
   const store = useBuilderStore();
   const init = useBuilderStore((s) => s.init);
-  const { schema, selectedName, selectedNames, activePage, status, error, dirty } = store;
+  const { schema, selectedName, selectedNames, activePage, dirty } = store;
   const [tab, setTab] = useState<Tab>("overview");
   const [shareTab, setShareTab] = useState<"link" | "people" | null>(null);
   const [integrations, setIntegrations] = useState(false);
@@ -41,7 +41,6 @@ export function BuilderPage() {
     () => localStorage.getItem("supform.builderHintDismissed") === "1",
   );
   const { toast, showToast, dismiss: dismissToast } = useToast();
-  const importRef = useRef<HTMLInputElement>(null);
   const isMultilingual = (schema.languages?.length ?? 0) >= 2;
 
   // When a card is selected, surface its settings without requiring a manual tab switch.
@@ -121,120 +120,12 @@ export function BuilderPage() {
 
   return (
     <div className="builder">
-      <header className="builder-toolbar">
-        <input
-          className="title-input"
-          value={localize(schema.title)}
-          onChange={(e) => store.setTitle(e.target.value)}
-          aria-label="Form title"
-        />
-        <div className="toolbar-actions">
-          <Button
-            variant="ghost"
-            size="sm"
-            title="Undo (Ctrl+Z)"
-            onClick={() => store.undo()}
-            disabled={store.past.length === 0}
-          >
-            ↶
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            title="Redo (Ctrl+Shift+Z)"
-            onClick={() => store.redo()}
-            disabled={store.future.length === 0}
-          >
-            ↷
-          </Button>
-          {error ? <span className="error">{error}</span> : null}
-          <span
-            className="save-status"
-            data-state={status === "saving" ? "saving" : dirty ? "dirty" : "saved"}
-            aria-live="polite"
-          >
-            {status === "saving" ? "Saving…" : dirty ? "Unsaved changes" : "Saved ✓"}
-          </span>
-          {store.formId ? (
-            <Link className="toolbar-link" to={`/forms/${store.formId}/responses`}>
-              Responses
-            </Link>
-          ) : null}
-          {/* Utility actions collapse into a disclosure so the primary actions
-              (Save draft / Publish) are always visible, never scrolled off. */}
-          <details className="toolbar-more">
-            <summary aria-label="More actions">More ▾</summary>
-            <div className="toolbar-more-menu">
-              {store.formId ? (
-                <button type="button" onClick={() => setShareTab("link")}>
-                  Share link
-                </button>
-              ) : null}
-              {store.projectId ? (
-                <button type="button" onClick={() => setShareTab("people")}>
-                  Share access
-                </button>
-              ) : null}
-              {store.formId ? (
-                <button type="button" onClick={() => setIntegrations(true)}>
-                  Integrations
-                </button>
-              ) : null}
-              <button type="button" onClick={() => saveFormAsTemplate(schema)}>
-                Save as template
-              </button>
-              <button type="button" onClick={() => exportFormJson(schema)}>
-                Export JSON
-              </button>
-              <button type="button" onClick={() => exportFormText(schema)}>
-                Export text
-              </button>
-              <button type="button" onClick={() => importRef.current?.click()}>
-                Import JSON
-              </button>
-            </div>
-          </details>
-          <input
-            ref={importRef}
-            type="file"
-            accept="application/json,.json"
-            hidden
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) importFormJson(file, store.loadTemplate, navigate);
-              e.target.value = "";
-            }}
-          />
-          <Button variant="outline" size="sm" onClick={() => setPreviewOpen(true)}>
-            Preview
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => store.save()}
-            disabled={status === "saving"}
-          >
-            {status === "saving" ? "Saving…" : "Save draft"}
-          </Button>
-          <Button
-            variant="primary"
-            size="sm"
-            onClick={async () => {
-              await store.publish();
-              const s = useBuilderStore.getState();
-              if (s.error) {
-                showToast(s.error, "danger");
-              } else {
-                showToast("Form published! Share the link with respondents.");
-                setShareTab("link");
-              }
-            }}
-            disabled={status === "publishing"}
-          >
-            {status === "publishing" ? "Publishing…" : "Publish"}
-          </Button>
-        </div>
-      </header>
+      <BuilderToolbar
+        onShare={setShareTab}
+        onIntegrations={() => setIntegrations(true)}
+        onPreview={() => setPreviewOpen(true)}
+        showToast={showToast}
+      />
 
       <BuilderHint
         dismissed={hintDismissed}
