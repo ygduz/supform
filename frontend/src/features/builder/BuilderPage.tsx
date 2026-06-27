@@ -2,12 +2,10 @@ import { api } from "@/api/client";
 import { Button, Modal } from "@/components";
 import { localize } from "@/lib/i18n";
 import { useBuilderStore } from "@/stores/builderStore";
-import type { ElementType, FormSchema } from "@/types/form-schema";
+import type { ElementType } from "@/types/form-schema";
 import { DndContext, DragOverlay } from "@dnd-kit/core";
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { formToText } from "../import/textForm";
-import { saveMyTemplate } from "../templates/myTemplates";
 import { ActivityPanel } from "./ActivityPanel";
 import { BirdsEyePreview } from "./BirdsEyePreview";
 import { BuilderCanvas } from "./BuilderCanvas";
@@ -23,6 +21,7 @@ import { ShareDialog } from "./ShareDialog";
 import { ThemePanel } from "./ThemePanel";
 import { TranslatePanel } from "./TranslatePanel";
 import { WebhooksDialog } from "./WebhooksDialog";
+import { exportFormJson, exportFormText, importFormJson, saveFormAsTemplate } from "./exportImport";
 import { findElement, pageElements } from "./model";
 import { ADVANCED_PALETTE, COMMON_PALETTE, ELEMENT_PALETTE } from "./palette";
 import { useBuilderDrag } from "./useBuilderDrag";
@@ -105,43 +104,6 @@ export function BuilderPage() {
     handleDragEnd,
     handleDragCancel,
   } = useBuilderDrag();
-
-  // ---- exports/imports ----
-  function download(content: string, mime: string, ext: string) {
-    const blob = new Blob([content], { type: mime });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${schema.name || "form"}.${ext}`;
-    a.click();
-    URL.revokeObjectURL(url);
-  }
-
-  function exportJson() {
-    download(JSON.stringify(schema, null, 2), "application/json", "json");
-  }
-
-  function exportText() {
-    download(formToText(schema), "text/plain", "txt");
-  }
-
-  async function importJson(file: File) {
-    try {
-      const parsed = JSON.parse(await file.text()) as FormSchema;
-      if (!parsed || !Array.isArray(parsed.pages)) throw new Error("Not a Supform form schema.");
-      store.loadTemplate(parsed);
-      navigate("/builder/new");
-    } catch (err) {
-      window.alert(`Could not import: ${(err as Error).message}`);
-    }
-  }
-
-  function saveAsTemplate() {
-    const name = window.prompt("Save this form as a template named:", localize(schema.title));
-    if (name === null) return;
-    saveMyTemplate(name, schema);
-    window.alert("Saved to My templates.");
-  }
 
   useEffect(() => {
     init(formId);
@@ -258,13 +220,13 @@ export function BuilderPage() {
                   Integrations
                 </button>
               ) : null}
-              <button type="button" onClick={saveAsTemplate}>
+              <button type="button" onClick={() => saveFormAsTemplate(schema)}>
                 Save as template
               </button>
-              <button type="button" onClick={exportJson}>
+              <button type="button" onClick={() => exportFormJson(schema)}>
                 Export JSON
               </button>
-              <button type="button" onClick={exportText}>
+              <button type="button" onClick={() => exportFormText(schema)}>
                 Export text
               </button>
               <button type="button" onClick={() => importRef.current?.click()}>
@@ -279,7 +241,7 @@ export function BuilderPage() {
             hidden
             onChange={(e) => {
               const file = e.target.files?.[0];
-              if (file) importJson(file);
+              if (file) importFormJson(file, store.loadTemplate, navigate);
               e.target.value = "";
             }}
           />
