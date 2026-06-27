@@ -1725,6 +1725,22 @@ body,
   color: var(--muted);
 }
 
+/* ── Unified History panel: in-session edits + published versions ── */
+.history-panel {
+  padding: 12px 0;
+}
+.history-section + .history-section {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+.history-section-title {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 8px;
+}
+
 /* ── Edit-history timeline (Steps tab): git-like revert-to-any-point ── */
 .edit-history {
   padding: 12px 0;

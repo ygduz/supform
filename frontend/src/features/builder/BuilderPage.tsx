@@ -26,9 +26,8 @@ import { saveMyTemplate } from "../templates/myTemplates";
 import { ActivityPanel } from "./ActivityPanel";
 import { BirdsEyePreview } from "./BirdsEyePreview";
 import { BuilderCanvas, type DropLocation } from "./BuilderCanvas";
-import { EditHistoryPanel } from "./EditHistoryPanel";
+import { HistoryPanel } from "./HistoryPanel";
 import { LogicBuilder } from "./LogicBuilder";
-import { MindMapPanel } from "./MindMapPanel";
 import { OverviewPanel } from "./OverviewPanel";
 import { PaletteItem } from "./PaletteItem";
 import { PreviewModal } from "./PreviewModal";
@@ -39,7 +38,6 @@ import { ShareDialog } from "./ShareDialog";
 import { ShareLinkDialog } from "./ShareLinkDialog";
 import { ThemePanel } from "./ThemePanel";
 import { TranslatePanel } from "./TranslatePanel";
-import { VersionHistoryPanel } from "./VersionHistoryPanel";
 import { WebhooksDialog } from "./WebhooksDialog";
 import { confirmDeleteContainer, findElement, isContainerType, pageElements } from "./model";
 import { ADVANCED_PALETTE, COMMON_PALETTE, ELEMENT_PALETTE } from "./palette";
@@ -51,9 +49,7 @@ type Tab =
   | "settings"
   | "translate"
   | "preview"
-  | "mindmap"
   | "history"
-  | "steps"
   | "activity";
 
 /** Rightward drag distance (px) that turns a card-on-card drop into a grouping action. */
@@ -800,9 +796,8 @@ export function BuilderPage() {
                     "settings",
                     ...(isMultilingual ? (["translate"] as Tab[]) : []),
                     "preview",
-                    "mindmap",
-                    "steps",
-                    ...(formId !== "new" ? (["history", "activity"] as Tab[]) : []),
+                    "history",
+                    ...(formId !== "new" ? (["activity"] as Tab[]) : []),
                   ] as Tab[]
                 ).map((t) => (
                   <Button
@@ -824,13 +819,9 @@ export function BuilderPage() {
                                 ? "Translations"
                                 : t === "preview"
                                   ? "Live preview"
-                                  : t === "mindmap"
-                                    ? "Mind map"
-                                    : t === "steps"
-                                      ? "Edit history — revert to any point"
-                                      : t === "history"
-                                        ? "Version history"
-                                        : "Activity log"
+                                  : t === "history"
+                                    ? "History — session edits & published versions"
+                                    : "Activity log"
                     }
                   >
                     {t === "overview"
@@ -841,11 +832,9 @@ export function BuilderPage() {
                           ? "History"
                           : t === "activity"
                             ? "Activity"
-                            : t === "mindmap"
-                              ? "Mind"
-                              : t === "preview"
-                                ? "Live"
-                                : t.charAt(0).toUpperCase() + t.slice(1)}
+                            : t === "preview"
+                              ? "Live"
+                              : t.charAt(0).toUpperCase() + t.slice(1)}
                   </Button>
                 ))}
               </div>
@@ -863,11 +852,9 @@ export function BuilderPage() {
               {tab === "preview" && (
                 <BirdsEyePreview schema={schema} onOpenFull={() => setPreviewOpen(true)} />
               )}
-              {tab === "mindmap" && <MindMapPanel />}
-              {tab === "steps" && <EditHistoryPanel />}
               {tab === "activity" && formId !== "new" && <ActivityPanel formId={formId} />}
-              {tab === "history" && formId !== "new" && (
-                <VersionHistoryPanel
+              {tab === "history" && (
+                <HistoryPanel
                   formId={formId}
                   onRestoreVersion={async (version) => {
                     const versionSchema = await api.getVersion(formId, version);
