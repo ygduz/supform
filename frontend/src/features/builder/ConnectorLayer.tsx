@@ -24,18 +24,54 @@ export function ConnectorLayer({
   const containerRect = container.getBoundingClientRect();
   const containerEl = container;
 
-  function getCardCoords(name: string): { rx: number; ry: number; lx: number; ly: number } | null {
-    const card = containerEl.querySelector<HTMLElement>(`[data-el-name="${name}"]`);
-    if (!card) return null;
-    const r = card.getBoundingClientRect();
-    const top = r.top - containerRect.top;
-    const mid = top + r.height / 2;
-    return {
-      rx: r.right - containerRect.left,
-      ry: mid,
-      lx: r.left - containerRect.left,
-      ly: mid,
-    };
+  // Escape a value for use inside an attribute selector (option values are slugs, but be safe).
+  const escAttr = (v: string) =>
+    typeof CSS !== "undefined" && CSS.escape ? CSS.escape(v) : v.replace(/["\\]/g, "\\$&");
+
+  interface Box {
+    x: number;
+    y: number;
+    w: number;
+    h: number;
+  }
+  interface Anchors {
+    /** Start point — right edge of the source card, at the referenced option's row when found. */
+    sx: number;
+    sy: number;
+    /** End point — right edge of the target card, vertically centered. */
+    ex: number;
+    ey: number;
+    /** The matched source option's bounding box (container coords), if the value maps to a row. */
+    optBox: Box | null;
+    /** The target card's bounding box (container coords), for the inbound highlight. */
+    toBox: Box;
+  }
+
+  function getAnchors(conn: { fromName: string; toName: string; value: unknown }): Anchors | null {
+    const fromCard = containerEl.querySelector<HTMLElement>(`[data-el-name="${conn.fromName}"]`);
+    const toCard = containerEl.querySelector<HTMLElement>(`[data-el-name="${conn.toName}"]`);
+    if (!fromCard || !toCard) return null;
+    const fr = fromCard.getBoundingClientRect();
+    const tr = toCard.getBoundingClientRect();
+    const rel = (r: DOMRect): Box => ({
+      x: r.left - containerRect.left,
+      y: r.top - containerRect.top,
+      w: r.width,
+      h: r.height,
+    });
+
+    // Anchor the start to the specific referenced option row when it exists in the DOM.
+    let optBox: Box | null = null;
+    if (typeof conn.value === "string") {
+      const opt = fromCard.querySelector<HTMLElement>(`[data-opt-value="${escAttr(conn.value)}"]`);
+      if (opt) optBox = rel(opt.getBoundingClientRect());
+    }
+
+    const sx = fr.right - containerRect.left;
+    const sy = optBox ? optBox.y + optBox.h / 2 : fr.top - containerRect.top + fr.height / 2;
+    const ex = tr.right - containerRect.left;
+    const ey = tr.top - containerRect.top + tr.height / 2;
+    return { sx, sy, ex, ey, optBox, toBox: rel(tr) };
   }
 
   const paths = collectConnectors(schema);
@@ -54,14 +90,17 @@ export function ConnectorLayer({
         </marker>
       </defs>
       {paths.map((conn) => {
-        const src = getCardCoords(conn.fromName);
-        const tgt = getCardCoords(conn.toName);
-        if (!src || !tgt) return null;
+        const a = getAnchors(conn);
+        if (!a) return null;
 
-        const cx = Math.max(60, Math.abs(tgt.lx - src.rx) * 0.5);
-        const d = `M ${src.rx} ${src.ry} C ${src.rx + cx} ${src.ry} ${tgt.lx - cx} ${tgt.ly} ${tgt.lx} ${tgt.ly}`;
-        const midX = (src.rx + tgt.lx) / 2;
-        const midY = (src.ry + tgt.ly) / 2;
+        // Route both ends out into the right-hand gutter so the curve never slashes across the
+        // cards. The control points bow rightward past whichever card extends further right.
+        const bow = 40 + Math.min(60, Math.abs(a.ey - a.sy) * 0.15);
+        const ctrlX = Math.max(a.sx, a.ex) + bow;
+        const d = `M ${a.sx} ${a.sy} C ${ctrlX} ${a.sy}, ${ctrlX} ${a.ey}, ${a.ex} ${a.ey}`;
+        // Pill at the cubic's t=0.5 point — out in the gutter, clear of both cards.
+        const midX = 0.125 * (a.sx + a.ex) + 0.75 * ctrlX;
+        const midY = (a.sy + a.ey) / 2;
         const isNe = conn.op === "!=";
         const color = isNe ? "#f59e0b" : "#6366f1";
         const marker = isNe ? "url(#arr-ne)" : "url(#arr-eq)";
@@ -74,6 +113,35 @@ export function ConnectorLayer({
 
         return (
           <g key={`${conn.fromName}->${conn.toName}`}>
+            {/* Highlight the specific source option the rule keys off (when it's a visible row). */}
+            {a.optBox && (
+              <rect
+                x={a.optBox.x - 4}
+                y={a.optBox.y - 2}
+                width={a.optBox.w + 8}
+                height={a.optBox.h + 4}
+                rx={6}
+                fill={color}
+                fillOpacity={0.08}
+                stroke={color}
+                strokeWidth={1.5}
+                strokeDasharray="4 3"
+                opacity={0.85}
+              />
+            )}
+            {/* Subtle inbound highlight on the dependent (target) card. */}
+            <rect
+              x={a.toBox.x - 2}
+              y={a.toBox.y - 2}
+              width={a.toBox.w + 4}
+              height={a.toBox.h + 4}
+              rx={10}
+              fill="none"
+              stroke={color}
+              strokeWidth={1.5}
+              strokeDasharray="2 4"
+              opacity={0.4}
+            />
             <path
               d={d}
               stroke={color}
@@ -82,6 +150,8 @@ export function ConnectorLayer({
               markerEnd={marker}
               opacity={0.7}
             />
+            {/* Anchor dot where the line leaves the source option/card. */}
+            <circle cx={a.sx} cy={a.sy} r={3.5} fill={color} opacity={0.9} />
             {/* Wide invisible stroke for easier clicking */}
             <path
               d={d}

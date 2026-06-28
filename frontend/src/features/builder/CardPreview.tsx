@@ -51,7 +51,7 @@ export function CardPreview({ element, editable }: { element: Element; editable:
       ) : (
         <ul className="pv-options">
           {(element.options ?? []).map((o) => (
-            <li key={String(o.value)}>
+            <li key={String(o.value)} data-opt-value={String(o.value)}>
               <span className="pv-mark">{element.type === "single_choice" ? "◯" : "☐"}</span>
               {localize(o.label) || String(o.value)}
             </li>
@@ -185,7 +185,7 @@ function OptionEditor({ element }: { element: Element }) {
   return (
     <div className="pv-option-editor">
       {(element.options ?? []).map((o, i) => (
-        <div key={String(o.value)} className="pv-option-row">
+        <div key={String(o.value)} className="pv-option-row" data-opt-value={String(o.value)}>
           <span className="pv-mark">{mark}</span>
           <input
             value={localize(o.label)}
