@@ -334,6 +334,22 @@ function rowScore(row: ScoredRow): number | null {
   return null;
 }
 
+/** Total achievable points across all graded questions in the form (0 if none are graded). */
+function schemaMaxPoints(schema: FormSchema): number {
+  let total = 0;
+  const walk = (els: Element[]) => {
+    for (const el of els) {
+      const graded =
+        (el.correctAnswer !== undefined && el.correctAnswer !== null) ||
+        (el.options ?? []).some((o) => o.correct === true);
+      if (graded) total += typeof el.points === "number" ? el.points : 1;
+      if (el.elements) walk(el.elements);
+    }
+  };
+  for (const p of schema.pages) walk(p.elements);
+  return total;
+}
+
 /**
  * Aggregate quiz scores across responses: distribution, average, and pass-rate by outcome band.
  * Returns null when the form isn't a quiz or no response carries a score.
@@ -341,14 +357,14 @@ function rowScore(row: ScoredRow): number | null {
 export function scoreStats(schema: FormSchema, rows: ScoredRow[]): ScoreStats | null {
   if (!schema.settings?.quizMode) return null;
   const scores: number[] = [];
-  let maxPossible: number | null = null;
   for (const row of rows) {
     const s = rowScore(row);
-    if (s === null) continue;
-    scores.push(s);
-    if (row.grading && row.grading.gradedCount > 0) maxPossible = row.grading.maxPoints;
+    if (s !== null) scores.push(s);
   }
   if (scores.length === 0) return null;
+  // The denominator is the full quiz total from the schema — NOT any single respondent's
+  // maxPoints, which varies because unanswered graded questions aren't counted per-response.
+  const maxPossible: number | null = schemaMaxPoints(schema) || null;
 
   const sorted = [...scores].sort((a, b) => a - b);
   const sum = scores.reduce((a, b) => a + b, 0);

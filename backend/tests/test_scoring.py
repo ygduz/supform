@@ -148,3 +148,10 @@ def test_grade_field_defaults_to_one_point() -> None:
         {"type": "single_choice", "name": "q", "options": [{"value": "a", "correct": True}]}
     )
     assert grade_field(el, "a") == (True, 1.0, 1.0)
+
+
+def test_grade_field_boolean_answer_key() -> None:
+    # Booleans store true/false; the answer key must be a real boolean (builder writes one).
+    el = Element.model_validate({"type": "boolean", "name": "agree", "correctAnswer": True})
+    assert grade_field(el, True)[0] is True
+    assert grade_field(el, False)[0] is False

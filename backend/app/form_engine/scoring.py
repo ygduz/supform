@@ -59,9 +59,14 @@ def is_graded(el: Element) -> bool:
 
 
 def _norm(value: Any, el_type: str) -> Any:
-    """Normalize a value for comparison (text answers are trimmed + case-folded)."""
+    """Normalize a value for comparison (text answers are trimmed + lower-cased).
+
+    Uses ``str.lower()`` (not ``casefold()``) to stay byte-for-byte in lock-step with the
+    client mirror's ``String.toLowerCase()`` (frontend/src/features/renderer/grade.ts), so
+    preview/offline grading never disagrees with the server.
+    """
     if el_type in _TEXT_TYPES and isinstance(value, str):
-        return value.strip().casefold()
+        return value.strip().lower()
     return value
 
 

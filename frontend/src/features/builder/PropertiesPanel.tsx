@@ -202,6 +202,25 @@ export function PropertiesPanel({ element }: { element: Element }) {
               value={typeof element.correctAnswer === "number" ? element.correctAnswer : undefined}
               onChange={(v) => update(name, { correctAnswer: v })}
             />
+          ) : type === "boolean" ? (
+            <div className="prop">
+              <span>Correct answer</span>
+              <select
+                className="select"
+                value={
+                  typeof element.correctAnswer === "boolean" ? String(element.correctAnswer) : ""
+                }
+                onChange={(e) =>
+                  update(name, {
+                    correctAnswer: e.target.value === "" ? undefined : e.target.value === "true",
+                  })
+                }
+              >
+                <option value="">— not graded —</option>
+                <option value="true">Yes / True</option>
+                <option value="false">No / False</option>
+              </select>
+            </div>
           ) : (
             <TextProp
               label="Correct answer"

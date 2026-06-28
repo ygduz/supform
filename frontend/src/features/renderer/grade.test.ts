@@ -57,6 +57,12 @@ describe("grade.ts (client mirror of backend scoring)", () => {
     expect(gradeField(river, "Amazon").correct).toBe(false);
   });
 
+  it("grades a boolean answer key (stored as a real boolean)", () => {
+    const agree = el({ type: "boolean", name: "agree", correctAnswer: true });
+    expect(gradeField(agree, true).correct).toBe(true);
+    expect(gradeField(agree, false).correct).toBe(false);
+  });
+
   it("summarizes a submission, ignoring unanswered + ungraded", () => {
     const g = gradeForm(schema(), { capital: "paris", primes: ["2"], river: "Nile" });
     expect(g.gradedCount).toBe(3);

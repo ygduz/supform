@@ -267,6 +267,51 @@ async def test_quiz_grading_end_to_end(client: httpx.AsyncClient):
 
 
 @pytest.mark.asyncio
+async def test_show_correct_answers_false_hides_grading_in_submit_response(
+    client: httpx.AsyncClient,
+):
+    """With showCorrectAnswers off, the public submit response must not leak the answer key."""
+    owner = await _headers_for(client, "secret-quiz@b.c")
+    proj = await client.post("/api/v1/projects", json={"name": "Q"}, headers=owner)
+    content = {
+        "name": "secret",
+        "title": "Secret quiz",
+        "settings": {"quizMode": True, "showCorrectAnswers": False},
+        "pages": [
+            {
+                "name": "p1",
+                "elements": [
+                    {
+                        "type": "single_choice",
+                        "name": "capital",
+                        "label": "Capital?",
+                        "options": [{"value": "paris", "correct": True}, {"value": "lyon"}],
+                    }
+                ],
+            }
+        ],
+    }
+    form = await client.post(
+        "/api/v1/forms",
+        json={"project_id": proj.json()["id"], "content": content},
+        headers=owner,
+    )
+    form_id = form.json()["id"]
+    await client.post(f"/api/v1/forms/{form_id}/publish", headers=owner)
+
+    sub = await client.post(
+        f"/api/v1/forms/{form_id}/submissions", json={"answers": {"capital": "lyon"}}
+    )
+    assert sub.status_code == 201
+    # Answer key must NOT be present in the public response…
+    assert sub.json()["grading"] is None
+    assert sub.json()["outcome"] is None
+    # …but the owner's authenticated listing still sees the full grading.
+    listed = await client.get(f"/api/v1/forms/{form_id}/submissions", headers=owner)
+    assert listed.json()[0]["grading"]["perField"]["capital"]["correctAnswer"] == ["paris"]
+
+
+@pytest.mark.asyncio
 async def test_file_upload_and_owner_only_download(
     client: httpx.AsyncClient, tmp_path, monkeypatch
 ):
