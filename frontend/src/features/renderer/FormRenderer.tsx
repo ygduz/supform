@@ -1,4 +1,4 @@
-import { ApiError, api } from "@/api/client";
+import { ApiError, type GradingResult, api } from "@/api/client";
 import { Alert, Button } from "@/components";
 import { isNumericType, isPresentationalType } from "@/lib/fieldTypes";
 import { LanguageContext, formLanguages, languageLabel, localize } from "@/lib/i18n";
@@ -6,10 +6,13 @@ import { isNetworkError, queueSubmission } from "@/lib/offline";
 import { hasSubmitted, markSubmitted } from "@/lib/submissionToken";
 import type { Element, FormSchema, I18nString } from "@/types/form-schema";
 import type { JSX } from "react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { QuizResults } from "./QuizResults";
 import { evaluate, evaluateBool } from "./expressions";
 import { renderField } from "./fields/registry";
+import { gradeForm } from "./grade";
 import { elementIndex, pipe } from "./piping";
+import { shuffleForDisplay } from "./shuffle";
 import { themeToStyle } from "./theme";
 import { type FieldErrors, validateAnswers, validateElements } from "./validation";
 
@@ -109,6 +112,8 @@ export function FormRenderer({
   });
   const [queuedOffline, setQueuedOffline] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  // Quiz grading result (server-authoritative; client-computed for demo/preview).
+  const [grading, setGrading] = useState<GradingResult | null>(null);
   const [step, setStep] = useState(0);
   const [started, setStarted] = useState(false);
   const startedAt = useRef(new Date().toISOString());
@@ -294,9 +299,14 @@ export function FormRenderer({
 
   // ---- stepped display (paged / one-question-per-screen) ----
   const settings = schema.settings;
+  // A presentation copy with questions/options shuffled per settings (seeded once per session
+  // so the order is stable while filling in). Answers are keyed by name/value, so this only
+  // affects display — validation, scoring, and submit all use the original `schema`.
+  const shuffleSeed = useRef(Math.floor(Math.random() * 1_000_000_000));
+  const displaySchema = useMemo(() => shuffleForDisplay(schema, shuffleSeed.current), [schema]);
   const mode: DisplayMode =
     (settings?.displayMode as DisplayMode) ?? (schema.pages.length > 1 ? "paged" : "single");
-  const visiblePages = schema.pages.filter((p) => evaluateBool(p.visibleIf, answers));
+  const visiblePages = displaySchema.pages.filter((p) => evaluateBool(p.visibleIf, answers));
 
   let steps: Step[];
   if (mode === "paged" && visiblePages.length > 1) {
@@ -415,12 +425,17 @@ export function FormRenderer({
     setErrors({});
 
     if (isLocal) {
+      if (settings?.quizMode) setGrading(gradeForm(schema, answers));
       setSubmitted(true);
       return;
     }
     setSubmitting(true);
     try {
-      await api.submit(formId, answers, { _started_at: startedAt.current });
+      const result = await api.submit(formId, answers, { _started_at: startedAt.current });
+      if (settings?.quizMode) {
+        // Prefer the server's authoritative grading; fall back to the client mirror.
+        setGrading(result?.grading ?? gradeForm(schema, answers));
+      }
       if (schema.settings?.allowMultipleSubmissions === false) {
         markSubmitted(formId);
       }
@@ -450,11 +465,14 @@ export function FormRenderer({
   const hasWelcome = Boolean(settings?.welcomeTitle || settings?.welcomeMessage);
 
   // Quiz scoring: pick the matching outcome band; its redirect (if any) wins.
-  const quizScore = settings?.quizMode ? scoreFor(schema, answers) : null;
-  const outcome =
-    quizScore !== null
-      ? (settings?.outcomes ?? []).find((o) => quizScore >= o.min && quizScore <= o.max)
-      : undefined;
+  // Correct-answer quizzes match outcomes on earned points; option-score quizzes on the
+  // additive total. `grading` is set after submit (server-authoritative, client for preview).
+  const additiveScore = settings?.quizMode ? scoreFor(schema, answers) : null;
+  const showResults = Boolean(grading && grading.gradedCount > 0);
+  const outcomeScore = showResults && grading ? grading.earnedPoints : (additiveScore ?? 0);
+  const outcome = settings?.quizMode
+    ? (settings?.outcomes ?? []).find((o) => outcomeScore >= o.min && outcomeScore <= o.max)
+    : undefined;
   const redirectUrl = outcome?.redirectUrl ?? settings?.redirectUrl;
 
   // After a successful (online) submit, optionally bounce to the configured URL.
@@ -503,9 +521,9 @@ export function FormRenderer({
               ✓
             </div>
             <h2 className="confirmation-title">{L(settings?.confirmationTitle) || "Thank you!"}</h2>
-            {settings?.quizMode && (
+            {settings?.quizMode && !showResults && additiveScore !== null && (
               <p className="quiz-score">
-                Your score: <strong>{quizScore}</strong>
+                Your score: <strong>{additiveScore}</strong>
               </p>
             )}
             <p>
@@ -513,6 +531,9 @@ export function FormRenderer({
                 L(settings?.confirmationMessage) ||
                 "Your response was recorded."}
             </p>
+            {showResults && grading && settings?.showCorrectAnswers !== false && (
+              <QuizResults schema={schema} answers={answers} grading={grading} L={L} />
+            )}
             {redirectUrl && !isLocal ? (
               <span className="muted redirect-note">Redirecting…</span>
             ) : (
