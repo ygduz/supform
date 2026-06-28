@@ -48,6 +48,34 @@ class Submission(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         return (self.metadata_ or {}).get("_score")
 
     @property
+    def grading(self) -> dict | None:
+        """Correct-answer grading summary (earned/max points, per-question), or None."""
+        return (self.metadata_ or {}).get("_grading")
+
+    @property
+    def max_score(self) -> float | None:
+        """Total achievable points across graded questions (None if not graded)."""
+        g = self.grading
+        return g.get("maxPoints") if g else None
+
+    @property
+    def correct_count(self) -> int | None:
+        """Number of graded questions answered correctly (None if not graded)."""
+        g = self.grading
+        return g.get("correctCount") if g else None
+
+    @property
+    def graded_count(self) -> int | None:
+        """Number of graded questions (None if not graded)."""
+        g = self.grading
+        return g.get("gradedCount") if g else None
+
+    @property
+    def outcome(self) -> dict | None:
+        """Matched outcome band {message, redirectUrl} for a quiz (or None)."""
+        return (self.metadata_ or {}).get("_outcome")
+
+    @property
     def quality_flags(self) -> list[str]:
         """Data quality flags set at submit time (empty list = no issues detected)."""
         return (self.metadata_ or {}).get("_quality_flags", [])

@@ -193,6 +193,80 @@ async def test_response_limit_enforced(client: httpx.AsyncClient):
 
 
 @pytest.mark.asyncio
+async def test_accepting_responses_master_switch(client: httpx.AsyncClient):
+    owner = await _headers_for(client, "accept-owner@b.c")
+    form_id = await _publish_form_with_settings(client, owner, {"acceptingResponses": False})
+    r = await client.post(f"/api/v1/forms/{form_id}/submissions", json={"answers": {"q1": "x"}})
+    assert r.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_open_date_blocks_early_submission(client: httpx.AsyncClient):
+    owner = await _headers_for(client, "open-owner@b.c")
+    form_id = await _publish_form_with_settings(client, owner, {"openDate": "2999-01-01T00:00:00Z"})
+    r = await client.post(f"/api/v1/forms/{form_id}/submissions", json={"answers": {"q1": "x"}})
+    assert r.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_quiz_grading_end_to_end(client: httpx.AsyncClient):
+    """A graded quiz submission is scored server-side and surfaced on the submission."""
+    owner = await _headers_for(client, "quiz-owner@b.c")
+    proj = await client.post("/api/v1/projects", json={"name": "Q"}, headers=owner)
+    content = {
+        "name": "exam",
+        "title": "Exam",
+        "settings": {
+            "quizMode": True,
+            "outcomes": [{"min": 2, "max": 99, "message": "Pass"}],
+        },
+        "pages": [
+            {
+                "name": "p1",
+                "elements": [
+                    {
+                        "type": "single_choice",
+                        "name": "capital",
+                        "label": "Capital of France?",
+                        "points": 2,
+                        "options": [{"value": "paris", "correct": True}, {"value": "lyon"}],
+                    },
+                    {
+                        "type": "text",
+                        "name": "river",
+                        "label": "Longest river?",
+                        "correctAnswer": "Nile",
+                    },
+                ],
+            }
+        ],
+    }
+    form = await client.post(
+        "/api/v1/forms",
+        json={"project_id": proj.json()["id"], "content": content},
+        headers=owner,
+    )
+    form_id = form.json()["id"]
+    await client.post(f"/api/v1/forms/{form_id}/publish", headers=owner)
+
+    # One right (capital, 2 pts), one wrong (river) → 2/3 points, 1/2 correct.
+    sub = await client.post(
+        f"/api/v1/forms/{form_id}/submissions",
+        json={"answers": {"capital": "paris", "river": "Amazon"}},
+    )
+    assert sub.status_code == 201
+    body = sub.json()
+    # These options carry `correct` flags (not additive `score`), so _score is 0; the graded
+    # result is surfaced via the grading fields and drives outcome matching.
+    assert body["score"] == 0
+    assert body["max_score"] == 3
+    assert body["correct_count"] == 1
+    assert body["graded_count"] == 2
+    assert body["grading"]["earnedPoints"] == 2
+    assert body["outcome"]["message"] == "Pass"
+
+
+@pytest.mark.asyncio
 async def test_file_upload_and_owner_only_download(
     client: httpx.AsyncClient, tmp_path, monkeypatch
 ):
