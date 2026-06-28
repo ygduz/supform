@@ -64,7 +64,15 @@ async def submit(
     form = await forms_service.get_form(db, form_id)
     await webhooks_service.dispatch_submission_event(db, form, submission)
     await notifications_service.dispatch_submission_notification(db, form, submission)
-    return submission
+
+    # Don't leak the answer key to respondents when the quiz hides graded results: the
+    # per-question grading carries each question's correctAnswer. Owners still see it via the
+    # authenticated list endpoint; this only trims the public submit response.
+    out = SubmissionOut.model_validate(submission)
+    schema = await forms_service.get_published_schema(db, form_id)
+    if not schema.settings.show_correct_answers:
+        out = out.model_copy(update={"grading": None, "outcome": None})
+    return out
 
 
 @router.get("/forms/{form_id}/submissions", response_model=list[SubmissionOut])

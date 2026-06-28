@@ -9,6 +9,9 @@ import { FormRenderer } from "./FormRenderer";
 const isClosed = (closeDate?: string): boolean =>
   closeDate ? new Date(closeDate).getTime() < Date.now() : false;
 
+const isNotYetOpen = (openDate?: string): boolean =>
+  openDate ? new Date(openDate).getTime() > Date.now() : false;
+
 /**
  * Loads a published form schema by id and renders it for a respondent.
  *
@@ -57,6 +60,22 @@ export function RendererPage() {
     );
 
   const settings = data.settings;
+  if (settings?.acceptingResponses === false) {
+    return (
+      <section className="form-gate">
+        <h1>{localize(data.title) || "Form"}</h1>
+        <p className="muted">This form is not currently accepting responses.</p>
+      </section>
+    );
+  }
+  if (isNotYetOpen(settings?.openDate)) {
+    return (
+      <section className="form-gate">
+        <h1>{localize(data.title) || "Form"}</h1>
+        <p className="muted">This form is not open for responses yet.</p>
+      </section>
+    );
+  }
   if (isClosed(settings?.closeDate)) {
     return (
       <section className="form-gate">

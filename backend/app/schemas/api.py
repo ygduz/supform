@@ -181,6 +181,11 @@ class SubmissionOut(BaseModel):
     validation_status: str | None = None
     workflow_step: str | None = None
     score: float | None = None
+    max_score: float | None = None
+    correct_count: int | None = None
+    graded_count: int | None = None
+    grading: dict[str, Any] | None = None
+    outcome: dict[str, Any] | None = None
     quality_flags: list[str] = []
     started_at: str | None = None
     form_title: str | None = None

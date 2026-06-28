@@ -32,13 +32,20 @@ A page may have a `visibleIf` to skip whole sections.
 ## Settings
 
 `settings` carries form-level behavior and presentation:
-- `displayMode`, `showProgressBar`, `shuffleQuestions`
-- collection: `requireLogin`, `allowMultipleSubmissions`, `closeDate`, `maxResponses`
-- copy: `submitButtonText`, `confirmationMessage` (i18n)
+- `displayMode`, `showProgressBar`, `shuffleQuestions`, `shuffleOptions` — `shuffle*` randomize
+  question / option order per respondent (display-only; storage & grading are unaffected).
+- collection: `requireLogin`, `allowMultipleSubmissions`, `acceptingResponses`, `openDate`,
+  `closeDate`, `maxResponses`. `acceptingResponses: false` is a master off switch; `openDate` /
+  `closeDate` bound the response window. All three are enforced server-side at submit time.
+- copy: `submitButtonText`, `confirmationTitle`, `confirmationMessage` (i18n)
 - `welcomeTitle` / `welcomeMessage` (i18n) — an optional welcome screen shown before the
   first step in `paged` / `oneQuestionPerScreen` modes.
 - `redirectUrl` — send the respondent here after submitting (auto-redirect from the
   thank-you screen).
+- `notifyEmails` — addresses emailed on each new submission.
+- `workflowSteps` — named stages for the review/approval workflow.
+- quiz: `quizMode`, `showCorrectAnswers`, `outcomes` (see [Quizzes](#quizzes)).
+- `qualityChecks` — `{ minDurationSeconds, expectedGeoBbox }` thresholds for automated flags.
 
 ## Elements
 
@@ -57,6 +64,7 @@ Every field/block is an **element**. The required keys are `type` and `name`.
 | `rows` / `columns` | For `matrix`. |
 | `elements` | Children for `group` / `repeat`. |
 | `repeat` | `{min, max, addButtonText}` for repeating groups. |
+| `points` / `correctAnswer` / `feedback` | Quiz grading (see [Quizzes](#quizzes)). |
 | `meta` | Open bag for UI-only or custom metadata (never rejected). |
 
 ### Core element types
@@ -66,14 +74,17 @@ Every field/block is an **element**. The required keys are `type` and `name`.
 | Text | `text`, `longtext`, `email`, `url`, `phone` |
 | Numeric | `number`, `integer`, `decimal` |
 | Choice | `single_choice`, `multi_choice`, `dropdown`, `ranking`, `rating`, `scale` |
-| Date/bool | `date`, `time`, `datetime`, `boolean` |
+| Date/bool | `date`, `time`, `datetime`, `date_range`, `boolean` |
 | Complex | `matrix`, `group`, `repeat` |
-| Media | `file`, `image`, `signature`, `geopoint`, `barcode` |
-| Derived/layout | `calculated`, `note`, `section`, `html` |
+| Media/geo | `file`, `image`, `signature`, `address`, `geopoint`, `geotrace`, `geoshape`, `barcode` |
+| Metadata | `start`, `end`, `today`, `deviceid`, `username` (auto-captured) |
+| Derived/layout | `calculated`, `hidden`, `note`, `section`, `html` |
 
 The set is intentionally **open** — the engine treats unknown types as generic value
-fields, and the frontend registry falls back to a text input. Adding a new type is a
-local change in three places (JSON Schema, backend Pydantic, frontend registry).
+fields, and the frontend registry falls back to a text input. The schema contract lives in
+**four** places that must stay in sync (per [`CLAUDE.md`](../CLAUDE.md)): the JSON Schema,
+the backend Pydantic models, the frontend TypeScript types, and the SDK builders — plus the
+frontend renderer registry for a new type's widget.
 
 ## Validation
 
@@ -87,6 +98,44 @@ local change in three places (JSON Schema, backend Pydantic, frontend registry).
   "message": "Custom error text"
 }
 ```
+
+## Quizzes
+
+Set `settings.quizMode: true` to grade responses. Two grading models, usable together:
+
+**Correct-answer grading.** Mark the right answer(s) and award points:
+
+```jsonc
+// a choice question — flag the correct option(s)
+{ "type": "single_choice", "name": "capital", "label": "Capital of France?",
+  "points": 2,                                  // points for a correct answer (default 1)
+  "options": [ { "value": "paris", "correct": true }, { "value": "lyon" } ],
+  "feedback": { "correct": "Oui!", "incorrect": "It's Paris." } }
+
+// a text/number question — give an answer key (text is matched case-insensitively, trimmed)
+{ "type": "text", "name": "river", "label": "Longest river?", "correctAnswer": "Nile" }
+```
+
+Multi-select questions are correct only when the chosen set **exactly** matches the flagged
+options. Grading is computed **server-side** on submit and returned on the submission as
+`grading` (`{ earnedPoints, maxPoints, correctCount, gradedCount, perField }`), plus
+`score` / `max_score` / `correct_count` / `graded_count`.
+
+**Option scores + outcomes.** For weighted/personality-style quizzes, give options a numeric
+`score`; the sum is the `_score`. Map any total to a message with `outcomes`:
+
+```jsonc
+"settings": { "quizMode": true, "outcomes": [
+  { "min": 0, "max": 2, "message": "Keep studying" },
+  { "min": 3, "max": 5, "message": "Great job", "redirectUrl": "/passed" }
+] }
+```
+
+Outcomes match on **earned points** for correct-answer quizzes, otherwise on the additive
+`_score`. Respondents see a graded results breakdown on the thank-you screen unless
+`settings.showCorrectAnswers` is `false`. The dashboard shows a score column and a score
+distribution + per-question correct-rate. From the SDK: `fields.Quiz(...)`, `fields.Outcome(...)`,
+and `fields.Option(value, correct=True, score=N)`.
 
 ## Logic expressions
 

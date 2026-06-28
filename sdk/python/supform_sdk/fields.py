@@ -12,6 +12,10 @@ from typing import Any
 Element = dict[str, Any]
 
 
+# snake_case kwargs that map to camelCase wire keys (quiz grading passthrough).
+_KW_ALIASES = {"correct_answer": "correctAnswer"}
+
+
 def _base(
     type_: str,
     name: str,
@@ -31,7 +35,9 @@ def _base(
         el["visibleIf"] = visible_if
     if hint:
         el["hint"] = hint
-    el.update({k: v for k, v in extra.items() if v is not None})
+    for k, v in extra.items():
+        if v is not None:
+            el[_KW_ALIASES.get(k, k)] = v
     return el
 
 
@@ -45,6 +51,54 @@ def _options(values: list[Any]) -> list[dict[str, Any]]:
         else:
             out.append({"value": v, "label": str(v)})
     return out
+
+
+def Option(
+    value: Any,
+    label: str | None = None,
+    *,
+    score: float | None = None,
+    correct: bool | None = None,
+) -> dict[str, Any]:
+    """A choice option, optionally carrying a quiz ``score`` and/or ``correct`` flag.
+
+    Pass these into any choice builder's ``options`` list, e.g.
+    ``SingleChoice("q", options=[Option("a", correct=True), Option("b")])``.
+    """
+    opt: dict[str, Any] = {"value": value}
+    if label is not None:
+        opt["label"] = label
+    if score is not None:
+        opt["score"] = score
+    if correct is not None:
+        opt["correct"] = correct
+    return opt
+
+
+def Outcome(
+    *, min: float, max: float, message: str, redirect_url: str | None = None
+) -> dict[str, Any]:
+    """A quiz outcome band: shown on the thank-you screen when the score is in [min, max]."""
+    o: dict[str, Any] = {"min": min, "max": max, "message": message}
+    if redirect_url is not None:
+        o["redirectUrl"] = redirect_url
+    return o
+
+
+def Quiz(
+    *,
+    show_correct_answers: bool = True,
+    outcomes: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    """Return quiz ``settings`` for ``Form(..., settings={**Quiz(...)})``.
+
+    Enables ``quizMode`` and (by default) shows graded results to respondents. Combine with
+    per-question ``points`` / ``correctAnswer`` / ``feedback`` and per-``Option`` ``correct`` flags.
+    """
+    s: dict[str, Any] = {"quizMode": True, "showCorrectAnswers": show_correct_answers}
+    if outcomes:
+        s["outcomes"] = list(outcomes)
+    return s
 
 
 def Text(name: str, *, max_length: int | None = None, **kw: Any) -> Element:

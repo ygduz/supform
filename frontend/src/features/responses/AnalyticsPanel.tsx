@@ -4,11 +4,15 @@ import { useMemo } from "react";
 import {
   completionTimeStats,
   numericStats,
+  perQuestionCorrectRate,
   responsesByDay,
+  scoreStats,
   summaryStats,
   textResponses,
 } from "./analytics";
 import { buildSummaries } from "./columns";
+
+const round1 = (n: number): string => (Math.round(n * 10) / 10).toString();
 
 const FLAG_LABELS: Record<string, string> = {
   too_fast: "Too fast",
@@ -30,6 +34,8 @@ export function AnalyticsPanel({
   const numeric = useMemo(() => numericStats(schema, rows), [schema, rows]);
   const texts = useMemo(() => textResponses(schema, rows), [schema, rows]);
   const byDay = useMemo(() => responsesByDay(rows), [rows]);
+  const scores = useMemo(() => scoreStats(schema, rows), [schema, rows]);
+  const correctRates = useMemo(() => perQuestionCorrectRate(schema, rows), [schema, rows]);
 
   const peak = byDay.reduce((m, d) => Math.max(m, d.count), 0);
 
@@ -84,6 +90,103 @@ export function AnalyticsPanel({
             <span>{byDay[0].date}</span>
             <span>{byDay[byDay.length - 1].date}</span>
           </div>
+        </div>
+      )}
+
+      {/* ── Quiz scores ───────────────────────────────────────────────── */}
+      {scores && (
+        <div className="analytics-card">
+          <h3>Scores</h3>
+          <table className="stats-table">
+            <thead>
+              <tr>
+                <th>Responses</th>
+                <th>Average</th>
+                <th>Median</th>
+                <th>Lowest</th>
+                <th>Highest</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>{scores.count}</td>
+                <td>
+                  {round1(scores.mean)}
+                  {scores.maxPossible ? ` / ${scores.maxPossible}` : ""}
+                </td>
+                <td>{round1(scores.median)}</td>
+                <td>{round1(scores.min)}</td>
+                <td>{round1(scores.max)}</td>
+              </tr>
+            </tbody>
+          </table>
+          {scores.histogram.length > 0 && (
+            <ul className="bar-list" style={{ marginTop: "0.75rem" }}>
+              {scores.histogram.map((b) => {
+                const pct = scores.count > 0 ? Math.round((b.count / scores.count) * 100) : 0;
+                return (
+                  <li key={b.label}>
+                    <div className="bar-head">
+                      <span>{b.label}</span>
+                      <span className="muted">
+                        {b.count} · {pct}%
+                      </span>
+                    </div>
+                    <div className="bar-track">
+                      <div className="bar-fill" style={{ width: `${pct}%` }} />
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+          {scores.outcomes.length > 0 && (
+            <div style={{ marginTop: "0.75rem" }}>
+              <p className="muted" style={{ marginBottom: "0.5rem" }}>
+                By outcome
+              </p>
+              <ul className="bar-list">
+                {scores.outcomes.map((o) => {
+                  const pct = scores.count > 0 ? Math.round((o.count / scores.count) * 100) : 0;
+                  return (
+                    <li key={o.label}>
+                      <div className="bar-head">
+                        <span>{o.label}</span>
+                        <span className="muted">
+                          {o.count} · {pct}%
+                        </span>
+                      </div>
+                      <div className="bar-track">
+                        <div className="bar-fill" style={{ width: `${pct}%` }} />
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── Per-question correct rate (quiz) ──────────────────────────── */}
+      {correctRates.length > 0 && (
+        <div className="analytics-card">
+          <h3>Correct rate by question</h3>
+          <ul className="bar-list">
+            {correctRates.map((q) => (
+              <li key={q.name}>
+                <div className="bar-head">
+                  <span>{q.label}</span>
+                  <span className="muted">
+                    {q.correct}/{q.total} · {q.rate}%
+                  </span>
+                </div>
+                <div className="bar-track">
+                  <div className="bar-fill" style={{ width: `${q.rate}%` }} />
+                </div>
+              </li>
+            ))}
+          </ul>
         </div>
       )}
 

@@ -22,6 +22,9 @@ export function PropertiesPanel({ element }: { element: Element }) {
   const defaultLang = store.schema.defaultLanguage ?? "en";
 
   const canRequire = !isPresentationalType(type) && !isContainerType(type) && type !== "calculated";
+  const quizMode = Boolean(store.schema.settings?.quizMode);
+  // Questions that can carry a correct answer / points when quiz mode is on.
+  const gradable = quizMode && canRequire;
 
   const setValidation = (patch: Partial<Validation>) =>
     update(name, { validation: { ...(element.validation ?? {}), ...patch } });
@@ -100,7 +103,15 @@ export function PropertiesPanel({ element }: { element: Element }) {
                 ? (i, score) => store.updateOption(name, i, { score })
                 : undefined
             }
+            onCorrect={
+              store.schema.settings?.quizMode
+                ? (i, correct) => store.updateOption(name, i, { correct: correct || undefined })
+                : undefined
+            }
           />
+          {store.schema.settings?.quizMode && (
+            <p className="prop-caption">✓ marks a correct answer · pts = score for choosing it</p>
+          )}
         </fieldset>
       )}
 
@@ -176,6 +187,73 @@ export function PropertiesPanel({ element }: { element: Element }) {
               }
             />
           </div>
+        </fieldset>
+      )}
+
+      {/* Quiz grading (quiz mode only) */}
+      {gradable && (
+        <fieldset className="prop-fieldset">
+          <legend>Quiz</legend>
+          {hasOptionList(type) ? (
+            <p className="prop-caption">Mark the correct option(s) with ✓ in Choices above.</p>
+          ) : NUMERIC.has(type) ? (
+            <NumberProp
+              label="Correct answer"
+              value={typeof element.correctAnswer === "number" ? element.correctAnswer : undefined}
+              onChange={(v) => update(name, { correctAnswer: v })}
+            />
+          ) : type === "boolean" ? (
+            <div className="prop">
+              <span>Correct answer</span>
+              <select
+                className="select"
+                value={
+                  typeof element.correctAnswer === "boolean" ? String(element.correctAnswer) : ""
+                }
+                onChange={(e) =>
+                  update(name, {
+                    correctAnswer: e.target.value === "" ? undefined : e.target.value === "true",
+                  })
+                }
+              >
+                <option value="">— not graded —</option>
+                <option value="true">Yes / True</option>
+                <option value="false">No / False</option>
+              </select>
+            </div>
+          ) : (
+            <TextProp
+              label="Correct answer"
+              value={typeof element.correctAnswer === "string" ? element.correctAnswer : ""}
+              placeholder="Exact expected answer (case-insensitive)"
+              onChange={(v) => update(name, { correctAnswer: v || undefined })}
+            />
+          )}
+          <NumberProp
+            label="Points"
+            value={element.points}
+            onChange={(v) => update(name, { points: v })}
+          />
+          <I18nProp
+            label="Feedback if correct"
+            value={element.feedback?.correct}
+            languages={languages}
+            defaultLang={defaultLang}
+            placeholder="Shown on the results screen"
+            onChange={(v) =>
+              update(name, { feedback: pruneFeedback({ ...element.feedback, correct: v }) })
+            }
+          />
+          <I18nProp
+            label="Feedback if incorrect"
+            value={element.feedback?.incorrect}
+            languages={languages}
+            defaultLang={defaultLang}
+            placeholder="Shown on the results screen"
+            onChange={(v) =>
+              update(name, { feedback: pruneFeedback({ ...element.feedback, incorrect: v }) })
+            }
+          />
         </fieldset>
       )}
 
@@ -274,6 +352,14 @@ export function PropertiesPanel({ element }: { element: Element }) {
 /** Derive a stable option/row/column value from its edited label. */
 function choiceFrom(label: string): Partial<Choice> {
   return { label, value: label.toLowerCase().replace(/\s+/g, "_") };
+}
+
+/** Drop an all-empty feedback object so it isn't persisted as `{}`. */
+function pruneFeedback(f: {
+  correct?: I18nString;
+  incorrect?: I18nString;
+}): { correct?: I18nString; incorrect?: I18nString } | undefined {
+  return f.correct || f.incorrect ? f : undefined;
 }
 
 function TextProp(props: {
@@ -393,12 +479,24 @@ function ListEditor(props: {
   onRemove: (index: number) => void;
   /** When set, show a per-option score input (quiz mode). */
   onScore?: (index: number, score: number | undefined) => void;
+  /** When set, show a per-option "correct answer" checkbox (quiz mode grading). */
+  onCorrect?: (index: number, correct: boolean) => void;
 }) {
   return (
     <div className="prop">
       <span>{props.title}</span>
       {props.items.map((item, i) => (
         <div className="option-row" key={`${props.title}-${String(item.value)}-${i}`}>
+          {props.onCorrect && (
+            <label className="option-correct" title="Mark as a correct answer">
+              <input
+                type="checkbox"
+                checked={item.correct === true}
+                onChange={(e) => props.onCorrect?.(i, e.target.checked)}
+                aria-label="Correct answer"
+              />
+            </label>
+          )}
           <input
             type="text"
             value={localize(item.label) || String(item.value)}

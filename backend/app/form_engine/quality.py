@@ -124,17 +124,17 @@ def run_quality_checks(
         now = datetime.now(UTC)
 
     flags: list[str] = []
-    qc = schema.settings.quality_checks or {}
+    qc = schema.settings.quality_checks
     elements = _all_elements(schema)
 
-    min_seconds: int = qc.get("minDurationSeconds", 30)  # type: ignore[assignment]
+    min_seconds = qc.min_duration_seconds if qc and qc.min_duration_seconds is not None else 30
     if _check_too_fast(metadata, now, min_seconds):
         flags.append("too_fast")
 
     if _check_straight_lining(elements, answers):
         flags.append("straight_lining")
 
-    bbox = qc.get("expectedGeoBbox")
+    bbox = qc.expected_geo_bbox if qc else None
     if bbox and _check_geo_outlier(elements, answers, list(bbox)):
         flags.append("geo_outlier")
 
