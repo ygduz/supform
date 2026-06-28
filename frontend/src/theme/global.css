@@ -3572,6 +3572,21 @@ body,
 .option-score {
   width: 64px;
 }
+.option-correct {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+.option-correct input {
+  width: auto;
+  margin: 0;
+}
+/* Canvas cue: ✓ next to a correct option in quiz mode */
+.pv-correct {
+  margin-left: 6px;
+  color: var(--accent-teal, #0d9488);
+  font-weight: 700;
+}
 .quiz-score {
   font-size: 18px;
 }
