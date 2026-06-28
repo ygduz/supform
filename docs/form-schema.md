@@ -155,12 +155,16 @@ not consent
 
 - Identifiers resolve to other fields' values by `name` (missing → `null`/`None`).
 - Operators: `+ - * / % **`, `== != < <= > >=`, `in`, `and or not`.
-- Helper functions: `selected`, `count`/`len`, `min`, `max`, `abs`, `round`, casts.
+- **Excel-style functions** — `IF`, `SUM`, `ROUND`, `CONCAT`, `VLOOKUP`-style `LOOKUP`,
+  and ~40 more (case-insensitive). Full catalog and examples in
+  [`docs/formulas.md`](./formulas.md).
 - **No** attribute access, arbitrary calls, imports, or comprehensions — evaluated via a
   vetted AST walker, never `eval`.
 
-The same grammar is intended to run client-side for live interactivity; the server is
-always authoritative (it re-validates and recomputes every submission).
+Calculated fields recompute in **dependency order** (a formula may reference a field
+defined later in the form); circular references are detected and reported. The same
+catalog runs client-side for live interactivity, but the server is always authoritative
+(it re-validates and recomputes every submission).
 
 ## Submissions
 

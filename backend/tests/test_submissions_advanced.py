@@ -380,3 +380,53 @@ def test_hidden_field_value_passes_through_unvalidated() -> None:
     assert result.cleaned["utm_source"] == "newsletter"
     # And it's fine when absent.
     assert validate_submission(form, {}).is_valid
+
+
+# ------------------------------------------------------------------ recalc (dependency graph)
+
+
+def test_calc_resolves_out_of_order_references() -> None:
+    # `total` references `tax`, which is defined *after* it — topological recalc resolves it.
+    form = _form(
+        [
+            {"type": "calculated", "name": "total", "calculate": "subtotal + tax"},
+            {"type": "number", "name": "subtotal"},
+            {"type": "calculated", "name": "tax", "calculate": "subtotal * 0.1"},
+        ]
+    )
+    result = validate_submission(form, {"subtotal": 100})
+    assert result.is_valid
+    assert result.cleaned["tax"] == 10.0
+    assert result.cleaned["total"] == 110.0
+
+
+def test_calc_uses_excel_functions() -> None:
+    form = _form(
+        [
+            {"type": "number", "name": "a"},
+            {"type": "number", "name": "b"},
+            {
+                "type": "calculated",
+                "name": "verdict",
+                "calculate": 'IF(SUM(a, b) >= 10, "pass", "fail")',
+            },
+        ]
+    )
+    result = validate_submission(form, {"a": 7, "b": 5})
+    assert result.cleaned["verdict"] == "pass"
+
+
+def test_circular_calc_is_flagged_and_left_unset() -> None:
+    from app.form_engine.schema import validate_form
+
+    form = _form(
+        [
+            {"type": "calculated", "name": "x", "calculate": "y + 1"},
+            {"type": "calculated", "name": "y", "calculate": "x + 1"},
+        ]
+    )
+    issues = validate_form(form)
+    assert any("Circular" in i.message for i in issues)
+    # Submission must not crash; circular fields are simply not stored.
+    result = validate_submission(form, {})
+    assert "x" not in result.cleaned and "y" not in result.cleaned

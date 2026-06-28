@@ -12,6 +12,7 @@ import { evaluate, evaluateBool } from "./expressions";
 import { renderField } from "./fields/registry";
 import { gradeForm } from "./grade";
 import { elementIndex, pipe } from "./piping";
+import { recalc } from "./recalc";
 import { shuffleForDisplay } from "./shuffle";
 import { themeToStyle } from "./theme";
 import { type FieldErrors, validateAnswers, validateElements } from "./validation";
@@ -257,7 +258,9 @@ export function FormRenderer({
     }
 
     if (el.type === "calculated") {
-      const computed = el.calculate ? evaluate(el.calculate, answers) : undefined;
+      const computed = el.calculate
+        ? ((derived[el.name] as number | string | undefined) ?? evaluate(el.calculate, answers))
+        : undefined;
       // Keep the computed value in sync with answers so downstream fields can reference it.
       if (computed !== undefined && answers[el.name] !== computed) {
         // Schedule outside render to avoid setState-during-render.
@@ -304,6 +307,16 @@ export function FormRenderer({
   // affects display — validation, scoring, and submit all use the original `schema`.
   const shuffleSeed = useRef(Math.floor(Math.random() * 1_000_000_000));
   const displaySchema = useMemo(() => shuffleForDisplay(schema, shuffleSeed.current), [schema]);
+  // Calc fields resolved in dependency order (a formula may reference a field defined
+  // later in the form). Mirrors the server; live preview only.
+  const derived = useMemo(
+    () =>
+      recalc(
+        displaySchema.pages.flatMap((p) => p.elements),
+        answers,
+      ).values,
+    [displaySchema, answers],
+  );
   const mode: DisplayMode =
     (settings?.displayMode as DisplayMode) ?? (schema.pages.length > 1 ? "paged" : "single");
   const visiblePages = displaySchema.pages.filter((p) => evaluateBool(p.visibleIf, answers));
