@@ -12,6 +12,7 @@ import { ActivityPanel } from "./ActivityPanel";
 import { BirdsEyePreview } from "./BirdsEyePreview";
 import { BuilderCanvas } from "./BuilderCanvas";
 import { HistoryPanel } from "./HistoryPanel";
+import { InspectorResizer } from "./InspectorResizer";
 import { LogicBuilder } from "./LogicBuilder";
 import { OverviewPanel } from "./OverviewPanel";
 import { PaletteItem } from "./PaletteItem";
@@ -563,6 +564,7 @@ export function BuilderPage() {
 
           {/* Inspector */}
           <aside className={`inspector${inspectorOpen ? "" : " inspector-collapsed"}`}>
+            {inspectorOpen && <InspectorResizer />}
             <button
               type="button"
               className="panel-toggle"
