@@ -266,7 +266,14 @@ export function FormRenderer({
       if (!el.label) return null;
       return (
         <div className="field calculated-field" key={el.name}>
-          <span className="field-label">{P(el.label)}</span>
+          <span className="field-label">
+            {P(el.label)}
+            {el.calculate && (
+              <span className="calc-badge" title={`Calculated: ${el.calculate}`} aria-hidden="true">
+                ƒ
+              </span>
+            )}
+          </span>
           <span className="calculated-value">{computed ?? "—"}</span>
         </div>
       );
