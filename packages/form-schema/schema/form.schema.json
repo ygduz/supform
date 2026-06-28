@@ -64,7 +64,7 @@
         "primaryColor": { "type": "string" },
         "backgroundColor": { "type": "string" },
         "fontFamily": { "type": "string" },
-        "cornerRadius": { "type": "string" },
+        "cornerRadius": { "type": "number", "description": "Corner radius in pixels." },
         "coverImage": { "type": "string" },
         "logo": { "type": "string" }
       }
@@ -80,9 +80,12 @@
           "description": "paged = sections; oneQuestionPerScreen = Typeform-style."
         },
         "showProgressBar": { "type": "boolean", "default": true },
-        "shuffleQuestions": { "type": "boolean", "default": false },
+        "shuffleQuestions": { "type": "boolean", "default": false, "description": "Randomize question order per respondent." },
+        "shuffleOptions": { "type": "boolean", "default": false, "description": "Randomize choice option order per respondent." },
         "allowMultipleSubmissions": { "type": "boolean", "default": true },
         "requireLogin": { "type": "boolean", "default": false },
+        "acceptingResponses": { "type": "boolean", "default": true, "description": "Master switch: when false the form rejects all new responses." },
+        "openDate": { "type": "string", "format": "date-time", "description": "Before this time the form is not yet accepting responses." },
         "closeDate": { "type": "string", "format": "date-time" },
         "maxResponses": { "type": "integer", "minimum": 0, "description": "Stop accepting submissions after this many responses." },
         "submitButtonText": { "$ref": "#/$defs/i18nString" },
@@ -92,7 +95,8 @@
         "welcomeMessage": { "$ref": "#/$defs/i18nString" },
         "redirectUrl": { "type": "string", "description": "Auto-redirect here after submitting." },
         "notifyEmails": { "type": "array", "items": { "type": "string" }, "description": "Emailed on each new submission." },
-        "quizMode": { "type": "boolean", "default": false },
+        "quizMode": { "type": "boolean", "default": false, "description": "Grade responses (correct answers / option scores) and show results." },
+        "showCorrectAnswers": { "type": "boolean", "default": true, "description": "Show respondents their graded results on the thank-you screen (quiz mode)." },
         "outcomes": {
           "type": "array",
           "items": {
@@ -106,7 +110,7 @@
             }
           }
         },
-        "workflow_steps": {
+        "workflowSteps": {
           "type": "array",
           "items": { "type": "string" },
           "default": [],
@@ -226,6 +230,23 @@
             "entryLabel": { "$ref": "#/$defs/i18nString" }
           }
         },
+        "points": {
+          "type": "number",
+          "description": "Quiz mode: points awarded for a correct answer to this question (default 1 when graded)."
+        },
+        "correctAnswer": {
+          "description": "Quiz mode: the correct answer (a value, or an array of values for multi-select). Alternative to per-option 'correct' flags.",
+          "type": ["string", "number", "boolean", "array"]
+        },
+        "feedback": {
+          "type": "object",
+          "description": "Quiz mode: messages shown on the results screen after grading this question.",
+          "additionalProperties": false,
+          "properties": {
+            "correct": { "$ref": "#/$defs/i18nString" },
+            "incorrect": { "$ref": "#/$defs/i18nString" }
+          }
+        },
         "meta": {
           "type": "object",
           "additionalProperties": true,
@@ -242,6 +263,7 @@
         "label": { "$ref": "#/$defs/i18nString" },
         "visibleIf": { "$ref": "#/$defs/expression" },
         "score": { "type": "number", "description": "Points awarded when chosen (quiz mode)." },
+        "correct": { "type": "boolean", "description": "Marks this option as a correct answer (quiz mode grading)." },
         "meta": { "type": "object", "additionalProperties": true }
       }
     },

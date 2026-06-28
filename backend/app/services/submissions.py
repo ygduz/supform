@@ -10,8 +10,9 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import AuthError, PermissionDeniedError, ValidationError
-from app.form_engine import compute_score, validate_submission
+from app.form_engine import compute_score, grade_submission, validate_submission
 from app.form_engine.quality import run_quality_checks
+from app.form_engine.scoring import match_outcome
 from app.models.submission import Submission
 from app.schemas.form_schema import FormSettings
 from app.services.forms import get_form, get_published_schema
@@ -75,6 +76,15 @@ async def create_submission(
     if schema.settings.quiz_mode:
         # Server-computed so a client can't inflate its own score.
         meta["_score"] = compute_score(schema, result.cleaned)
+        grading = grade_submission(schema, result.cleaned)
+        if grading["gradedCount"]:
+            meta["_grading"] = grading
+            outcome_score = grading["earnedPoints"]
+        else:
+            outcome_score = meta["_score"]
+        outcome = match_outcome(schema.settings, outcome_score)
+        if outcome is not None:
+            meta["_outcome"] = {"message": outcome.message, "redirectUrl": outcome.redirect_url}
 
     flags = run_quality_checks(schema, result.cleaned, meta, now)
     if flags:
@@ -102,6 +112,12 @@ async def _enforce_acceptance(
     """Apply a published form's collection settings before a response is stored."""
     if settings.require_login and respondent_id is None:
         raise AuthError("You must sign in to submit this form.")
+
+    if not settings.accepting_responses:
+        raise PermissionDeniedError("This form is not currently accepting responses.")
+
+    if settings.open_date and _is_before(settings.open_date):
+        raise PermissionDeniedError("This form is not open for responses yet.")
 
     if settings.close_date and _is_past(settings.close_date):
         raise PermissionDeniedError("This form is closed and no longer accepting responses.")
@@ -132,3 +148,13 @@ def _is_past(close_date: str) -> bool:
     if dt.tzinfo is None:
         dt = dt.replace(tzinfo=UTC)
     return datetime.now(UTC) > dt
+
+
+def _is_before(open_date: str) -> bool:
+    try:
+        dt = datetime.fromisoformat(open_date.replace("Z", "+00:00"))
+    except ValueError:
+        return False  # an unparseable date never blocks the form
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=UTC)
+    return datetime.now(UTC) < dt

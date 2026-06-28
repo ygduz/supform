@@ -133,6 +133,16 @@ export function SettingsPanel() {
         <span>Allow multiple responses per person</span>
       </label>
 
+      <label className="prop prop-check">
+        <input
+          type="checkbox"
+          checked={settings.acceptingResponses !== false}
+          onChange={(e) => setSettings({ acceptingResponses: e.target.checked })}
+        />
+        <span>Accepting responses</span>
+      </label>
+      <small className="hint">Turn off to immediately stop collecting new responses.</small>
+
       <label className="prop">
         <span>Display mode</span>
         <select
@@ -163,6 +173,34 @@ export function SettingsPanel() {
           onChange={(e) => setSettings({ showProgressBar: e.target.checked })}
         />
         <span>Show progress bar</span>
+      </label>
+
+      <label className="prop prop-check">
+        <input
+          type="checkbox"
+          checked={Boolean(settings.shuffleQuestions)}
+          onChange={(e) => setSettings({ shuffleQuestions: e.target.checked })}
+        />
+        <span>Shuffle question order</span>
+      </label>
+
+      <label className="prop prop-check">
+        <input
+          type="checkbox"
+          checked={Boolean(settings.shuffleOptions)}
+          onChange={(e) => setSettings({ shuffleOptions: e.target.checked })}
+        />
+        <span>Shuffle answer options</span>
+      </label>
+
+      <label className="prop">
+        <span>Open date</span>
+        <input
+          type="datetime-local"
+          value={settings.openDate ?? ""}
+          onChange={(e) => setSettings({ openDate: e.target.value || undefined })}
+        />
+        <small className="hint">Before this time the form is not yet accepting responses.</small>
       </label>
 
       <label className="prop">
@@ -371,10 +409,20 @@ export function SettingsPanel() {
           <span>Score answers (quiz mode)</span>
         </label>
         {settings.quizMode && (
+          <label className="prop prop-check">
+            <input
+              type="checkbox"
+              checked={settings.showCorrectAnswers !== false}
+              onChange={(e) => setSettings({ showCorrectAnswers: e.target.checked })}
+            />
+            <span>Show respondents their graded results</span>
+          </label>
+        )}
+        {settings.quizMode && (
           <div className="prop">
             <span>Outcomes</span>
             <small className="hint">
-              Show a message based on the total score. Set a point value per option in each
+              Show a message based on the total score. Mark correct answers and set points in each
               question's settings.
             </small>
             {outcomes.map((o, i) => (

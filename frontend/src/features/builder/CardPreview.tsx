@@ -54,6 +54,11 @@ export function CardPreview({ element, editable }: { element: Element; editable:
             <li key={String(o.value)}>
               <span className="pv-mark">{element.type === "single_choice" ? "◯" : "☐"}</span>
               {localize(o.label) || String(o.value)}
+              {o.correct && (
+                <span className="pv-correct" title="Correct answer" aria-label="Correct answer">
+                  ✓
+                </span>
+              )}
             </li>
           ))}
         </ul>

@@ -4,6 +4,7 @@
  *
  * Pure functions (no React) so they're easy to unit-test and reuse.
  */
+import type { GradingResult } from "@/api/client";
 import { isNumericType } from "@/lib/fieldTypes";
 import { localize } from "@/lib/i18n";
 import type { Element, FormSchema } from "@/types/form-schema";
@@ -304,4 +305,161 @@ function dayKey(d: Date): string {
   const m = String(d.getMonth() + 1).padStart(2, "0");
   const day = String(d.getDate()).padStart(2, "0");
   return `${y}-${m}-${day}`;
+}
+
+// ── quiz scores ──────────────────────────────────────────────────────────────────
+
+/** A submission as seen by the score analytics (quiz fields are optional on the wire). */
+interface ScoredRow {
+  answers: Record<string, unknown>;
+  score?: number | null;
+  grading?: GradingResult | null;
+}
+
+export interface ScoreStats {
+  count: number;
+  mean: number;
+  median: number;
+  min: number;
+  max: number;
+  maxPossible: number | null;
+  histogram: Array<{ label: string; count: number }>;
+  outcomes: Array<{ label: string; count: number }>;
+}
+
+/** The earned score for one row: graded earned-points when available, else additive score. */
+function rowScore(row: ScoredRow): number | null {
+  if (row.grading && row.grading.gradedCount > 0) return row.grading.earnedPoints;
+  if (typeof row.score === "number") return row.score;
+  return null;
+}
+
+/** Total achievable points across all graded questions in the form (0 if none are graded). */
+function schemaMaxPoints(schema: FormSchema): number {
+  let total = 0;
+  const walk = (els: Element[]) => {
+    for (const el of els) {
+      const graded =
+        (el.correctAnswer !== undefined && el.correctAnswer !== null) ||
+        (el.options ?? []).some((o) => o.correct === true);
+      if (graded) total += typeof el.points === "number" ? el.points : 1;
+      if (el.elements) walk(el.elements);
+    }
+  };
+  for (const p of schema.pages) walk(p.elements);
+  return total;
+}
+
+/**
+ * Aggregate quiz scores across responses: distribution, average, and pass-rate by outcome band.
+ * Returns null when the form isn't a quiz or no response carries a score.
+ */
+export function scoreStats(schema: FormSchema, rows: ScoredRow[]): ScoreStats | null {
+  if (!schema.settings?.quizMode) return null;
+  const scores: number[] = [];
+  for (const row of rows) {
+    const s = rowScore(row);
+    if (s !== null) scores.push(s);
+  }
+  if (scores.length === 0) return null;
+  // The denominator is the full quiz total from the schema — NOT any single respondent's
+  // maxPoints, which varies because unanswered graded questions aren't counted per-response.
+  const maxPossible: number | null = schemaMaxPoints(schema) || null;
+
+  const sorted = [...scores].sort((a, b) => a - b);
+  const sum = scores.reduce((a, b) => a + b, 0);
+  const min = sorted[0];
+  const max = sorted[sorted.length - 1];
+
+  // Histogram: percentage bands when the max is known, else integer-score buckets.
+  const histogram: Array<{ label: string; count: number }> = [];
+  if (maxPossible && maxPossible > 0) {
+    const bands = [
+      { label: "0–20%", lo: 0, hi: 0.2 },
+      { label: "20–40%", lo: 0.2, hi: 0.4 },
+      { label: "40–60%", lo: 0.4, hi: 0.6 },
+      { label: "60–80%", lo: 0.6, hi: 0.8 },
+      { label: "80–100%", lo: 0.8, hi: 1.0001 },
+    ];
+    for (const b of bands) {
+      const count = scores.filter((s) => {
+        const pct = s / maxPossible;
+        return pct >= b.lo && pct < b.hi;
+      }).length;
+      histogram.push({ label: b.label, count });
+    }
+  } else {
+    const buckets = new Map<number, number>();
+    for (const s of scores) buckets.set(s, (buckets.get(s) ?? 0) + 1);
+    for (const key of [...buckets.keys()].sort((a, b) => a - b)) {
+      histogram.push({ label: String(key), count: buckets.get(key) ?? 0 });
+    }
+  }
+
+  // Pass-rate by outcome band (uses the same [min,max] bands the renderer matches on).
+  const outcomes = (schema.settings.outcomes ?? []).map((o) => ({
+    label: localize(o.message) || `${o.min}–${o.max}`,
+    count: scores.filter((s) => s >= o.min && s <= o.max).length,
+  }));
+
+  return {
+    count: scores.length,
+    mean: sum / scores.length,
+    median: median(sorted),
+    min,
+    max,
+    maxPossible,
+    histogram,
+    outcomes,
+  };
+}
+
+export interface QuestionCorrectRate {
+  name: string;
+  label: string;
+  correct: number;
+  total: number;
+  rate: number; // 0–100
+}
+
+/** Per graded question: how many responses got it right (of those that answered it). */
+export function perQuestionCorrectRate(
+  schema: FormSchema,
+  rows: ScoredRow[],
+): QuestionCorrectRate[] {
+  if (!schema.settings?.quizMode) return [];
+  // Graded element names + labels, in schema order.
+  const graded: Array<{ name: string; label: string }> = [];
+  const seen = new Set<string>();
+  const walk = (els: Element[]) => {
+    for (const el of els) {
+      const isGraded =
+        (el.correctAnswer !== undefined && el.correctAnswer !== null) ||
+        (el.options ?? []).some((o) => o.correct === true);
+      if (isGraded && !seen.has(el.name)) {
+        seen.add(el.name);
+        graded.push({ name: el.name, label: elementLabel(el) });
+      }
+      if (el.elements) walk(el.elements);
+    }
+  };
+  for (const p of schema.pages) walk(p.elements);
+
+  return graded.map(({ name, label }) => {
+    let correct = 0;
+    let total = 0;
+    for (const row of rows) {
+      const fg = row.grading?.perField?.[name];
+      if (!fg) continue;
+      total++;
+      if (fg.correct) correct++;
+    }
+    return {
+      name,
+      label,
+      correct,
+      total,
+      rate: total > 0 ? Math.round((correct / total) * 100) : 0,
+    };
+  });
 }

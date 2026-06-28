@@ -62,7 +62,15 @@ export interface Choice {
   visibleIf?: Expression;
   /** Points awarded when this option is chosen (quiz mode). */
   score?: number;
+  /** Marks this option as a correct answer (quiz mode grading). */
+  correct?: boolean;
   meta?: Record<string, unknown>;
+}
+
+/** Quiz mode: messages shown on the results screen after grading a question. */
+export interface Feedback {
+  correct?: I18nString;
+  incorrect?: I18nString;
 }
 
 /** A scored-result band shown on the thank-you screen when the score falls in [min, max]. */
@@ -112,6 +120,12 @@ export interface Element {
   columns?: Choice[];
   elements?: Element[];
   repeat?: RepeatSettings;
+  /** Quiz mode: points for a correct answer to this question (default 1 when graded). */
+  points?: number;
+  /** Quiz mode: the correct answer — a value, or an array of values for multi-select. */
+  correctAnswer?: string | number | boolean | Array<string | number | boolean>;
+  /** Quiz mode: feedback messages shown on the results screen. */
+  feedback?: Feedback;
   meta?: Record<string, unknown>;
 }
 
@@ -144,9 +158,16 @@ export interface Theme {
 export interface FormSettings {
   displayMode?: "paged" | "single" | "oneQuestionPerScreen";
   showProgressBar?: boolean;
+  /** Randomize question order per respondent. */
   shuffleQuestions?: boolean;
+  /** Randomize choice option order per respondent. */
+  shuffleOptions?: boolean;
   allowMultipleSubmissions?: boolean;
   requireLogin?: boolean;
+  /** Master switch: when false the form rejects all new responses. */
+  acceptingResponses?: boolean;
+  /** Before this datetime the form is not yet accepting responses. */
+  openDate?: string;
   closeDate?: string;
   maxResponses?: number;
   submitButtonText?: I18nString;
@@ -160,8 +181,10 @@ export interface FormSettings {
   redirectUrl?: string;
   /** Email addresses notified on each new submission. */
   notifyEmails?: string[];
-  /** Score selected-option points and show an outcome on the thank-you screen. */
+  /** Grade responses (correct answers / option scores) and show results. */
   quizMode?: boolean;
+  /** Show respondents their graded results on the thank-you screen (quiz mode). */
+  showCorrectAnswers?: boolean;
   outcomes?: Outcome[];
   qualityChecks?: QualityChecks;
   workflowSteps?: string[];

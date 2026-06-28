@@ -68,6 +68,23 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
 
 export type ValidationStatus = "approved" | "not_approved" | "on_hold";
 
+/** Per-question quiz grading result for one field. */
+export interface FieldGrade {
+  correct: boolean;
+  earned: number;
+  points: number;
+  correctAnswer: unknown[];
+}
+
+/** Server (or client-mirrored) quiz grading summary for a submission. */
+export interface GradingResult {
+  earnedPoints: number;
+  maxPoints: number;
+  correctCount: number;
+  gradedCount: number;
+  perField: Record<string, FieldGrade>;
+}
+
 export interface SubmissionRow {
   id: string;
   form_id: string;
@@ -80,6 +97,13 @@ export interface SubmissionRow {
   started_at?: string;
   read_at?: string | null;
   form_title?: string | null;
+  // quiz grading (present only for quiz-mode forms)
+  score?: number | null;
+  max_score?: number | null;
+  correct_count?: number | null;
+  graded_count?: number | null;
+  grading?: GradingResult | null;
+  outcome?: { message?: unknown; redirectUrl?: string | null } | null;
 }
 
 /** Reference a file field stores as its answer after upload. */
@@ -286,7 +310,7 @@ export const api = {
 
   // submissions
   submit: (formId: string, answers: Record<string, unknown>, metadata?: Record<string, unknown>) =>
-    request(`/api/v1/forms/${formId}/submissions`, {
+    request<SubmissionRow>(`/api/v1/forms/${formId}/submissions`, {
       method: "POST",
       body: JSON.stringify({ answers, metadata: metadata ?? {} }),
     }),
