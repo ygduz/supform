@@ -199,6 +199,14 @@ export function ResponsesPage() {
   }, [formId]);
 
   const columns = useMemo(() => (schema ? buildColumns(schema) : []), [schema]);
+  const quizMode = Boolean(schema?.settings?.quizMode);
+  /** Display a submission's quiz score as "earned/max" (graded) or the additive score. */
+  const scoreText = (row: SubmissionRow): string => {
+    const g = row.grading;
+    if (g && g.gradedCount > 0) return `${g.earnedPoints}/${g.maxPoints}`;
+    if (typeof row.score === "number") return String(row.score);
+    return "—";
+  };
   const hasMedia = useMemo(
     () =>
       !!schema &&
@@ -490,6 +498,7 @@ export function ResponsesPage() {
                       <th>Status</th>
                       <th>Flags</th>
                       <th>Submitted</th>
+                      {quizMode && <th>Score</th>}
                       {columns.map((col) => (
                         <th key={col.key}>{col.label}</th>
                       ))}
@@ -536,6 +545,7 @@ export function ResponsesPage() {
                           ))}
                         </td>
                         <td className="muted">{new Date(row.created_at).toLocaleString()}</td>
+                        {quizMode && <td className="score-cell">{scoreText(row)}</td>}
                         {columns.map((col) => (
                           <td key={col.key}>{col.value(row.answers)}</td>
                         ))}
