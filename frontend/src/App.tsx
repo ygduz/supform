@@ -73,12 +73,18 @@ function Shell() {
         <nav>
           {authed ? (
             <>
-              <Link to="/forms">My forms</Link>
-              <Link to="/templates">Templates</Link>
-              <Link to="/inbox">Inbox</Link>
-              <Link to="/builder/new" className="button">
-                + New form
+              <Link to="/inbox" className="nav-icon" title="Inbox" aria-label="Inbox">
+                ✉️
               </Link>
+              <details className="create-menu">
+                <summary className="button">+ New form ▾</summary>
+                <div className="create-menu-list">
+                  <Link to="/builder/new">📄 Blank form</Link>
+                  <Link to="/templates">🧩 From a template</Link>
+                  <Link to="/templates?ai=1">✨ With AI</Link>
+                  <Link to="/import">⇪ Import (XLSForm / text)</Link>
+                </div>
+              </details>
             </>
           ) : (
             <>
