@@ -2,6 +2,7 @@ import { languageLabel, localize } from "@/lib/i18n";
 import { useBuilderStore } from "@/stores/builderStore";
 import type { Outcome, QualityChecks } from "@/types/form-schema";
 import { useState } from "react";
+import { Accordion } from "./Accordion";
 import { COMMON_LANGUAGES } from "./languages";
 
 /** Form-level collection settings. Enforced server-side on the public submit endpoint. */
@@ -115,179 +116,186 @@ export function SettingsPanel() {
         </div>
       </div>
 
-      <label className="prop prop-check">
-        <input
-          type="checkbox"
-          checked={Boolean(settings.requireLogin)}
-          onChange={(e) => setSettings({ requireLogin: e.target.checked })}
-        />
-        <span>Require sign-in to respond</span>
-      </label>
+      <Accordion sectionKey="settings.access" title="Access" defaultOpen>
+        <label className="prop prop-check">
+          <input
+            type="checkbox"
+            checked={Boolean(settings.requireLogin)}
+            onChange={(e) => setSettings({ requireLogin: e.target.checked })}
+          />
+          <span>Require sign-in to respond</span>
+        </label>
 
-      <label className="prop prop-check">
-        <input
-          type="checkbox"
-          checked={settings.allowMultipleSubmissions !== false}
-          onChange={(e) => setSettings({ allowMultipleSubmissions: e.target.checked })}
-        />
-        <span>Allow multiple responses per person</span>
-      </label>
+        <label className="prop prop-check">
+          <input
+            type="checkbox"
+            checked={settings.allowMultipleSubmissions !== false}
+            onChange={(e) => setSettings({ allowMultipleSubmissions: e.target.checked })}
+          />
+          <span>Allow multiple responses per person</span>
+        </label>
 
-      <label className="prop prop-check">
-        <input
-          type="checkbox"
-          checked={settings.acceptingResponses !== false}
-          onChange={(e) => setSettings({ acceptingResponses: e.target.checked })}
-        />
-        <span>Accepting responses</span>
-      </label>
-      <small className="hint">Turn off to immediately stop collecting new responses.</small>
+        <label className="prop prop-check">
+          <input
+            type="checkbox"
+            checked={settings.acceptingResponses !== false}
+            onChange={(e) => setSettings({ acceptingResponses: e.target.checked })}
+          />
+          <span>Accepting responses</span>
+        </label>
+        <small className="hint">Turn off to immediately stop collecting new responses.</small>
+      </Accordion>
 
-      <label className="prop">
-        <span>Display mode</span>
-        <select
-          className="select"
-          value={settings.displayMode ?? ""}
-          onChange={(e) =>
-            setSettings({
-              displayMode: (e.target.value || undefined) as
-                | "single"
-                | "paged"
-                | "oneQuestionPerScreen"
-                | undefined,
-            })
-          }
-        >
-          <option value="">Automatic (paged when multi-page)</option>
-          <option value="single">Single page</option>
-          <option value="paged">Paged</option>
-          <option value="oneQuestionPerScreen">One question per screen</option>
-        </select>
-        <small className="hint">How respondents step through the form.</small>
-      </label>
+      <Accordion sectionKey="settings.presentation" title="Presentation">
+        <label className="prop">
+          <span>Display mode</span>
+          <select
+            className="select"
+            value={settings.displayMode ?? ""}
+            onChange={(e) =>
+              setSettings({
+                displayMode: (e.target.value || undefined) as
+                  | "single"
+                  | "paged"
+                  | "oneQuestionPerScreen"
+                  | undefined,
+              })
+            }
+          >
+            <option value="">Automatic (paged when multi-page)</option>
+            <option value="single">Single page</option>
+            <option value="paged">Paged</option>
+            <option value="oneQuestionPerScreen">One question per screen</option>
+          </select>
+          <small className="hint">How respondents step through the form.</small>
+        </label>
 
-      <label className="prop prop-check">
-        <input
-          type="checkbox"
-          checked={Boolean(settings.showProgressBar)}
-          onChange={(e) => setSettings({ showProgressBar: e.target.checked })}
-        />
-        <span>Show progress bar</span>
-      </label>
+        <label className="prop prop-check">
+          <input
+            type="checkbox"
+            checked={Boolean(settings.showProgressBar)}
+            onChange={(e) => setSettings({ showProgressBar: e.target.checked })}
+          />
+          <span>Show progress bar</span>
+        </label>
 
-      <label className="prop prop-check">
-        <input
-          type="checkbox"
-          checked={Boolean(settings.shuffleQuestions)}
-          onChange={(e) => setSettings({ shuffleQuestions: e.target.checked })}
-        />
-        <span>Shuffle question order</span>
-      </label>
+        <label className="prop prop-check">
+          <input
+            type="checkbox"
+            checked={Boolean(settings.shuffleQuestions)}
+            onChange={(e) => setSettings({ shuffleQuestions: e.target.checked })}
+          />
+          <span>Shuffle question order</span>
+        </label>
 
-      <label className="prop prop-check">
-        <input
-          type="checkbox"
-          checked={Boolean(settings.shuffleOptions)}
-          onChange={(e) => setSettings({ shuffleOptions: e.target.checked })}
-        />
-        <span>Shuffle answer options</span>
-      </label>
+        <label className="prop prop-check">
+          <input
+            type="checkbox"
+            checked={Boolean(settings.shuffleOptions)}
+            onChange={(e) => setSettings({ shuffleOptions: e.target.checked })}
+          />
+          <span>Shuffle answer options</span>
+        </label>
+      </Accordion>
 
-      <label className="prop">
-        <span>Open date</span>
-        <input
-          type="datetime-local"
-          value={settings.openDate ?? ""}
-          onChange={(e) => setSettings({ openDate: e.target.value || undefined })}
-        />
-        <small className="hint">Before this time the form is not yet accepting responses.</small>
-      </label>
+      <Accordion sectionKey="settings.schedule" title="Scheduling & limits">
+        <label className="prop">
+          <span>Open date</span>
+          <input
+            type="datetime-local"
+            value={settings.openDate ?? ""}
+            onChange={(e) => setSettings({ openDate: e.target.value || undefined })}
+          />
+          <small className="hint">Before this time the form is not yet accepting responses.</small>
+        </label>
 
-      <label className="prop">
-        <span>Close date</span>
-        <input
-          type="datetime-local"
-          value={settings.closeDate ?? ""}
-          onChange={(e) => setSettings({ closeDate: e.target.value || undefined })}
-        />
-        <small className="hint">After this time the form stops accepting responses.</small>
-      </label>
+        <label className="prop">
+          <span>Close date</span>
+          <input
+            type="datetime-local"
+            value={settings.closeDate ?? ""}
+            onChange={(e) => setSettings({ closeDate: e.target.value || undefined })}
+          />
+          <small className="hint">After this time the form stops accepting responses.</small>
+        </label>
 
-      <label className="prop">
-        <span>Response limit</span>
-        <input
-          type="number"
-          min={0}
-          value={settings.maxResponses ?? ""}
-          placeholder="No limit"
-          onChange={(e) =>
-            setSettings({
-              maxResponses: e.target.value === "" ? undefined : Number(e.target.value),
-            })
-          }
-        />
-      </label>
+        <label className="prop">
+          <span>Response limit</span>
+          <input
+            type="number"
+            min={0}
+            value={settings.maxResponses ?? ""}
+            placeholder="No limit"
+            onChange={(e) =>
+              setSettings({
+                maxResponses: e.target.value === "" ? undefined : Number(e.target.value),
+              })
+            }
+          />
+        </label>
+      </Accordion>
 
-      <label className="prop">
-        <span>Submit button text</span>
-        <input
-          type="text"
-          value={localize(settings.submitButtonText)}
-          placeholder="Submit"
-          onChange={(e) => setSettings({ submitButtonText: e.target.value || undefined })}
-        />
-      </label>
+      <Accordion sectionKey="settings.aftersubmit" title="After submit">
+        <label className="prop">
+          <span>Submit button text</span>
+          <input
+            type="text"
+            value={localize(settings.submitButtonText)}
+            placeholder="Submit"
+            onChange={(e) => setSettings({ submitButtonText: e.target.value || undefined })}
+          />
+        </label>
 
-      <label className="prop">
-        <span>Confirmation title</span>
-        <input
-          type="text"
-          value={localize(settings.confirmationTitle)}
-          placeholder="Thank you!"
-          onChange={(e) => setSettings({ confirmationTitle: e.target.value || undefined })}
-        />
-      </label>
+        <label className="prop">
+          <span>Confirmation title</span>
+          <input
+            type="text"
+            value={localize(settings.confirmationTitle)}
+            placeholder="Thank you!"
+            onChange={(e) => setSettings({ confirmationTitle: e.target.value || undefined })}
+          />
+        </label>
 
-      <label className="prop">
-        <span>Confirmation message</span>
-        <input
-          type="text"
-          value={localize(settings.confirmationMessage)}
-          placeholder="Thanks!"
-          onChange={(e) => setSettings({ confirmationMessage: e.target.value || undefined })}
-        />
-      </label>
+        <label className="prop">
+          <span>Confirmation message</span>
+          <input
+            type="text"
+            value={localize(settings.confirmationMessage)}
+            placeholder="Thanks!"
+            onChange={(e) => setSettings({ confirmationMessage: e.target.value || undefined })}
+          />
+        </label>
 
-      <label className="prop">
-        <span>Notify on response</span>
-        <input
-          type="text"
-          value={(settings.notifyEmails ?? []).join(", ")}
-          placeholder="you@example.com, team@example.com"
-          onChange={(e) => {
-            const emails = e.target.value
-              .split(",")
-              .map((s) => s.trim())
-              .filter(Boolean);
-            setSettings({ notifyEmails: emails.length ? emails : undefined });
-          }}
-        />
-        <small className="hint">Comma-separated emails alerted on each new response.</small>
-      </label>
+        <label className="prop">
+          <span>Notify on response</span>
+          <input
+            type="text"
+            value={(settings.notifyEmails ?? []).join(", ")}
+            placeholder="you@example.com, team@example.com"
+            onChange={(e) => {
+              const emails = e.target.value
+                .split(",")
+                .map((s) => s.trim())
+                .filter(Boolean);
+              setSettings({ notifyEmails: emails.length ? emails : undefined });
+            }}
+          />
+          <small className="hint">Comma-separated emails alerted on each new response.</small>
+        </label>
 
-      <label className="prop">
-        <span>Redirect after submit</span>
-        <input
-          type="url"
-          value={settings.redirectUrl ?? ""}
-          placeholder="https://example.com/thank-you"
-          onChange={(e) => setSettings({ redirectUrl: e.target.value || undefined })}
-        />
-        <small className="hint">Send respondents here after they submit.</small>
-      </label>
+        <label className="prop">
+          <span>Redirect after submit</span>
+          <input
+            type="url"
+            value={settings.redirectUrl ?? ""}
+            placeholder="https://example.com/thank-you"
+            onChange={(e) => setSettings({ redirectUrl: e.target.value || undefined })}
+          />
+          <small className="hint">Send respondents here after they submit.</small>
+        </label>
+      </Accordion>
 
-      <fieldset className="prop-fieldset">
-        <legend>Welcome screen</legend>
+      <Accordion sectionKey="settings.welcome" title="Welcome screen">
         <small className="hint">
           Shown before the first question in paged / one-question-per-screen modes.
         </small>
@@ -309,10 +317,9 @@ export function SettingsPanel() {
             onChange={(e) => setSettings({ welcomeMessage: e.target.value || undefined })}
           />
         </label>
-      </fieldset>
+      </Accordion>
 
-      <fieldset className="prop-fieldset">
-        <legend>Data quality checks</legend>
+      <Accordion sectionKey="settings.quality" title="Data quality checks">
         <small className="hint">
           Automatically flag suspicious submissions. Flags appear in the responses table.
         </small>
@@ -358,10 +365,9 @@ export function SettingsPanel() {
             Flag geopoints outside [minLat, minLng, maxLat, maxLng]. Leave blank to skip.
           </small>
         </div>
-      </fieldset>
+      </Accordion>
 
-      <fieldset className="prop-fieldset">
-        <legend>Workflow steps</legend>
+      <Accordion sectionKey="settings.workflow" title="Workflow steps">
         <small className="hint">
           Define named stages for reviewing submissions (e.g. "New", "In review", "Approved").
           Manage submissions by step in the Responses → Workflow view.
@@ -396,10 +402,13 @@ export function SettingsPanel() {
             Add
           </button>
         </div>
-      </fieldset>
+      </Accordion>
 
-      <fieldset className="prop-fieldset">
-        <legend>Quiz</legend>
+      <Accordion
+        sectionKey="settings.quiz"
+        title="Quiz"
+        summary={settings.quizMode ? "on" : undefined}
+      >
         <label className="prop prop-check">
           <input
             type="checkbox"
@@ -457,7 +466,7 @@ export function SettingsPanel() {
             </button>
           </div>
         )}
-      </fieldset>
+      </Accordion>
     </div>
   );
 }
