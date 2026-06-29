@@ -24,6 +24,14 @@ describe("lintForm (live form checker)", () => {
     expect(lintForm(s)).toEqual([]);
   });
 
+  it("does not flag the membership operator `in` as a dangling reference", () => {
+    const s = form([
+      { type: "text", name: "region" },
+      { type: "text", name: "q", visibleIf: "region in ['North','South']" },
+    ]);
+    expect(lintForm(s)).toEqual([]);
+  });
+
   it("flags a dangling reference to a deleted field", () => {
     const s = form([{ type: "text", name: "q2", visibleIf: 'ghost == "x"' }]);
     expect(codes(s)).toContain("dangling-ref");

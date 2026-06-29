@@ -33,7 +33,21 @@ function referencedNames(expression: string): string[] {
   // Blank out string literals so identifiers inside them aren't mistaken for field refs.
   const src = expression.replace(/"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'/g, '""');
   const calls = new Set([...src.matchAll(/([A-Za-z_]\w*)\s*\(/g)].map((m) => m[1]));
-  const LITERALS = new Set(["True", "False", "None", "true", "false", "null", "and", "or", "not"]);
+  // Expression-language keywords/operators that are never field references. `in` is the
+  // membership operator (`region in ['a','b']`); `selected` is the built-in helper.
+  const LITERALS = new Set([
+    "True",
+    "False",
+    "None",
+    "true",
+    "false",
+    "null",
+    "and",
+    "or",
+    "not",
+    "in",
+    "selected",
+  ]);
   const out = new Set<string>();
   for (const id of src.match(/[A-Za-z_]\w*/g) ?? []) {
     if (!calls.has(id) && !LITERALS.has(id)) out.add(id);
