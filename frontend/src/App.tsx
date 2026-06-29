@@ -1,6 +1,14 @@
 import { isAuthenticated } from "@/api/client";
 import { Suspense, lazy } from "react";
-import { BrowserRouter, Link, Navigate, Route, Routes, useLocation } from "react-router-dom";
+import {
+  BrowserRouter,
+  Link,
+  Navigate,
+  Route,
+  Routes,
+  useLocation,
+  useParams,
+} from "react-router-dom";
 import { ForgotPasswordPage } from "./features/auth/ForgotPasswordPage";
 import { LoginPage } from "./features/auth/LoginPage";
 import { ResetPasswordPage } from "./features/auth/ResetPasswordPage";
@@ -24,9 +32,6 @@ const ImportPage = lazy(() =>
 );
 const RendererPage = lazy(() =>
   import("./features/renderer/RendererPage").then((m) => ({ default: m.RendererPage })),
-);
-const ReportPage = lazy(() =>
-  import("./features/reports/ReportPage").then((m) => ({ default: m.ReportPage })),
 );
 const ResponsesPage = lazy(() =>
   import("./features/responses/ResponsesPage").then((m) => ({ default: m.ResponsesPage })),
@@ -98,12 +103,19 @@ function Shell() {
             <Route path="/inbox" element={<InboxPage />} />
             <Route path="/builder/:formId" element={<BuilderPage />} />
             <Route path="/forms/:formId/responses" element={<ResponsesPage />} />
-            <Route path="/forms/:formId/report" element={<ReportPage />} />
+            {/* The report is now a tab inside Responses; keep the old URL working. */}
+            <Route path="/forms/:formId/report" element={<ReportRedirect />} />
           </Routes>
         </Suspense>
       </main>
     </>
   );
+}
+
+/** The standalone report page was folded into the Responses view; redirect old links. */
+function ReportRedirect() {
+  const { formId } = useParams();
+  return <Navigate to={`/forms/${formId}/responses?view=report`} replace />;
 }
 
 function Home() {

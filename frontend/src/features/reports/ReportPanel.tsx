@@ -1,8 +1,12 @@
-import { type SubmissionRow, api } from "@/api/client";
+import type { SubmissionRow } from "@/api/client";
 import { Button, EmptyState } from "@/components";
-import { useEffect, useMemo, useState } from "react";
-import { useParams } from "react-router-dom";
-import { FormContextNav } from "../form/FormContextNav";
+import { useMemo, useState } from "react";
+
+/**
+ * The report dashboard: author-built widgets (bar / pie / KPI / text) over a form's
+ * submissions, with a print-to-PDF action. Rendered as the "Report" view inside the
+ * Responses page (it receives `rows` from there) so a form has one results surface.
+ */
 
 type WidgetType = "bar" | "pie" | "number" | "text";
 interface Widget {
@@ -166,9 +170,7 @@ function WidgetCard({
   );
 }
 
-export function ReportPage() {
-  const { formId } = useParams<{ formId: string }>();
-  const [rows, setRows] = useState<SubmissionRow[]>([]);
+export function ReportPanel({ rows }: { rows: SubmissionRow[] }) {
   const [widgets, setWidgets] = useState<Widget[]>([]);
   const [editMode, setEditMode] = useState(true);
 
@@ -177,14 +179,6 @@ export function ReportPage() {
     for (const r of rows) for (const k of Object.keys(r.answers)) keys.add(k);
     return Array.from(keys);
   }, [rows]);
-
-  useEffect(() => {
-    if (!formId) return;
-    api
-      .listSubmissions(formId)
-      .then(setRows)
-      .catch(() => {});
-  }, [formId]);
 
   function addWidget(type: WidgetType) {
     const field = fields[0] ?? "";
@@ -202,15 +196,8 @@ export function ReportPage() {
     setWidgets((prev) => prev.filter((x) => x.id !== id));
   }
 
-  function handlePrint() {
-    window.print();
-  }
-
   return (
     <div className="rpt-page">
-      <div className="no-print">
-        <FormContextNav formId={formId ?? ""} active="responses" />
-      </div>
       <div className="rpt-toolbar no-print">
         <div className="rpt-toolbar-head">
           <h2 className="rpt-page-title">Report</h2>
@@ -237,7 +224,7 @@ export function ReportPage() {
           <Button variant="ghost" size="sm" onClick={() => setEditMode((e) => !e)}>
             {editMode ? "Preview" : "Edit"}
           </Button>
-          <Button variant="primary" size="sm" onClick={handlePrint}>
+          <Button variant="primary" size="sm" onClick={() => window.print()}>
             Print / PDF
           </Button>
         </div>

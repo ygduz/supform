@@ -6974,6 +6974,14 @@ body.inspector-resizing .inspector-resizer {
   .rpt-grid {
     grid-template-columns: repeat(2, 1fr);
   }
+  /* The report now lives inside the Responses page; hide that page's chrome (context
+     nav, header, app header, view tabs) so a printed report is just the widgets. */
+  .app-header,
+  .form-context-nav,
+  .responses-header,
+  .responses .tabs {
+    display: none !important;
+  }
 }
 
 /* Lazy-route fallback: a quiet min-height placeholder so the layout doesn't
