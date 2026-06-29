@@ -2340,20 +2340,35 @@ body.inspector-resizing .inspector-resizer {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 10px;
   width: 100%;
-  padding: 12px;
-  border: 1px dashed var(--primary);
+  padding: 15px;
+  border: 1.5px dashed var(--primary);
   border-radius: var(--radius);
-  background: color-mix(in srgb, var(--primary) 5%, var(--surface-raised));
+  background: color-mix(in srgb, var(--primary) 7%, var(--surface-raised));
   color: var(--primary);
-  font-size: 14px;
-  font-weight: 600;
+  font-size: 15px;
+  font-weight: 700;
   cursor: pointer;
-  transition: background 0.12s ease, border-color 0.12s ease;
+  transition: background 0.12s ease, border-color 0.12s ease, box-shadow 0.12s ease;
+}
+/* A filled "+" chip makes this read as THE primary way to add a question. */
+.insert-block-btn > span[aria-hidden] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: #fff;
+  font-size: 15px;
+  line-height: 1;
 }
 .insert-block-btn:hover {
-  background: color-mix(in srgb, var(--primary) 12%, var(--surface-raised));
+  background: color-mix(in srgb, var(--primary) 14%, var(--surface-raised));
+  border-style: solid;
+  box-shadow: 0 1px 6px color-mix(in srgb, var(--primary) 22%, transparent);
 }
 .insert-block .insert-pop {
   top: calc(100% + 4px);
