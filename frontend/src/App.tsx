@@ -111,16 +111,51 @@ function Home() {
   if (isAuthenticated()) return <Navigate to="/forms" replace />;
   return (
     <section className="home">
-      <h1>Build beautiful forms.</h1>
-      <p>As easy as MS Forms, flexible enough to drive from code.</p>
-      <div className="home-actions">
-        <Link className="button" to="/templates">
-          Browse templates
-        </Link>
-        <Link className="button secondary" to="/builder/new">
-          Start from scratch
-        </Link>
+      <div className="home-hero">
+        <h1>Build beautiful forms.</h1>
+        <p className="home-sub">As easy as MS Forms, flexible enough to drive from code.</p>
+        <div className="home-actions">
+          <Link className="button" to="/templates">
+            Browse templates
+          </Link>
+          <Link className="button secondary" to="/builder/new">
+            Start from scratch
+          </Link>
+        </div>
+        <p className="home-signin muted">
+          Already have an account? <Link to="/login">Sign in</Link>
+        </p>
       </div>
+      <ul className="home-features">
+        <li>
+          <span className="home-feature-icon" aria-hidden="true">
+            🧩
+          </span>
+          <strong>Every field type</strong>
+          <span className="muted">
+            Text, choice, matrix, ratings, file upload, address & geo — with pages, groups and
+            repeats.
+          </span>
+        </li>
+        <li>
+          <span className="home-feature-icon" aria-hidden="true">
+            🔀
+          </span>
+          <strong>Logic & formulas</strong>
+          <span className="muted">
+            Show or hide questions on conditions, and compute values with Excel-style functions.
+          </span>
+        </li>
+        <li>
+          <span className="home-feature-icon" aria-hidden="true">
+            📊
+          </span>
+          <strong>Responses & quizzes</strong>
+          <span className="muted">
+            Live analytics, auto-grading and exports — or drive the whole thing from the API.
+          </span>
+        </li>
+      </ul>
     </section>
   );
 }

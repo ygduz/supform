@@ -46,6 +46,7 @@ export function InboxPage() {
           <h2 className="inbox-title">
             Inbox {unreadCount > 0 && <Badge tone="primary">{unreadCount}</Badge>}
           </h2>
+          <p className="inbox-subtitle muted">Recent submissions across all your forms</p>
           <div className="inbox-actions">
             <label className="inbox-toggle">
               <input

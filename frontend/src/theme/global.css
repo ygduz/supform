@@ -3547,6 +3547,125 @@ body.inspector-resizing .inspector-resizer {
   align-self: auto;
   font-size: inherit;
 }
+
+/* ── Landing page: hero + feature row (give the splash a real job) ── */
+.home-hero {
+  max-width: 640px;
+}
+.home-sub {
+  font-size: var(--text-lg, 18px);
+  color: var(--text-secondary, var(--muted));
+  margin: 8px 0 20px;
+}
+.home-signin {
+  margin-top: 14px;
+  font-size: var(--text-sm, 14px);
+}
+.home-features {
+  list-style: none;
+  margin: 48px 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 24px;
+  max-width: 920px;
+}
+.home-features li {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.home-feature-icon {
+  font-size: 24px;
+}
+.home-features strong {
+  font-size: var(--text-md, 16px);
+}
+.home-features .muted {
+  font-size: var(--text-sm, 14px);
+  line-height: 1.45;
+}
+
+/* ── Builder: back link + per-form Questions|Responses tabs (MS-Forms parity) ── */
+.builder-back {
+  font-size: 18px;
+  color: var(--muted);
+  text-decoration: none;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm, 6px);
+  flex-shrink: 0;
+}
+.builder-back:hover {
+  background: var(--surface);
+  color: var(--text);
+}
+.builder-context-tabs {
+  margin-left: 0;
+}
+.builder-context-tabs span,
+.builder-context-tabs a {
+  padding: 6px 14px;
+  border-radius: var(--radius);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-decoration: none;
+}
+.builder-context-tabs a:hover {
+  background: var(--surface);
+}
+.builder-context-tabs span.active {
+  background: var(--primary);
+  color: var(--surface-raised);
+}
+
+/* ── Inspector tab overflow ("⋯") ── */
+.tabs-more {
+  position: relative;
+}
+.tabs-more > summary {
+  list-style: none;
+  cursor: pointer;
+}
+.tabs-more > summary::-webkit-details-marker {
+  display: none;
+}
+.tabs-more-menu {
+  position: absolute;
+  right: 0;
+  top: 100%;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  min-width: 150px;
+  padding: 4px;
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-md, 0 4px 16px rgba(0, 0, 0, 0.12));
+}
+.tabs-more-menu .tab {
+  justify-content: flex-start;
+  width: 100%;
+}
+
+/* Grouped sections inside the toolbar "More" menu. */
+.toolbar-more-menu .menu-section {
+  margin: 6px 8px 2px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+}
+.toolbar-more-menu .menu-section:first-child {
+  margin-top: 2px;
+}
+
+.inbox-subtitle {
+  margin: 2px 0 0;
+  font-size: var(--text-sm, 13px);
+}
 .templates {
   max-width: 960px;
   margin: 0 auto;
