@@ -321,13 +321,19 @@ export function ResponsesPage() {
     );
   }
 
-  const viewTabs = [
+  // Two views every form uses stay always-visible; the rest fold under "More views ▾"
+  // so the results page opens calm. All remain deep-linkable via ?view= (the active one
+  // surfaces in the disclosure summary).
+  const primaryTabs = [
     { key: "analytics", label: "Analytics" },
     { key: "table", label: "Table", count: rows.length },
+  ];
+  const moreTabs = [
     ...(hasGeo ? [{ key: "map", label: "Map" }] : []),
     { key: "workflow", label: "Workflow" },
     { key: "report", label: "Report" },
   ];
+  const activeMore = moreTabs.find((t) => t.key === view);
 
   return (
     <section className="responses">
@@ -429,7 +435,26 @@ export function ResponsesPage() {
         />
       ) : (
         <>
-          <Tabs tabs={viewTabs} active={view} onChange={(key) => setView(key as View)} />
+          <div className="responses-tabbar">
+            <Tabs tabs={primaryTabs} active={view} onChange={(key) => setView(key as View)} />
+            <details className="more-views">
+              <summary className={activeMore ? "more-views-summary active" : "more-views-summary"}>
+                {activeMore ? activeMore.label : "More views"} ▾
+              </summary>
+              <div className="more-views-menu">
+                {moreTabs.map((t) => (
+                  <button
+                    key={t.key}
+                    type="button"
+                    className={view === t.key ? "active" : undefined}
+                    onClick={() => setView(t.key as View)}
+                  >
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+            </details>
+          </div>
 
           {view === "analytics" && schema && <AnalyticsPanel schema={schema} rows={rows} />}
           {view === "report" && (
