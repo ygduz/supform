@@ -9,6 +9,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from app.form_engine.expressions import ExpressionError, evaluate
+from app.form_engine.recalc import find_cycles
 from app.schemas.form_schema import Element, FormSchema
 
 # Types that require a non-empty options list.
@@ -39,6 +40,10 @@ def validate_form(form: FormSchema) -> list[SchemaIssue]:
         _check_expression(page.visible_if, f"page:{page.name}.visibleIf", known, issues)
         for el in page.elements:
             _check_element(el, f"{page.name}", known, issues)
+        for name in sorted(find_cycles(page.elements)):
+            issues.append(
+                SchemaIssue("error", name, f"Circular calculate reference involving '{name}'.")
+            )
 
     return issues
 

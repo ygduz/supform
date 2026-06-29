@@ -24,6 +24,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from app.form_engine.expressions import evaluate, evaluate_bool
+from app.form_engine.recalc import compute_scope
 from app.schemas.form_schema import Element, FormSchema
 
 _PRESENTATIONAL = ("note", "section", "html")
@@ -50,7 +51,11 @@ def validate_submission(form: FormSchema, answers: dict[str, Any]) -> Submission
             for name in _walk_names(page.elements):
                 result.cleaned.pop(name, None)
             continue
-        _validate_scope(page.elements, answers, result.cleaned, result.errors, dict(answers), "")
+        # Recompute calc fields in dependency order up front so a formula may reference a
+        # field defined later in the form (spreadsheet-style), then validate the scope.
+        ctx = dict(answers)
+        compute_scope(page.elements, ctx)
+        _validate_scope(page.elements, answers, result.cleaned, result.errors, ctx, "")
     return result
 
 
@@ -74,11 +79,10 @@ def _validate_scope(
             continue
 
         if el.calculate:
-            try:
-                cleaned[el.name] = evaluate(el.calculate, ctx)
-                ctx[el.name] = cleaned[el.name]
-            except Exception:  # noqa: BLE001 - a bad calc must not 500 the request
-                pass
+            # Value was computed in dependency order by compute_scope(); store it (only
+            # reached when the field is visible). Absent => it errored or was circular.
+            if el.name in ctx:
+                cleaned[el.name] = ctx[el.name]
             continue
 
         if el.type == "group":
@@ -129,12 +133,14 @@ def _validate_repeat(
     for i, raw in enumerate(instances):
         instance = raw if isinstance(raw, dict) else {}
         instance_cleaned = dict(instance)
+        instance_ctx = {**ctx, **instance}
+        compute_scope(el.elements or [], instance_ctx)
         _validate_scope(
             el.elements or [],
             instance,
             instance_cleaned,
             errors,
-            {**ctx, **instance},
+            instance_ctx,
             f"{key}[{i}].",
         )
         cleaned_instances.append(instance_cleaned)
