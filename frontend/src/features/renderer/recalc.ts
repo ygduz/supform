@@ -10,7 +10,19 @@
 import type { Element } from "@/types/form-schema";
 import { evaluateExpression } from "./expressions";
 
-const LITERALS = new Set(["True", "False", "None", "true", "false", "null"]);
+// Expression-language keywords/operators that are never field references.
+const LITERALS = new Set([
+  "True",
+  "False",
+  "None",
+  "true",
+  "false",
+  "null",
+  "and",
+  "or",
+  "not",
+  "in",
+]);
 
 /** Field identifiers an expression reads, excluding function names and literals. */
 export function referencedNames(expression: string): Set<string> {
@@ -86,7 +98,13 @@ export function recalc(
   for (const name of order) {
     try {
       const v = evaluateExpression(calcs.get(name), values);
-      if (v !== undefined) values[name] = v;
+      // Skip undefined and non-finite numbers (NaN/Infinity). A formula whose inputs are
+      // still unanswered yields NaN (`undefined * undefined`); storing it would make the
+      // renderer's `derived[name] ?? evaluate(...)` keep NaN, and its `!==` write-back
+      // guard (NaN !== NaN is always true) would loop setState every render.
+      if (v === undefined) continue;
+      if (typeof v === "number" && !Number.isFinite(v)) continue;
+      values[name] = v;
     } catch {
       /* fail-safe: leave unset */
     }

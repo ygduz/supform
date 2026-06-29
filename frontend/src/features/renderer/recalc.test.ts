@@ -60,3 +60,18 @@ describe("recalc (client mirror of backend recalc.py)", () => {
     expect(values.total).toBeCloseTo(110);
   });
 });
+
+describe("recalc — non-finite guard (NaN render-loop regression)", () => {
+  it("does not store NaN/Infinity for a calc whose inputs are unanswered", () => {
+    const e = (o: Record<string, unknown>) => o as unknown as Element;
+    const els = [
+      e({ type: "number", name: "qty" }),
+      e({ type: "number", name: "price" }),
+      e({ type: "calculated", name: "total", calculate: "qty * price" }),
+      e({ type: "calculated", name: "ratio", calculate: "qty / 0" }),
+    ];
+    const { values } = recalc(els, {}); // nothing answered
+    expect("total" in values).toBe(false); // NaN -> skipped, not stored
+    expect("ratio" in values).toBe(false); // Infinity -> skipped
+  });
+});
