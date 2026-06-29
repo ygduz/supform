@@ -8,6 +8,7 @@ import { useEffect, useRef, useState } from "react";
 import type { DropLocation } from "./BuilderCanvas";
 import { CanvasList } from "./CanvasList";
 import { CardPreview } from "./CardPreview";
+import { lintForm } from "./lint";
 import { confirmDeleteContainer, isContainerType } from "./model";
 
 /** Tooltip text for the ⚡ badge: which rules this question carries. */
@@ -65,6 +66,8 @@ export function ElementCard({
   const toggleCollapsed = useBuilderStore((s) => s.toggleCollapsed);
   const compact = useBuilderStore((s) => s.compactNames.has(element.name));
   const toggleCompact = useBuilderStore((s) => s.toggleCompact);
+  const schema = useBuilderStore((s) => s.schema);
+  const elNotes = lintForm(schema).filter((n) => n.elementName === element.name);
   const connectingFrom = useBuilderStore((s) => s.connectingFrom);
   const startConnect = useBuilderStore((s) => s.startConnect);
   const requestConnect = useBuilderStore((s) => s.requestConnect);
@@ -266,6 +269,14 @@ export function ElementCard({
             {(element.visibleIf || element.requiredIf || element.enableIf) && (
               <span className="el-logic-badge" title={logicSummary(element)}>
                 ⚡ logic
+              </span>
+            )}
+            {elNotes.length > 0 && (
+              <span
+                className={`el-note-badge${elNotes.some((n) => n.level === "error") ? " error" : " warning"}`}
+                title={elNotes.map((n) => n.message).join("\n")}
+              >
+                {elNotes.some((n) => n.level === "error") ? "⛔" : "⚠️"} {elNotes.length}
               </span>
             )}
           </span>

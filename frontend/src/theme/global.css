@@ -2691,6 +2691,119 @@ body.inspector-resizing .inspector-resizer {
   text-transform: none;
   cursor: help;
 }
+/* Form-checker badge on a card (hover lists the notes). */
+.el-note-badge {
+  margin-left: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 999px;
+  padding: 1px 7px;
+  text-transform: none;
+  cursor: help;
+  white-space: nowrap;
+}
+.el-note-badge.error {
+  color: var(--danger-hover, #b91c1c);
+  background: var(--danger-light, #fee2e2);
+}
+.el-note-badge.warning {
+  color: #b45309;
+  background: #fef3c7;
+}
+
+/* Tab badge (count of checks). */
+.tab-badge {
+  margin-left: 5px;
+  font-size: 10px;
+  font-weight: 700;
+  border-radius: 999px;
+  padding: 0 5px;
+  line-height: 16px;
+  display: inline-block;
+}
+.tab-badge.error {
+  color: #fff;
+  background: var(--danger, #ef4444);
+}
+.tab-badge.warning {
+  color: #7c2d12;
+  background: #fde68a;
+}
+
+/* Checks panel. */
+.checks-panel {
+  gap: 10px;
+}
+.checks-empty {
+  color: var(--success, #15803d);
+  font-size: 13px;
+  padding: 8px 2px;
+}
+.checks-summary {
+  display: flex;
+  gap: 8px;
+  margin: 0;
+}
+.checks-count {
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 999px;
+  padding: 2px 9px;
+}
+.checks-count.error {
+  color: var(--danger-hover, #b91c1c);
+  background: var(--danger-light, #fee2e2);
+}
+.checks-count.warning {
+  color: #b45309;
+  background: #fef3c7;
+}
+.checks-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.check-note-btn {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  width: 100%;
+  text-align: left;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-left-width: 3px;
+  border-radius: var(--radius);
+  background: var(--surface-raised);
+  cursor: pointer;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--text);
+}
+.check-note-btn:hover:not(:disabled) {
+  background: var(--surface);
+}
+.check-note-btn:disabled {
+  cursor: default;
+}
+.check-note.error .check-note-btn {
+  border-left-color: var(--danger, #ef4444);
+}
+.check-note.warning .check-note-btn {
+  border-left-color: #f59e0b;
+}
+.check-icon {
+  flex: 0 0 auto;
+}
+.check-msg {
+  flex: 1;
+}
+.check-jump {
+  flex: 0 0 auto;
+  color: var(--muted);
+}
 
 /* Right column: inspector, pinned — part of the app shell */
 /* layout is defined in the new .inspector block above; keep only the scroll rule */

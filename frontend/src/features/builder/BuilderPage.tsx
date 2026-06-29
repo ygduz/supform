@@ -11,6 +11,7 @@ import { saveMyTemplate } from "../templates/myTemplates";
 import { ActivityPanel } from "./ActivityPanel";
 import { BirdsEyePreview } from "./BirdsEyePreview";
 import { BuilderCanvas } from "./BuilderCanvas";
+import { ChecksPanel } from "./ChecksPanel";
 import { HistoryPanel } from "./HistoryPanel";
 import { InspectorResizer } from "./InspectorResizer";
 import { LogicBuilder } from "./LogicBuilder";
@@ -24,6 +25,7 @@ import { ShareDialog } from "./ShareDialog";
 import { ThemePanel } from "./ThemePanel";
 import { TranslatePanel } from "./TranslatePanel";
 import { WebhooksDialog } from "./WebhooksDialog";
+import { lintForm } from "./lint";
 import { findElement, pageElements } from "./model";
 import { ADVANCED_PALETTE, COMMON_PALETTE, ELEMENT_PALETTE } from "./palette";
 import { useBuilderDrag } from "./useBuilderDrag";
@@ -31,6 +33,7 @@ import { useBuilderShortcuts } from "./useBuilderShortcuts";
 
 type Tab =
   | "overview"
+  | "checks"
   | "properties"
   | "theme"
   | "settings"
@@ -176,6 +179,9 @@ export function BuilderPage() {
 
   const elements = pageElements(schema, activePage);
   const selected = selectedName ? findElement(schema, selectedName) : null;
+  // Live form-checker notes — drives the Checks tab badge and the panel.
+  const notes = lintForm(schema);
+  const errorCount = notes.filter((n) => n.level === "error").length;
 
   // Clicking the empty canvas background (not a card or interactive control) clears the
   // selection — the "click away to deselect" convention every design tool follows. Card
@@ -581,6 +587,7 @@ export function BuilderPage() {
                 {(
                   [
                     "overview",
+                    "checks",
                     "properties",
                     "theme",
                     "settings",
@@ -599,37 +606,51 @@ export function BuilderPage() {
                     title={
                       t === "overview"
                         ? "Overview — all fields at a glance"
-                        : t === "properties"
-                          ? "Properties — edit this field"
-                          : t === "theme"
-                            ? "Theme — colours & fonts"
-                            : t === "settings"
-                              ? "Settings — form behaviour"
-                              : t === "translate"
-                                ? "Translations"
-                                : t === "preview"
-                                  ? "Live preview"
-                                  : t === "history"
-                                    ? "History — session edits & published versions"
-                                    : "Activity log"
+                        : t === "checks"
+                          ? "Checks — live notes about logic & references"
+                          : t === "properties"
+                            ? "Properties — edit this field"
+                            : t === "theme"
+                              ? "Theme — colours & fonts"
+                              : t === "settings"
+                                ? "Settings — form behaviour"
+                                : t === "translate"
+                                  ? "Translations"
+                                  : t === "preview"
+                                    ? "Live preview"
+                                    : t === "history"
+                                      ? "History — session edits & published versions"
+                                      : "Activity log"
                     }
                   >
-                    {t === "overview"
-                      ? "Map"
-                      : t === "translate"
-                        ? "🌐"
-                        : t === "history"
-                          ? "History"
-                          : t === "activity"
-                            ? "Activity"
-                            : t === "preview"
-                              ? "Live"
-                              : t.charAt(0).toUpperCase() + t.slice(1)}
+                    {t === "checks" ? (
+                      <>
+                        Checks
+                        {notes.length > 0 && (
+                          <span className={`tab-badge${errorCount > 0 ? " error" : " warning"}`}>
+                            {notes.length}
+                          </span>
+                        )}
+                      </>
+                    ) : t === "overview" ? (
+                      "Map"
+                    ) : t === "translate" ? (
+                      "🌐"
+                    ) : t === "history" ? (
+                      "History"
+                    ) : t === "activity" ? (
+                      "Activity"
+                    ) : t === "preview" ? (
+                      "Live"
+                    ) : (
+                      t.charAt(0).toUpperCase() + t.slice(1)
+                    )}
                   </Button>
                 ))}
               </div>
 
               {tab === "overview" && <OverviewPanel />}
+              {tab === "checks" && <ChecksPanel />}
               {tab === "properties" &&
                 (selected ? (
                   <PropertiesPanel element={selected} />
