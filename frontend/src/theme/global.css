@@ -4856,7 +4856,7 @@ body,
 /* ── Inspector panel: section dividers for readability ─────────── */
 .inspector-inner > .ov-panel,
 .inspector-inner > .props,
-.inspector-inner > .preview-pane {
+.inspector-inner > .bep-wrap {
   padding-top: 8px;
 }
 
