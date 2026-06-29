@@ -4856,7 +4856,7 @@ body,
 /* ── Inspector panel: section dividers for readability ─────────── */
 .inspector-inner > .ov-panel,
 .inspector-inner > .props,
-.inspector-inner > .preview-pane {
+.inspector-inner > .bep-wrap {
   padding-top: 8px;
 }
 
@@ -5485,6 +5485,34 @@ body,
   font-size: 11px;
   font-weight: 400;
   color: var(--muted);
+}
+.bep-zoom {
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+.bep-zoom button {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  background: var(--surface-raised);
+  border: none;
+  padding: 2px 7px;
+  cursor: pointer;
+  min-width: 22px;
+}
+.bep-zoom button:not(:last-child) {
+  border-right: 1px solid var(--border);
+}
+.bep-zoom button:hover:not(:disabled) {
+  background: var(--surface);
+  color: var(--text);
+}
+.bep-zoom button:disabled {
+  opacity: 0.4;
+  cursor: default;
 }
 .bep-openfull {
   font-size: 11px;

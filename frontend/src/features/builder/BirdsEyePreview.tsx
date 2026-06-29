@@ -3,10 +3,17 @@ import { useEffect, useRef, useState } from "react";
 import { FormRenderer } from "../renderer/FormRenderer";
 
 /** Minimum CSS scale — below this text is illegible, so we stop zooming out and scroll. */
-const MIN_SCALE = 0.28;
+const MIN_SCALE = 0.22;
 /** The width at which FormRenderer is designed to render. A wider natural width makes the
  *  scaled preview smaller, giving more of an overall, zoomed-out picture of the form. */
-const FORM_NATURAL_WIDTH = 820;
+const FORM_NATURAL_WIDTH = 1080;
+/** Manual zoom multiplier bounds and persistence. */
+const ZOOM_MIN = 0.5;
+const ZOOM_MAX = 2;
+const ZOOM_STEP = 0.15;
+const ZOOM_STORE = "supform:previewZoom";
+
+const clampZoom = (z: number) => Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, z));
 
 /**
  * Birds-eye live preview of the form.
@@ -24,6 +31,20 @@ export function BirdsEyePreview({
   const innerRef = useRef<HTMLDivElement>(null);
   const [panelWidth, setPanelWidth] = useState(300);
   const [innerH, setInnerH] = useState(800);
+  const [zoom, setZoom] = useState(() => {
+    const saved = Number(localStorage.getItem(ZOOM_STORE));
+    return saved >= ZOOM_MIN && saved <= ZOOM_MAX ? saved : 1;
+  });
+
+  const setZoomPersist = (next: number) => {
+    const z = clampZoom(next);
+    setZoom(z);
+    try {
+      localStorage.setItem(ZOOM_STORE, String(z));
+    } catch {
+      /* storage may be unavailable — non-fatal */
+    }
+  };
 
   useEffect(() => {
     const outer = outerRef.current;
@@ -45,7 +66,8 @@ export function BirdsEyePreview({
     return () => ro.disconnect();
   }, []);
 
-  const scale = Math.max(MIN_SCALE, panelWidth / FORM_NATURAL_WIDTH);
+  // Fit-to-width scale, then the manual zoom multiplier; never below the legibility floor.
+  const scale = Math.max(MIN_SCALE, (panelWidth / FORM_NATURAL_WIDTH) * zoom);
   const scaledH = innerH * scale;
 
   return (
@@ -53,7 +75,35 @@ export function BirdsEyePreview({
       <div className="bep-header">
         <span>Live preview</span>
         <div className="bep-header-right">
-          <span className="bep-hint">scaled · read-only</span>
+          {/* biome-ignore lint/a11y/useSemanticElements: a button group, not a form fieldset */}
+          <div className="bep-zoom" role="group" aria-label="Preview zoom">
+            <button
+              type="button"
+              title="Zoom out"
+              aria-label="Zoom out"
+              disabled={zoom <= ZOOM_MIN}
+              onClick={() => setZoomPersist(zoom - ZOOM_STEP)}
+            >
+              −
+            </button>
+            <button
+              type="button"
+              title="Reset zoom (fit)"
+              aria-label="Reset zoom"
+              onClick={() => setZoomPersist(1)}
+            >
+              {Math.round(zoom * 100)}%
+            </button>
+            <button
+              type="button"
+              title="Zoom in"
+              aria-label="Zoom in"
+              disabled={zoom >= ZOOM_MAX}
+              onClick={() => setZoomPersist(zoom + ZOOM_STEP)}
+            >
+              +
+            </button>
+          </div>
           {onOpenFull && (
             <button type="button" className="bep-openfull" onClick={onOpenFull}>
               Open full ↗
