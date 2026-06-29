@@ -5465,6 +5465,15 @@ body.inspector-resizing .inspector-resizer {
   font-size: 15px;
   color: var(--info);
 }
+/* Small ƒ marker on a calculated field's label (hover shows the formula). */
+.calc-badge {
+  margin-left: 6px;
+  font-style: italic;
+  font-weight: 700;
+  font-size: 12px;
+  color: var(--info);
+  cursor: help;
+}
 
 /* ── Translation panel ───────────────────────────────────────── */
 .translate-panel {

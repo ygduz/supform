@@ -2,6 +2,7 @@ import { languageLabel, localize } from "@/lib/i18n";
 import { useBuilderStore } from "@/stores/builderStore";
 import type { Outcome, QualityChecks } from "@/types/form-schema";
 import { useState } from "react";
+import { Accordion } from "./Accordion";
 import { COMMON_LANGUAGES } from "./languages";
 
 /** Form-level collection settings. Enforced server-side on the public submit endpoint. */
@@ -286,8 +287,7 @@ export function SettingsPanel() {
         <small className="hint">Send respondents here after they submit.</small>
       </label>
 
-      <fieldset className="prop-fieldset">
-        <legend>Welcome screen</legend>
+      <Accordion sectionKey="settings.welcome" title="Welcome screen">
         <small className="hint">
           Shown before the first question in paged / one-question-per-screen modes.
         </small>
@@ -309,10 +309,9 @@ export function SettingsPanel() {
             onChange={(e) => setSettings({ welcomeMessage: e.target.value || undefined })}
           />
         </label>
-      </fieldset>
+      </Accordion>
 
-      <fieldset className="prop-fieldset">
-        <legend>Data quality checks</legend>
+      <Accordion sectionKey="settings.quality" title="Data quality checks">
         <small className="hint">
           Automatically flag suspicious submissions. Flags appear in the responses table.
         </small>
@@ -358,10 +357,9 @@ export function SettingsPanel() {
             Flag geopoints outside [minLat, minLng, maxLat, maxLng]. Leave blank to skip.
           </small>
         </div>
-      </fieldset>
+      </Accordion>
 
-      <fieldset className="prop-fieldset">
-        <legend>Workflow steps</legend>
+      <Accordion sectionKey="settings.workflow" title="Workflow steps">
         <small className="hint">
           Define named stages for reviewing submissions (e.g. "New", "In review", "Approved").
           Manage submissions by step in the Responses → Workflow view.
@@ -396,10 +394,13 @@ export function SettingsPanel() {
             Add
           </button>
         </div>
-      </fieldset>
+      </Accordion>
 
-      <fieldset className="prop-fieldset">
-        <legend>Quiz</legend>
+      <Accordion
+        sectionKey="settings.quiz"
+        title="Quiz"
+        summary={settings.quizMode ? "on" : undefined}
+      >
         <label className="prop prop-check">
           <input
             type="checkbox"
@@ -457,7 +458,7 @@ export function SettingsPanel() {
             </button>
           </div>
         )}
-      </fieldset>
+      </Accordion>
     </div>
   );
 }

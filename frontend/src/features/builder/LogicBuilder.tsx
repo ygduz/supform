@@ -56,8 +56,15 @@ export function LogicBuilder({
           className="logic-input"
           value={value ?? ""}
           placeholder='e.g. age >= 18 and country == "TR"'
+          spellCheck={false}
+          autoCapitalize="off"
+          autoCorrect="off"
           onChange={(e) => onChange(e.target.value || undefined)}
         />
+        <small className="hint">
+          Reference other questions by their key and combine with <code>and</code> / <code>or</code>{" "}
+          / comparisons.
+        </small>
       </div>
     );
   }
