@@ -183,6 +183,43 @@ export function BuilderPage() {
   const notes = lintForm(schema);
   const errorCount = notes.filter((n) => n.level === "error").length;
 
+  // Inspector tabs: the high-frequency ones stay visible; the rest fold into a "⋯" overflow
+  // so the strip isn't a wall of 9 competing destinations.
+  const primaryTabs: Tab[] = ["overview", "properties", "checks", "settings", "theme", "preview"];
+  const overflowTabs: Tab[] = [
+    ...(isMultilingual ? (["translate"] as Tab[]) : []),
+    "history",
+    ...(formId !== "new" ? (["activity"] as Tab[]) : []),
+  ];
+  const TAB_TITLE: Record<Tab, string> = {
+    overview: "Map — all fields at a glance",
+    checks: "Checks — live notes about logic & references",
+    properties: "Properties — edit this field",
+    theme: "Theme — colours & fonts",
+    settings: "Settings — form behaviour",
+    translate: "Translations",
+    preview: "Live preview",
+    history: "History — session edits & published versions",
+    activity: "Activity log",
+  };
+  const tabLabel = (t: Tab): string =>
+    t === "overview" ? "Map" : t === "preview" ? "Live" : t.charAt(0).toUpperCase() + t.slice(1);
+  const renderTab = (t: Tab) => (
+    <Button
+      key={t}
+      variant="ghost"
+      size="sm"
+      className={tab === t ? "tab active" : "tab"}
+      onClick={() => setTab(t)}
+      title={TAB_TITLE[t]}
+    >
+      {tabLabel(t)}
+      {t === "checks" && notes.length > 0 && (
+        <span className={`tab-badge${errorCount > 0 ? " error" : " warning"}`}>{notes.length}</span>
+      )}
+    </Button>
+  );
+
   // Clicking the empty canvas background (not a card or interactive control) clears the
   // selection — the "click away to deselect" convention every design tool follows. Card
   // clicks and control clicks are excluded so they keep their own behavior.
@@ -207,12 +244,21 @@ export function BuilderPage() {
   return (
     <div className="builder">
       <header className="builder-toolbar">
+        <Link className="builder-back" to="/forms" title="Back to my forms">
+          ←
+        </Link>
         <input
           className="title-input"
           value={localize(schema.title)}
           onChange={(e) => store.setTitle(e.target.value)}
           aria-label="Form title"
         />
+        {store.formId ? (
+          <div className="form-context-tabs builder-context-tabs">
+            <span className="active">Questions</span>
+            <Link to={`/forms/${store.formId}/responses`}>Responses</Link>
+          </div>
+        ) : null}
         <div className="toolbar-actions">
           <Button
             variant="ghost"
@@ -240,16 +286,12 @@ export function BuilderPage() {
           >
             {status === "saving" ? "Saving…" : dirty ? "Unsaved changes" : "Saved ✓"}
           </span>
-          {store.formId ? (
-            <Link className="toolbar-link" to={`/forms/${store.formId}/responses`}>
-              Responses
-            </Link>
-          ) : null}
           {/* Utility actions collapse into a disclosure so the primary actions
               (Save draft / Publish) are always visible, never scrolled off. */}
           <details className="toolbar-more">
             <summary aria-label="More actions">More ▾</summary>
             <div className="toolbar-more-menu">
+              {(store.formId || store.projectId) && <p className="menu-section">Share</p>}
               {store.formId ? (
                 <button type="button" onClick={() => setShareTab("link")}>
                   Share link
@@ -265,9 +307,11 @@ export function BuilderPage() {
                   Integrations
                 </button>
               ) : null}
+              <p className="menu-section">Template</p>
               <button type="button" onClick={saveAsTemplate}>
                 Save as template
               </button>
+              <p className="menu-section">Data</p>
               <button type="button" onClick={exportJson}>
                 Export JSON
               </button>
@@ -584,69 +628,18 @@ export function BuilderPage() {
             </button>
             <div className="inspector-inner">
               <div className="tabs">
-                {(
-                  [
-                    "overview",
-                    "checks",
-                    "properties",
-                    "theme",
-                    "settings",
-                    ...(isMultilingual ? (["translate"] as Tab[]) : []),
-                    "preview",
-                    "history",
-                    ...(formId !== "new" ? (["activity"] as Tab[]) : []),
-                  ] as Tab[]
-                ).map((t) => (
-                  <Button
-                    key={t}
-                    variant="ghost"
-                    size="sm"
-                    className={tab === t ? "tab active" : "tab"}
-                    onClick={() => setTab(t)}
-                    title={
-                      t === "overview"
-                        ? "Overview — all fields at a glance"
-                        : t === "checks"
-                          ? "Checks — live notes about logic & references"
-                          : t === "properties"
-                            ? "Properties — edit this field"
-                            : t === "theme"
-                              ? "Theme — colours & fonts"
-                              : t === "settings"
-                                ? "Settings — form behaviour"
-                                : t === "translate"
-                                  ? "Translations"
-                                  : t === "preview"
-                                    ? "Live preview"
-                                    : t === "history"
-                                      ? "History — session edits & published versions"
-                                      : "Activity log"
-                    }
-                  >
-                    {t === "checks" ? (
-                      <>
-                        Checks
-                        {notes.length > 0 && (
-                          <span className={`tab-badge${errorCount > 0 ? " error" : " warning"}`}>
-                            {notes.length}
-                          </span>
-                        )}
-                      </>
-                    ) : t === "overview" ? (
-                      "Map"
-                    ) : t === "translate" ? (
-                      "🌐"
-                    ) : t === "history" ? (
-                      "History"
-                    ) : t === "activity" ? (
-                      "Activity"
-                    ) : t === "preview" ? (
-                      "Live"
-                    ) : (
-                      t.charAt(0).toUpperCase() + t.slice(1)
-                    )}
-                  </Button>
-                ))}
+                {primaryTabs.map(renderTab)}
+                {overflowTabs.length > 0 && (
+                  <details className="tabs-more">
+                    <summary
+                      className={overflowTabs.includes(tab) ? "tab active" : "tab"}
+                      title="More panels"
+                    >
+                      ⋯
+                    </summary>
+                    <div className="tabs-more-menu">{overflowTabs.map(renderTab)}</div>
+                  </details>
+                )}
               </div>
 
               {tab === "overview" && <OverviewPanel />}
