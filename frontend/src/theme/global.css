@@ -1405,7 +1405,9 @@ body,
 /* ── Three-column body: only the canvas column scrolls ────────── */
 .builder-body {
   display: grid;
-  grid-template-columns: 210px 1fr 320px;
+  /* Inspector defaults to 360px (overridable via the --inspector-w drag-resize var) so the
+     properties controls and logic rows have room to breathe. */
+  grid-template-columns: 210px 1fr var(--inspector-w, 360px);
   gap: 0;
   flex: 1; /* fills remaining height below toolbar */
   min-height: 0; /* essential: lets the flex child shrink below content size */
@@ -1413,13 +1415,39 @@ body,
   transition: grid-template-columns 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .builder-body.palette-collapsed {
-  grid-template-columns: 44px 1fr 320px;
+  grid-template-columns: 44px 1fr var(--inspector-w, 360px);
 }
 .builder-body.inspector-collapsed {
   grid-template-columns: 210px 1fr 44px;
 }
 .builder-body.palette-collapsed.inspector-collapsed {
   grid-template-columns: 44px 1fr 44px;
+}
+/* Suppress the column animation while actively dragging the inspector resizer. */
+body.inspector-resizing .builder-body {
+  transition: none;
+  user-select: none;
+}
+
+/* Drag handle on the inspector's left edge. */
+.inspector-resizer {
+  position: absolute;
+  left: -3px;
+  top: 0;
+  bottom: 0;
+  width: 7px;
+  cursor: col-resize;
+  z-index: 11;
+}
+.inspector-resizer:hover,
+body.inspector-resizing .inspector-resizer {
+  background: linear-gradient(
+    to right,
+    transparent 2px,
+    var(--primary) 2px,
+    var(--primary) 4px,
+    transparent 4px
+  );
 }
 
 /* ── Panel toggle buttons — sit at the inner border of each panel ── */
@@ -1506,6 +1534,7 @@ body,
 
 /* Inspector strip */
 .inspector {
+  position: relative;
   border-left: 1px solid var(--border);
   overflow: hidden;
   background: var(--surface-raised);
@@ -2601,30 +2630,52 @@ body,
   border: 1px solid var(--border);
   border-radius: 6px;
 }
+/* Stacked rule row: the question picker gets its own full-width line (no truncation),
+   with operator + value + remove sharing the line below. */
 .logic-cond {
-  display: grid;
-  grid-template-columns: 1fr auto 1fr auto;
-  gap: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.logic-cond + .logic-cond {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--border);
+}
+.logic-cond .lc-rest {
+  display: flex;
   align-items: center;
+  gap: 6px;
 }
 .logic-cond select,
 .logic-cond input {
-  width: 100%;
   min-width: 0;
-  font-size: 12px;
-  padding: 6px 6px;
+  font-size: 13px;
+  padding: 7px 8px;
   border: 1px solid var(--border);
   border-radius: 6px;
   background: var(--surface-raised);
 }
-.logic-cond button {
+.logic-cond .lc-field {
+  width: 100%;
+}
+.logic-cond .lc-op {
+  flex: 0 0 auto;
+}
+.logic-cond .lc-rest select:not(.lc-op),
+.logic-cond .lc-rest input {
+  flex: 1 1 auto;
+  width: 100%;
+}
+.logic-cond .lc-remove {
+  flex: 0 0 auto;
   border: none;
   background: none;
   color: var(--muted);
   cursor: pointer;
   padding: 4px;
   border-radius: 4px;
-  font-size: 12px;
+  font-size: 13px;
 }
 .logic-cond button:hover {
   color: var(--danger);
@@ -2820,6 +2871,64 @@ body,
   letter-spacing: 0.04em;
   color: var(--muted);
   padding: 0 6px;
+}
+
+/* Collapsible inspector sections (progressive disclosure). Styled to read like the
+   former fieldsets, but with a clickable header that toggles the body. */
+.acc {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-raised);
+  overflow: hidden;
+}
+.acc-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 12px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  color: var(--muted);
+}
+.acc-header:hover {
+  background: var(--surface);
+}
+.acc-chevron {
+  font-size: 11px;
+  color: var(--muted);
+  width: 12px;
+  flex: 0 0 auto;
+}
+.acc-title {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+.acc-summary {
+  margin-left: auto;
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 1px 8px;
+}
+.acc.open > .acc-header {
+  border-bottom: 1px solid var(--border);
+}
+.acc-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
 }
 .option-row {
   display: flex;

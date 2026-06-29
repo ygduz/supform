@@ -2,6 +2,7 @@ import { Button, Input } from "@/components";
 import { localize } from "@/lib/i18n";
 import { useBuilderStore } from "@/stores/builderStore";
 import type { Choice, Element, I18nString, Validation } from "@/types/form-schema";
+import { Accordion } from "./Accordion";
 import { FormulaBuilder } from "./FormulaBuilder";
 import { LogicBuilder } from "./LogicBuilder";
 import { fieldMeta } from "./fieldMeta";
@@ -31,6 +32,14 @@ export function PropertiesPanel({ element }: { element: Element }) {
 
   const meta = fieldMeta(type);
 
+  // Collapsed-section summaries (progressive disclosure).
+  const optionCount = (element.options ?? []).length;
+  const logicCount =
+    (element.visibleIf ? 1 : 0) + (element.requiredIf ? 1 : 0) + (element.calculate ? 1 : 0);
+  const hasValidation = Boolean(
+    element.validation && Object.values(element.validation).some((v) => v != null && v !== ""),
+  );
+
   return (
     <div className="props">
       <header className="props-header">
@@ -45,8 +54,7 @@ export function PropertiesPanel({ element }: { element: Element }) {
         </div>
       </header>
 
-      <fieldset className="prop-fieldset">
-        <legend>Basics</legend>
+      <Accordion sectionKey="props.basics" title="Basics" defaultOpen>
         <I18nProp
           label="Label"
           value={element.label}
@@ -87,11 +95,15 @@ export function PropertiesPanel({ element }: { element: Element }) {
             <span>Required</span>
           </label>
         )}
-      </fieldset>
+      </Accordion>
 
       {hasOptionList(type) && (
-        <fieldset className="prop-fieldset">
-          <legend>Choices</legend>
+        <Accordion
+          sectionKey="props.choices"
+          title="Choices"
+          defaultOpen
+          summary={`${optionCount} option${optionCount === 1 ? "" : "s"}`}
+        >
           <ListEditor
             title="Options"
             items={element.options ?? []}
@@ -112,12 +124,11 @@ export function PropertiesPanel({ element }: { element: Element }) {
           {store.schema.settings?.quizMode && (
             <p className="prop-caption">✓ marks a correct answer · pts = score for choosing it</p>
           )}
-        </fieldset>
+        </Accordion>
       )}
 
       {type === "matrix" && (
-        <fieldset className="prop-fieldset">
-          <legend>Matrix</legend>
+        <Accordion sectionKey="props.matrix" title="Matrix" defaultOpen>
           <ListEditor
             title="Rows"
             items={element.rows ?? []}
@@ -132,12 +143,11 @@ export function PropertiesPanel({ element }: { element: Element }) {
             onUpdate={(i, label) => store.updateColumn(name, i, choiceFrom(label))}
             onRemove={(i) => store.removeColumn(name, i)}
           />
-        </fieldset>
+        </Accordion>
       )}
 
       {type === "repeat" && (
-        <fieldset className="prop-fieldset">
-          <legend>Repeat</legend>
+        <Accordion sectionKey="props.repeat" title="Repeat" defaultOpen>
           <div className="prop-label">
             <Input
               label="Entry label"
@@ -187,13 +197,12 @@ export function PropertiesPanel({ element }: { element: Element }) {
               }
             />
           </div>
-        </fieldset>
+        </Accordion>
       )}
 
       {/* Quiz grading (quiz mode only) */}
       {gradable && (
-        <fieldset className="prop-fieldset">
-          <legend>Quiz</legend>
+        <Accordion sectionKey="props.quiz" title="Quiz" defaultOpen>
           {hasOptionList(type) ? (
             <p className="prop-caption">Mark the correct option(s) with ✓ in Choices above.</p>
           ) : NUMERIC.has(type) ? (
@@ -254,13 +263,16 @@ export function PropertiesPanel({ element }: { element: Element }) {
               update(name, { feedback: pruneFeedback({ ...element.feedback, incorrect: v }) })
             }
           />
-        </fieldset>
+        </Accordion>
       )}
 
       {/* Validation rules */}
       {(NUMERIC.has(type) || TEXTUAL.has(type) || type === "multi_choice") && (
-        <fieldset className="prop-fieldset">
-          <legend>Validation</legend>
+        <Accordion
+          sectionKey="props.validation"
+          title="Validation"
+          summary={hasValidation ? "set" : undefined}
+        >
           {NUMERIC.has(type) && (
             <div className="prop-group">
               <NumberProp
@@ -316,12 +328,15 @@ export function PropertiesPanel({ element }: { element: Element }) {
             placeholder="Shown when this field fails validation"
             onChange={(v) => setValidation({ message: v || undefined })}
           />
-        </fieldset>
+        </Accordion>
       )}
 
       {/* Logic */}
-      <fieldset className="prop-fieldset">
-        <legend>Logic</legend>
+      <Accordion
+        sectionKey="props.logic"
+        title="Logic"
+        summary={logicCount > 0 ? `${logicCount} rule${logicCount === 1 ? "" : "s"}` : undefined}
+      >
         <LogicBuilder
           label="Show this question only if…"
           value={element.visibleIf}
@@ -344,7 +359,7 @@ export function PropertiesPanel({ element }: { element: Element }) {
             onChange={(v) => update(name, { calculate: v })}
           />
         )}
-      </fieldset>
+      </Accordion>
     </div>
   );
 }

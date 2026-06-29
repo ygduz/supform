@@ -166,7 +166,9 @@ function ConditionRow({
 
   return (
     <div className="logic-cond">
+      {/* Field picker on its own full-width row so long question labels aren't truncated. */}
       <select
+        className="lc-field"
         aria-label="Question"
         value={cond.field}
         onChange={(e) => handleFieldChange(e.target.value)}
@@ -174,28 +176,31 @@ function ConditionRow({
         {!target && <option value={cond.field}>{cond.field}</option>}
         {fields.map((f) => (
           <option key={f.name} value={f.name}>
-            {truncate(localize(f.label) || f.name)}
+            {localize(f.label) || f.name}
           </option>
         ))}
       </select>
 
-      <select
-        aria-label="Operator"
-        value={cond.op}
-        onChange={(e) => handleOpChange(e.target.value as LogicCondition["op"])}
-      >
-        {ops.map((o) => (
-          <option key={o.op} value={o.op}>
-            {o.label}
-          </option>
-        ))}
-      </select>
+      <div className="lc-rest">
+        <select
+          className="lc-op"
+          aria-label="Operator"
+          value={cond.op}
+          onChange={(e) => handleOpChange(e.target.value as LogicCondition["op"])}
+        >
+          {ops.map((o) => (
+            <option key={o.op} value={o.op}>
+              {o.label}
+            </option>
+          ))}
+        </select>
 
-      {!noValue && <ValueInput cond={cond} target={target} onChange={onChange} />}
+        {!noValue && <ValueInput cond={cond} target={target} onChange={onChange} />}
 
-      <button type="button" title="Remove condition" onClick={onRemove}>
-        ✕
-      </button>
+        <button type="button" className="lc-remove" title="Remove condition" onClick={onRemove}>
+          ✕
+        </button>
+      </div>
     </div>
   );
 }
@@ -224,7 +229,7 @@ function ValueInput({
         {!known && <option value={String(cond.value)}>{String(cond.value)}</option>}
         {target.options.map((o) => (
           <option key={String(o.value)} value={String(o.value)}>
-            {truncate(localize(o.label) || String(o.value))}
+            {localize(o.label) || String(o.value)}
           </option>
         ))}
       </select>
@@ -266,5 +271,3 @@ function ValueInput({
     />
   );
 }
-
-const truncate = (s: string) => (s.length > 38 ? `${s.slice(0, 36)}…` : s);
