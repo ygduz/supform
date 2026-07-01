@@ -1371,6 +1371,81 @@ body,
   overflow: hidden;
 }
 
+/* ---- Design/Share/Results rail-mode panels ---- */
+.mode-panel {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+  overflow: hidden;
+}
+.mode-preview {
+  flex: 1;
+  min-width: 0;
+  padding: 20px;
+  overflow: auto;
+  background: var(--surface-sunken, var(--surface));
+}
+.mode-main {
+  flex: 1;
+  min-width: 0;
+  padding: 24px;
+  overflow: auto;
+}
+.mode-sidebar {
+  width: 340px;
+  flex: none;
+  padding: 20px;
+  overflow: auto;
+  border-left: 1px solid var(--border);
+  background: var(--surface-raised);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.mode-sidebar h3 {
+  margin: 0;
+}
+.design-more {
+  margin-top: 4px;
+  border-top: 1px solid var(--border);
+  padding-top: 12px;
+}
+.design-more > summary {
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--primary);
+}
+.design-more[open] > summary {
+  margin-bottom: 8px;
+}
+.share-section {
+  border-top: 1px solid var(--border);
+  padding-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.share-section h4 {
+  margin: 0;
+  font-size: 13px;
+}
+.results-mode {
+  flex-direction: column;
+  padding: 24px;
+  overflow: auto;
+  gap: 16px;
+}
+.results-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.results-header h3 {
+  margin: 0;
+}
+
 /* Draft/published status pill next to the form title. */
 .form-status-pill {
   font-size: 11px;

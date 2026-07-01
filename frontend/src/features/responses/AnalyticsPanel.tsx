@@ -362,7 +362,7 @@ function round(n: number): string {
   return Number(n.toFixed(2)).toString();
 }
 
-function formatDuration(secs: number): string {
+export function formatDuration(secs: number): string {
   if (secs < 60) return `${Math.round(secs)}s`;
   const m = Math.floor(secs / 60);
   const s = Math.round(secs % 60);

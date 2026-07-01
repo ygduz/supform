@@ -26,7 +26,13 @@ const clampZoom = (z: number) => Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, z));
 export function BirdsEyePreview({
   schema,
   onOpenFull,
-}: { schema: FormSchema; onOpenFull?: () => void }) {
+  device = "desktop",
+}: {
+  schema: FormSchema;
+  onOpenFull?: () => void;
+  /** Top-bar device preview toggle — narrows the simulated form width to approximate a phone. */
+  device?: "desktop" | "mobile";
+}) {
   const outerRef = useRef<HTMLDivElement>(null);
   const innerRef = useRef<HTMLDivElement>(null);
   const [panelWidth, setPanelWidth] = useState(300);
@@ -66,8 +72,9 @@ export function BirdsEyePreview({
     return () => ro.disconnect();
   }, []);
 
+  const naturalWidth = device === "mobile" ? 420 : FORM_NATURAL_WIDTH;
   // Fit-to-width scale, then the manual zoom multiplier; never below the legibility floor.
-  const scale = Math.max(MIN_SCALE, (panelWidth / FORM_NATURAL_WIDTH) * zoom);
+  const scale = Math.max(MIN_SCALE, (panelWidth / naturalWidth) * zoom);
   const scaledH = innerH * scale;
 
   return (
@@ -118,7 +125,7 @@ export function BirdsEyePreview({
             ref={innerRef}
             className="bep-inner"
             style={{
-              width: FORM_NATURAL_WIDTH,
+              width: naturalWidth,
               transform: `scale(${scale})`,
               transformOrigin: "top left",
             }}
