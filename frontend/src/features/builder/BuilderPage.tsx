@@ -12,6 +12,7 @@ import { ActivityPanel } from "./ActivityPanel";
 import { BirdsEyePreview } from "./BirdsEyePreview";
 import { BuilderCanvas } from "./BuilderCanvas";
 import { ChecksPanel } from "./ChecksPanel";
+import { CommandPalette } from "./CommandPalette";
 import { HistoryPanel } from "./HistoryPanel";
 import { InspectorResizer } from "./InspectorResizer";
 import { LogicBuilder } from "./LogicBuilder";
@@ -74,6 +75,7 @@ export function BuilderPage() {
   const [showLibrary, setShowLibrary] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(true);
   const [inspectorOpen, setInspectorOpen] = useState(true);
   // v2 shell: icon-rail mode, device preview width, and a light/dark toggle. Design/Share
@@ -205,6 +207,7 @@ export function BuilderPage() {
     closeShortcuts: () => setShortcutsOpen(false),
     groupingSource,
     clearGroupingSource: () => setGroupingSource(null),
+    toggleCommandPalette: () => setCommandPaletteOpen((o) => !o),
   });
 
   const elements = pageElements(schema, activePage);
@@ -349,6 +352,14 @@ export function BuilderPage() {
             onClick={toggleBuilderTheme}
           >
             {builderTheme === "light" ? "🌙" : "☀️"}
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            title="Command palette (Ctrl/Cmd+K)"
+            onClick={() => setCommandPaletteOpen(true)}
+          >
+            ⌘K
           </Button>
           {/* Utility actions collapse into a disclosure so the primary actions
               (Save draft / Publish) are always visible, never scrolled off. */}
@@ -819,6 +830,13 @@ export function BuilderPage() {
       </div>
 
       {previewOpen && <PreviewModal schema={schema} onClose={() => setPreviewOpen(false)} />}
+      <CommandPalette
+        open={commandPaletteOpen}
+        onClose={() => setCommandPaletteOpen(false)}
+        onOpenPreview={() => setPreviewOpen(true)}
+        onToggleTheme={toggleBuilderTheme}
+        onSetMode={setMode}
+      />
       {shareTab && (
         <ShareDialog
           formId={store.formId ?? undefined}
