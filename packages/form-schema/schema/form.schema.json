@@ -95,6 +95,11 @@
         "welcomeMessage": { "$ref": "#/$defs/i18nString" },
         "redirectUrl": { "type": "string", "description": "Auto-redirect here after submitting." },
         "notifyEmails": { "type": "array", "items": { "type": "string" }, "description": "Emailed on each new submission." },
+        "autoNumber": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show question numbers (Q1, Q2…) on cards and in Live Preview. Display-only — never stored per question."
+        },
         "quizMode": { "type": "boolean", "default": false, "description": "Grade responses (correct answers / option scores) and show results." },
         "showCorrectAnswers": { "type": "boolean", "default": true, "description": "Show respondents their graded results on the thank-you screen (quiz mode)." },
         "outcomes": {
@@ -246,6 +251,29 @@
             "correct": { "$ref": "#/$defs/i18nString" },
             "incorrect": { "$ref": "#/$defs/i18nString" }
           }
+        },
+        "ratingMax": {
+          "type": "integer",
+          "minimum": 2,
+          "maximum": 10,
+          "description": "Rating element: number of levels (default 5)."
+        },
+        "ratingGlyph": {
+          "type": "string",
+          "enum": ["star", "number"],
+          "description": "Rating element: render as stars or plain numbers."
+        },
+        "scaleLabelLow": {
+          "$ref": "#/$defs/i18nString",
+          "description": "Linear-scale element: label for the low end (reuses validation.min/max for the bounds)."
+        },
+        "scaleLabelHigh": {
+          "$ref": "#/$defs/i18nString",
+          "description": "Linear-scale element: label for the high end."
+        },
+        "matrixMulti": {
+          "type": "boolean",
+          "description": "Matrix element: allow multiple selections per row (checkbox cells instead of radio)."
         },
         "meta": {
           "type": "object",

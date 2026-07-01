@@ -162,7 +162,7 @@ export function FormsPage() {
               </select>
             </>
           )}
-          <Link className="button" to="/templates">
+          <Link className="button" to="/builder/new">
             + New form
           </Link>
         </div>

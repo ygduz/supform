@@ -21,6 +21,8 @@ import operator
 from collections.abc import Callable
 from typing import Any
 
+from app.form_engine.functions import EAGER_FUNCTIONS, LAZY_FUNCTIONS
+
 Context = dict[str, Any]
 
 
@@ -79,23 +81,17 @@ def _fn_selected(value: Any, option: Any) -> bool:
     return value == option
 
 
-def _fn_count(value: Any) -> int:
-    return len(value) if isinstance(value, (list, tuple, set, str)) else (0 if value is None else 1)
-
-
-# Registered, side-effect-free helper functions callable from expressions.
+# Registered, side-effect-free helper functions callable from expressions. The Excel
+# catalog (functions.py) is merged in; legacy helpers (``selected``) and Python builtins
+# keep working. Excel functions override the bare builtins (e.g. ``round`` -> Excel ROUND,
+# ``len``/``count`` -> the form-aware versions) so behavior matches the documented catalog.
+# All names are looked up case-insensitively, so ``SUM`` and ``sum`` are the same function.
 _FUNCTIONS: dict[str, Callable[..., Any]] = {
     "selected": _fn_selected,
-    "count": _fn_count,
-    "len": _fn_count,
-    "min": min,
-    "max": max,
-    "abs": abs,
-    "round": round,
-    "int": int,
     "float": float,
     "str": str,
     "bool": bool,
+    **EAGER_FUNCTIONS,
 }
 
 
@@ -161,11 +157,27 @@ def _eval(node: ast.AST, ctx: Context) -> Any:  # noqa: C901 - small dispatcher
                 return False
             left = right
         return True
+    if isinstance(node, ast.IfExp):
+        # Python ternary `a if cond else b` — short-circuits like Excel IF.
+        return _eval(node.body, ctx) if _eval(node.test, ctx) else _eval(node.orelse, ctx)
     if isinstance(node, (ast.List, ast.Tuple)):
         return [_eval(e, ctx) for e in node.elts]
     if isinstance(node, ast.Call):
-        if not isinstance(node.func, ast.Name) or node.func.id not in _FUNCTIONS:
+        if not isinstance(node.func, ast.Name):
             raise ExpressionError("Only registered helper functions may be called")
-        args = [_eval(a, ctx) for a in node.args]
-        return _FUNCTIONS[node.func.id](*args)
+        # Function names are case-insensitive (Excel convention): SUM == sum.
+        name = node.func.id.lower()
+        if node.keywords:
+            raise ExpressionError("Keyword arguments are not allowed")
+        lazy = LAZY_FUNCTIONS.get(name)
+        if lazy is not None:
+            # Lazy functions receive unevaluated arg nodes + an evaluator so they can
+            # short-circuit (IF only runs the taken branch; IFERROR catches errors). A
+            # runtime failure propagates naturally — the fail-safe layers (evaluate_bool /
+            # calculate) swallow it, while structural problems below raise ExpressionError.
+            return lazy(node.args, lambda n: _eval(n, ctx))
+        fn = _FUNCTIONS.get(name)
+        if fn is None:
+            raise ExpressionError(f"Unknown function: {node.func.id}")
+        return fn(*[_eval(a, ctx) for a in node.args])
     raise ExpressionError(f"Unsupported expression element: {type(node).__name__}")

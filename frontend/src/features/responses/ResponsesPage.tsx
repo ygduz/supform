@@ -2,17 +2,24 @@ import { type SubmissionRow, type ValidationStatus, api, isAuthenticated } from 
 import { Alert, Button, EmptyState, Modal, Spinner, Tabs } from "@/components";
 import { localize } from "@/lib/i18n";
 import type { FormSchema } from "@/types/form-schema";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Link, useParams, useSearchParams } from "react-router-dom";
 import { FormContextNav } from "../form/FormContextNav";
 import { AnalyticsPanel } from "./AnalyticsPanel";
 import { MapPanel } from "./MapPanel";
 import { WorkflowBoard } from "./WorkflowBoard";
 import { buildColumns } from "./columns";
 
+// The report dashboard is its own code-split chunk — only downloaded when the Report tab
+// is opened, preserving the bundle savings the standalone /report route used to give.
+const ReportPanel = lazy(() =>
+  import("../reports/ReportPanel").then((m) => ({ default: m.ReportPanel })),
+);
+
 type Status = "loading" | "ready" | "unauth" | "error";
 type Format = "csv" | "xlsx" | "json" | "geojson" | "kml" | "spss" | "xlsform";
-type View = "analytics" | "table" | "map" | "workflow";
+type View = "analytics" | "table" | "map" | "workflow" | "report";
+const VIEWS: readonly View[] = ["analytics", "table", "map", "workflow", "report"];
 type StatusFilter = "all" | ValidationStatus;
 
 interface EditState {
@@ -52,7 +59,20 @@ export function ResponsesPage() {
   const [rows, setRows] = useState<SubmissionRow[]>([]);
   const [status, setStatus] = useState<Status>("loading");
   const [error, setError] = useState<string | null>(null);
-  const [view, setView] = useState<View>("analytics");
+  // The active view lives in the URL (`?view=`) so each tab — Analytics, Table, Map,
+  // Workflow, Report — is bookmarkable/deep-linkable, and the old /report route can
+  // redirect straight to ?view=report.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const viewParam = searchParams.get("view") as View | null;
+  const view: View = viewParam && VIEWS.includes(viewParam) ? viewParam : "analytics";
+  const setView = (v: View) =>
+    setSearchParams(
+      (prev) => {
+        prev.set("view", v);
+        return prev;
+      },
+      { replace: true },
+    );
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [editState, setEditState] = useState<EditState | null>(null);
   const [editHistory, setEditHistory] = useState<
@@ -301,12 +321,19 @@ export function ResponsesPage() {
     );
   }
 
-  const viewTabs = [
+  // Two views every form uses stay always-visible; the rest fold under "More views ▾"
+  // so the results page opens calm. All remain deep-linkable via ?view= (the active one
+  // surfaces in the disclosure summary).
+  const primaryTabs = [
     { key: "analytics", label: "Analytics" },
     { key: "table", label: "Table", count: rows.length },
+  ];
+  const moreTabs = [
     ...(hasGeo ? [{ key: "map", label: "Map" }] : []),
     { key: "workflow", label: "Workflow" },
+    { key: "report", label: "Report" },
   ];
+  const activeMore = moreTabs.find((t) => t.key === view);
 
   return (
     <section className="responses">
@@ -323,9 +350,6 @@ export function ResponsesPage() {
           </p>
         </div>
         <div className="export-actions">
-          <Link to={`/forms/${formId}/report`} className="button secondary">
-            Report
-          </Link>
           <details className="export-dropdown">
             <summary className="button outline">Export ▾</summary>
             <div className="export-menu">
@@ -411,9 +435,33 @@ export function ResponsesPage() {
         />
       ) : (
         <>
-          <Tabs tabs={viewTabs} active={view} onChange={(key) => setView(key as View)} />
+          <div className="responses-tabbar">
+            <Tabs tabs={primaryTabs} active={view} onChange={(key) => setView(key as View)} />
+            <details className="more-views">
+              <summary className={activeMore ? "more-views-summary active" : "more-views-summary"}>
+                {activeMore ? activeMore.label : "More views"} ▾
+              </summary>
+              <div className="more-views-menu">
+                {moreTabs.map((t) => (
+                  <button
+                    key={t.key}
+                    type="button"
+                    className={view === t.key ? "active" : undefined}
+                    onClick={() => setView(t.key as View)}
+                  >
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+            </details>
+          </div>
 
           {view === "analytics" && schema && <AnalyticsPanel schema={schema} rows={rows} />}
+          {view === "report" && (
+            <Suspense fallback={<Spinner size="sm" />}>
+              <ReportPanel rows={rows} />
+            </Suspense>
+          )}
           {view === "map" && schema && <MapPanel schema={schema} rows={rows} />}
           {view === "workflow" && schema && (
             <WorkflowBoard

@@ -161,6 +161,14 @@ class Element(BaseModel):
     )
     feedback: Feedback | None = None
 
+    # rating/scale/matrix authoring extras (builder v2). Scale bounds reuse the existing
+    # validation.min/max rather than adding separate scaleMin/scaleMax fields.
+    rating_max: int | None = Field(default=None, alias="ratingMax")
+    rating_glyph: str | None = Field(default=None, alias="ratingGlyph")  # "star" | "number"
+    scale_label_low: I18nString | None = Field(default=None, alias="scaleLabelLow")
+    scale_label_high: I18nString | None = Field(default=None, alias="scaleLabelHigh")
+    matrix_multi: bool | None = Field(default=None, alias="matrixMulti")
+
     meta: dict[str, Any] = Field(default_factory=dict)
 
 
@@ -226,6 +234,9 @@ class FormSettings(BaseModel):
     quiz_mode: bool = Field(default=False, alias="quizMode")
     show_correct_answers: bool = Field(default=True, alias="showCorrectAnswers")
     workflow_steps: list[str] = Field(default_factory=list, alias="workflowSteps")
+    # Builder v2: show "Q1, Q2…" numbering on cards and in Live Preview (display-only,
+    # positional — never stored per question).
+    auto_number: bool = Field(default=True, alias="autoNumber")
     outcomes: list[Outcome] = Field(default_factory=list)
     # Data quality: thresholds for automated flag checks run at submit time.
     quality_checks: QualityChecks | None = Field(default=None, alias="qualityChecks")

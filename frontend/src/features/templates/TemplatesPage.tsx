@@ -2,7 +2,7 @@ import { EmptyState } from "@/components";
 import { useBuilderStore } from "@/stores/builderStore";
 import type { FormSchema } from "@/types/form-schema";
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { AIGenerateDialog } from "./AIGenerateDialog";
 import { type SavedTemplate, deleteMyTemplate, listMyTemplates } from "./myTemplates";
 import { TEMPLATES } from "./templates";
@@ -12,7 +12,9 @@ export function TemplatesPage() {
   const navigate = useNavigate();
   const loadTemplate = useBuilderStore((s) => s.loadTemplate);
   const [mine, setMine] = useState<SavedTemplate[]>(() => listMyTemplates());
-  const [aiOpen, setAiOpen] = useState(false);
+  // The "+ New form → ✨ With AI" entry deep-links here with ?ai=1 to open the generator.
+  const [searchParams] = useSearchParams();
+  const [aiOpen, setAiOpen] = useState(searchParams.get("ai") === "1");
 
   const use = (schema: FormSchema) => {
     loadTemplate(schema);

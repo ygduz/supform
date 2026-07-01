@@ -65,7 +65,7 @@ export function CanvasList({
         <InsertSlot
           variant="block"
           location={{ pageIndex, parentName, index: elements.length }}
-          label={parentName ? "Add question to group" : "Add question"}
+          label={parentName ? "Add question to group" : "Add a question"}
         />
       )}
     </SortableContext>

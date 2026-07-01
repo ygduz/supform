@@ -1,6 +1,14 @@
 import { isAuthenticated } from "@/api/client";
 import { Suspense, lazy } from "react";
-import { BrowserRouter, Link, Navigate, Route, Routes, useLocation } from "react-router-dom";
+import {
+  BrowserRouter,
+  Link,
+  Navigate,
+  Route,
+  Routes,
+  useLocation,
+  useParams,
+} from "react-router-dom";
 import { ForgotPasswordPage } from "./features/auth/ForgotPasswordPage";
 import { LoginPage } from "./features/auth/LoginPage";
 import { ResetPasswordPage } from "./features/auth/ResetPasswordPage";
@@ -24,9 +32,6 @@ const ImportPage = lazy(() =>
 );
 const RendererPage = lazy(() =>
   import("./features/renderer/RendererPage").then((m) => ({ default: m.RendererPage })),
-);
-const ReportPage = lazy(() =>
-  import("./features/reports/ReportPage").then((m) => ({ default: m.ReportPage })),
 );
 const ResponsesPage = lazy(() =>
   import("./features/responses/ResponsesPage").then((m) => ({ default: m.ResponsesPage })),
@@ -68,12 +73,18 @@ function Shell() {
         <nav>
           {authed ? (
             <>
-              <Link to="/forms">My forms</Link>
-              <Link to="/templates">Templates</Link>
-              <Link to="/inbox">Inbox</Link>
-              <Link to="/builder/new" className="button">
-                + New form
+              <Link to="/inbox" className="nav-icon" title="Inbox" aria-label="Inbox">
+                ✉️
               </Link>
+              <details className="create-menu">
+                <summary className="button">+ New form ▾</summary>
+                <div className="create-menu-list">
+                  <Link to="/builder/new">📄 Blank form</Link>
+                  <Link to="/templates">🧩 From a template</Link>
+                  <Link to="/templates?ai=1">✨ With AI</Link>
+                  <Link to="/import">⇪ Import (XLSForm / text)</Link>
+                </div>
+              </details>
             </>
           ) : (
             <>
@@ -98,7 +109,8 @@ function Shell() {
             <Route path="/inbox" element={<InboxPage />} />
             <Route path="/builder/:formId" element={<BuilderPage />} />
             <Route path="/forms/:formId/responses" element={<ResponsesPage />} />
-            <Route path="/forms/:formId/report" element={<ReportPage />} />
+            {/* The report is now a tab inside Responses; keep the old URL working. */}
+            <Route path="/forms/:formId/report" element={<ReportRedirect />} />
           </Routes>
         </Suspense>
       </main>
@@ -106,21 +118,62 @@ function Shell() {
   );
 }
 
+/** The standalone report page was folded into the Responses view; redirect old links. */
+function ReportRedirect() {
+  const { formId } = useParams();
+  return <Navigate to={`/forms/${formId}/responses?view=report`} replace />;
+}
+
 function Home() {
   // Signed-in users land on their dashboard; the marketing splash is for visitors.
   if (isAuthenticated()) return <Navigate to="/forms" replace />;
   return (
     <section className="home">
-      <h1>Build beautiful forms.</h1>
-      <p>As easy as MS Forms, flexible enough to drive from code.</p>
-      <div className="home-actions">
-        <Link className="button" to="/templates">
-          Browse templates
-        </Link>
-        <Link className="button secondary" to="/builder/new">
-          Start from scratch
-        </Link>
+      <div className="home-hero">
+        <h1>Build beautiful forms.</h1>
+        <p className="home-sub">As easy as MS Forms, flexible enough to drive from code.</p>
+        <div className="home-actions">
+          <Link className="button" to="/templates">
+            Browse templates
+          </Link>
+          <Link className="button secondary" to="/builder/new">
+            Start from scratch
+          </Link>
+        </div>
+        <p className="home-signin muted">
+          Already have an account? <Link to="/login">Sign in</Link>
+        </p>
       </div>
+      <ul className="home-features">
+        <li>
+          <span className="home-feature-icon" aria-hidden="true">
+            🧩
+          </span>
+          <strong>Every field type</strong>
+          <span className="muted">
+            Text, choice, matrix, ratings, file upload, address & geo — with pages, groups and
+            repeats.
+          </span>
+        </li>
+        <li>
+          <span className="home-feature-icon" aria-hidden="true">
+            🔀
+          </span>
+          <strong>Logic & formulas</strong>
+          <span className="muted">
+            Show or hide questions on conditions, and compute values with Excel-style functions.
+          </span>
+        </li>
+        <li>
+          <span className="home-feature-icon" aria-hidden="true">
+            📊
+          </span>
+          <strong>Responses & quizzes</strong>
+          <span className="muted">
+            Live analytics, auto-grading and exports — or drive the whole thing from the API.
+          </span>
+        </li>
+      </ul>
     </section>
   );
 }
