@@ -2793,6 +2793,166 @@ body.inspector-resizing .inspector-resizer {
   background: rgba(199, 93, 58, 0.08);
 }
 
+/* ---- required/optional segmented chip (card footer) ---- */
+.el-required-chip {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  overflow: hidden;
+  margin-left: 8px;
+  flex-shrink: 0;
+}
+.el-required-chip button {
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 11px;
+  padding: 3px 10px;
+  color: var(--muted);
+}
+.el-required-chip button.active {
+  background: var(--primary);
+  color: #fff;
+}
+
+/* ---- rating / scale / matrix inline editors ---- */
+.pv-rating-editor,
+.pv-scale-editor,
+.pv-matrix-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 420px;
+}
+.pv-stepper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+.pv-stepper button {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--surface-raised);
+  cursor: pointer;
+  line-height: 1;
+}
+.pv-stepper button:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+.pv-glyph-toggle {
+  display: flex;
+  gap: 6px;
+}
+.pv-glyph-toggle button {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface-raised);
+  padding: 5px 10px;
+  font-size: 12px;
+  cursor: pointer;
+}
+.pv-glyph-toggle button.active {
+  border-color: var(--primary);
+  color: var(--primary);
+  background: rgba(199, 93, 58, 0.08);
+}
+.pv-scale-bounds {
+  display: flex;
+  gap: 16px;
+}
+.pv-scale-anchors {
+  display: flex;
+  gap: 8px;
+}
+.pv-scale-anchors input {
+  flex: 1;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 13px;
+  padding: 5px 8px;
+}
+.pv-scale {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.pv-scale-label {
+  font-size: 12px;
+  color: var(--muted);
+}
+.pv-matrix-editor {
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+.pv-matrix-editor-col {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 160px;
+}
+.pv-matrix-editor-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--muted);
+  letter-spacing: 0.02em;
+}
+.pv-matrix-multi-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  width: 100%;
+}
+
+/* ---- grouped/searchable insert-slot popover ---- */
+.insert-pop-grouped {
+  grid-template-columns: 1fr;
+  width: 220px;
+  padding: 0;
+  gap: 0;
+}
+.insert-search {
+  width: 100%;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  padding: 8px 10px;
+  font-size: 13px;
+  background: var(--surface-raised);
+  outline: none;
+}
+.insert-pop-scroll {
+  max-height: 280px;
+  overflow-y: auto;
+  padding: 6px;
+}
+.insert-category + .insert-category {
+  margin-top: 6px;
+}
+.insert-category-label {
+  display: block;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--muted);
+  letter-spacing: 0.03em;
+  padding: 4px 8px;
+}
+.insert-category button {
+  width: 100%;
+}
+.insert-no-results {
+  padding: 12px;
+  font-size: 13px;
+  color: var(--muted);
+  text-align: center;
+}
+
 /* ---- visual logic builder ---- */
 .logic-rule {
   display: flex;

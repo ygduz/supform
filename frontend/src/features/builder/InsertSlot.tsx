@@ -1,12 +1,70 @@
 import { useBuilderStore } from "@/stores/builderStore";
-import { useEffect, useRef, useState } from "react";
+import type { ElementType } from "@/types/form-schema";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { DropLocation } from "./BuilderCanvas";
 import { ELEMENT_PALETTE } from "./palette";
+
+const CATEGORIES: { label: string; types: ElementType[] }[] = [
+  {
+    label: "Basic",
+    types: [
+      "text",
+      "longtext",
+      "email",
+      "phone",
+      "url",
+      "number",
+      "integer",
+      "decimal",
+      "date",
+      "date_range",
+      "time",
+      "datetime",
+    ],
+  },
+  {
+    label: "Choice",
+    types: [
+      "single_choice",
+      "multi_choice",
+      "dropdown",
+      "boolean",
+      "rating",
+      "scale",
+      "ranking",
+      "matrix",
+    ],
+  },
+  {
+    label: "Layout",
+    types: ["group", "repeat", "note", "html"],
+  },
+  {
+    label: "Advanced",
+    types: [
+      "signature",
+      "address",
+      "file",
+      "image",
+      "geopoint",
+      "geotrace",
+      "geoshape",
+      "barcode",
+      "calculated",
+      "start",
+      "end",
+      "today",
+      "deviceid",
+      "username",
+    ],
+  },
+];
 
 /**
  * The thin gap between two canvas cards. Hovering reveals a ➕ button; clicking it opens
  * an in-place question-type picker that inserts at exactly this position — the fastest
- * way to build without reaching for the left palette.
+ * way to build without reaching for the left palette. The picker groups types into
+ * categories (Basic/Choice/Layout/Advanced) with a search box on top for fast filtering.
  */
 export function InsertSlot({
   location,
@@ -20,10 +78,15 @@ export function InsertSlot({
 }) {
   const addAt = useBuilderStore((s) => s.addAt);
   const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
   const ref = useRef<HTMLDivElement>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!open) return;
+    setQuery("");
+    // Autofocus the search box the moment the popover opens.
+    const t = window.setTimeout(() => searchRef.current?.focus(), 0);
     const onDown = (e: PointerEvent) => {
       if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
     };
@@ -33,10 +96,27 @@ export function InsertSlot({
     window.addEventListener("pointerdown", onDown);
     window.addEventListener("keydown", onKey);
     return () => {
+      window.clearTimeout(t);
       window.removeEventListener("pointerdown", onDown);
       window.removeEventListener("keydown", onKey);
     };
   }, [open]);
+
+  const insert = (type: ElementType) => {
+    addAt(type, { pageIndex: location.pageIndex, parentName: location.parentName }, location.index);
+    setOpen(false);
+  };
+
+  const filteredCategories = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return CATEGORIES.map((cat) => {
+      const items = cat.types
+        .map((type) => ELEMENT_PALETTE.find((p) => p.type === type))
+        .filter((item): item is { type: ElementType; label: string; icon: string } => !!item)
+        .filter((item) => !q || item.label.toLowerCase().includes(q) || item.type.includes(q));
+      return { ...cat, items };
+    }).filter((cat) => cat.items.length > 0);
+  }, [query]);
 
   return (
     <div
@@ -58,24 +138,34 @@ export function InsertSlot({
         </button>
       )}
       {open && (
-        <div className="insert-pop" role="menu">
-          {ELEMENT_PALETTE.map((item) => (
-            <button
-              key={item.type}
-              type="button"
-              role="menuitem"
-              onClick={() => {
-                addAt(
-                  item.type,
-                  { pageIndex: location.pageIndex, parentName: location.parentName },
-                  location.index,
-                );
-                setOpen(false);
-              }}
-            >
-              <span aria-hidden="true">{item.icon}</span> {item.label}
-            </button>
-          ))}
+        <div className="insert-pop insert-pop-grouped" role="menu">
+          <input
+            ref={searchRef}
+            type="text"
+            className="insert-search"
+            placeholder="Search question types…"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onPointerDown={(e) => e.stopPropagation()}
+          />
+          <div className="insert-pop-scroll">
+            {filteredCategories.length === 0 && <p className="insert-no-results">No matches</p>}
+            {filteredCategories.map((cat) => (
+              <div key={cat.label} className="insert-category">
+                <span className="insert-category-label">{cat.label}</span>
+                {cat.items.map((item) => (
+                  <button
+                    key={item.type}
+                    type="button"
+                    role="menuitem"
+                    onClick={() => insert(item.type)}
+                  >
+                    <span aria-hidden="true">{item.icon}</span> {item.label}
+                  </button>
+                ))}
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>
