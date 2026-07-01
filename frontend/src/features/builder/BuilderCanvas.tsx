@@ -26,6 +26,7 @@ export function BuilderCanvas({
   overDragId,
   groupingSource,
   onGroupLink,
+  device = "desktop",
 }: {
   elements: Element[];
   pageIndex: number;
@@ -33,6 +34,8 @@ export function BuilderCanvas({
   overDragId: string | null;
   groupingSource: string | null;
   onGroupLink: (targetName: string) => void;
+  /** Top-bar device preview toggle — narrows the canvas column to approximate a phone. */
+  device?: "desktop" | "mobile";
 }) {
   const { selectedName, selectedNames, schema } = useBuilderStore();
   const formTitle = localize(schema.title) || "Untitled form";
@@ -105,7 +108,7 @@ export function BuilderCanvas({
     return () => document.removeEventListener("keydown", onKey);
   }, [connectingFrom, cancelConnect]);
 
-  const canvasInnerCls = `canvas-inner${connectingFrom ? " connecting" : ""}`;
+  const canvasInnerCls = `canvas-inner${connectingFrom ? " connecting" : ""}${device === "mobile" ? " device-mobile" : ""}`;
 
   return (
     // biome-ignore lint/a11y/useKeyWithClickEvents: background cancel is supplementary to Escape key handler
