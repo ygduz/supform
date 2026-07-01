@@ -164,6 +164,9 @@ interface BuilderState {
   ) => void;
 
   respondentUrl: string | null;
+  /** "draft" | "published" for an existing form; null for a brand-new/offline-fallback one.
+   *  Drives the top-bar status pill. */
+  formStatus: "draft" | "published" | null;
 
   save: () => Promise<void>;
   publish: () => Promise<void>;
@@ -238,6 +241,7 @@ export const useBuilderStore = create<BuilderState>((rawSet, get) => {
     dirty: false,
     templateLoaded: false,
     respondentUrl: null,
+    formStatus: null,
     past: [],
     future: [],
 
@@ -267,6 +271,7 @@ export const useBuilderStore = create<BuilderState>((rawSet, get) => {
             dirty: false,
             past: [],
             future: [],
+            formStatus: "draft",
           }),
         );
         return;
@@ -287,6 +292,7 @@ export const useBuilderStore = create<BuilderState>((rawSet, get) => {
             dirty: false,
             past: [],
             future: [],
+            formStatus: form.status === "published" ? "published" : "draft",
           }),
         );
       } catch (err) {
@@ -717,7 +723,12 @@ export const useBuilderStore = create<BuilderState>((rawSet, get) => {
       set({ status: "publishing" });
       try {
         const result = await api.publish(formId);
-        set({ status: "idle", dirty: false, respondentUrl: result.respondent_url });
+        set({
+          status: "idle",
+          dirty: false,
+          respondentUrl: result.respondent_url,
+          formStatus: "published",
+        });
       } catch (err) {
         set({ status: "error", error: (err as Error).message });
       }
