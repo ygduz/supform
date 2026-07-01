@@ -5485,6 +5485,21 @@ body.inspector-resizing .inspector-resizer {
   color: var(--primary);
 }
 
+.ov-branch-chip {
+  flex-shrink: 0;
+  border: none;
+  background: rgba(234, 179, 8, 0.15);
+  color: #b45309;
+  font-size: 11px;
+  line-height: 1;
+  padding: 3px 5px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.ov-branch-chip:hover {
+  background: rgba(234, 179, 8, 0.28);
+}
+
 .ov-expand {
   display: flex;
   align-items: center;
