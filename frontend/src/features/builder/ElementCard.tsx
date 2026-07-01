@@ -256,6 +256,10 @@ export function ElementCard({
             // Only swallow the pointer while editing (so you can place the caret / select
             // text). When not editing, let it bubble so a press on the title starts a drag.
             onPointerDown={editing ? (e) => e.stopPropagation() : undefined}
+            // The row also carries dnd-kit's keyboard-sensor listeners (Space/Arrow keys
+            // drive keyboard drag reordering) — stop propagation while editing so typing a
+            // space in the label doesn't get intercepted and preventDefault()-ed by dnd-kit.
+            onKeyDown={editing ? (e) => e.stopPropagation() : undefined}
             onClick={(e) => e.stopPropagation()}
           />
           {element.required && editing ? <span className="el-required">*</span> : null}
