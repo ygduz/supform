@@ -12,8 +12,15 @@ from typing import Any
 Element = dict[str, Any]
 
 
-# snake_case kwargs that map to camelCase wire keys (quiz grading passthrough).
-_KW_ALIASES = {"correct_answer": "correctAnswer"}
+# snake_case kwargs that map to camelCase wire keys (quiz grading + builder-v2 passthrough).
+_KW_ALIASES = {
+    "correct_answer": "correctAnswer",
+    "rating_max": "ratingMax",
+    "rating_glyph": "ratingGlyph",
+    "scale_label_low": "scaleLabelLow",
+    "scale_label_high": "scaleLabelHigh",
+    "matrix_multi": "matrixMulti",
+}
 
 
 def _base(
@@ -136,8 +143,22 @@ def Dropdown(name: str, *, options: list[Any], **kw: Any) -> Element:
     return _base("dropdown", name, options=_options(options), **kw)
 
 
-def Rating(name: str, *, scale: int = 5, **kw: Any) -> Element:
-    return _base("rating", name, options=_options(list(range(1, scale + 1))), **kw)
+def Rating(
+    name: str,
+    *,
+    scale: int = 5,
+    rating_glyph: str | None = None,
+    **kw: Any,
+) -> Element:
+    """`rating_glyph`: "star" (default look) or "number". `scale` also sets `ratingMax`."""
+    return _base(
+        "rating",
+        name,
+        options=_options(list(range(1, scale + 1))),
+        rating_max=scale,
+        rating_glyph=rating_glyph,
+        **kw,
+    )
 
 
 def Date(name: str, **kw: Any) -> Element:
@@ -221,9 +242,26 @@ def Html(name: str, *, label: str, **kw: Any) -> Element:
     return _base("html", name, label=label, **kw)
 
 
-def Matrix(name: str, *, rows: list[Any], columns: list[Any], **kw: Any) -> Element:
-    """A matrix / grid question with labelled rows and columns."""
-    return _base("matrix", name, rows=_options(rows), columns=_options(columns), **kw)
+def Matrix(
+    name: str,
+    *,
+    rows: list[Any],
+    columns: list[Any],
+    matrix_multi: bool | None = None,
+    **kw: Any,
+) -> Element:
+    """A matrix / grid question with labelled rows and columns.
+
+    `matrix_multi=True` allows multiple selections per row (checkbox cells instead of radio).
+    """
+    return _base(
+        "matrix",
+        name,
+        rows=_options(rows),
+        columns=_options(columns),
+        matrix_multi=matrix_multi,
+        **kw,
+    )
 
 
 def Note(name: str, *, label: str, **kw: Any) -> Element:
@@ -240,9 +278,30 @@ def Ranking(name: str, *, options: list[Any], **kw: Any) -> Element:
     return _base("ranking", name, options=_options(options), **kw)
 
 
-def Scale(name: str, *, min: int = 1, max: int = 5, **kw: Any) -> Element:
-    """A numeric scale question rendered as a labelled slider or button row."""
-    return _base("scale", name, options=_options(list(range(min, max + 1))), **kw)
+def Scale(
+    name: str,
+    *,
+    min: int = 1,
+    max: int = 5,
+    scale_label_low: str | None = None,
+    scale_label_high: str | None = None,
+    **kw: Any,
+) -> Element:
+    """A numeric scale question rendered as a labelled slider or button row.
+
+    `scale_label_low`/`scale_label_high` caption the endpoints (e.g. "Not likely"/"Very
+    likely"); the bounds themselves come from `min`/`max`, stored as `validation.min`/`max`.
+    """
+    validation = {"min": min, "max": max}
+    return _base(
+        "scale",
+        name,
+        options=_options(list(range(min, max + 1))),
+        validation=validation,
+        scale_label_low=scale_label_low,
+        scale_label_high=scale_label_high,
+        **kw,
+    )
 
 
 def Section(name: str, *, label: str, **kw: Any) -> Element:

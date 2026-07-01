@@ -46,6 +46,8 @@ A page may have a `visibleIf` to skip whole sections.
 - `workflowSteps` — named stages for the review/approval workflow.
 - quiz: `quizMode`, `showCorrectAnswers`, `outcomes` (see [Quizzes](#quizzes)).
 - `qualityChecks` — `{ minDurationSeconds, expectedGeoBbox }` thresholds for automated flags.
+- `autoNumber` (default `true`) — show question numbers (Q1, Q2…) on cards and in the live
+  renderer. Display-only and positional; never stored per question.
 
 ## Elements
 
@@ -65,7 +67,10 @@ Every field/block is an **element**. The required keys are `type` and `name`.
 | `elements` | Children for `group` / `repeat`. |
 | `repeat` | `{min, max, addButtonText}` for repeating groups. |
 | `points` / `correctAnswer` / `feedback` | Quiz grading (see [Quizzes](#quizzes)). |
-| `meta` | Open bag for UI-only or custom metadata (never rejected). |
+| `ratingMax` / `ratingGlyph` | `rating` authoring: level count (2–10, default 5) and glyph — `"star"` or `"number"`. |
+| `scaleLabelLow` / `scaleLabelHigh` | `scale` authoring: endpoint captions (e.g. "Not likely" / "Very likely"). Bounds are `validation.min`/`max`, not separate fields. |
+| `matrixMulti` | `matrix` authoring: allow multiple selections per row (checkbox cells instead of radio). |
+| `meta` | Open bag for UI-only or custom metadata (never rejected) — e.g. `meta.authorNote` (editor-only annotation, never shown to respondents) and `meta.pii` (flags a field as sensitive for export/AI-summary handling). Not validated fields; just a documented convention. |
 
 ### Core element types
 

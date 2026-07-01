@@ -126,6 +126,16 @@ export interface Element {
   correctAnswer?: string | number | boolean | Array<string | number | boolean>;
   /** Quiz mode: feedback messages shown on the results screen. */
   feedback?: Feedback;
+  /** Rating element: number of levels (default 5). */
+  ratingMax?: number;
+  /** Rating element: render as stars or plain numbers. */
+  ratingGlyph?: "star" | "number";
+  /** Linear-scale element: low-end label (bounds reuse validation.min/max). */
+  scaleLabelLow?: I18nString;
+  /** Linear-scale element: high-end label. */
+  scaleLabelHigh?: I18nString;
+  /** Matrix element: allow multiple selections per row (checkbox cells instead of radio). */
+  matrixMulti?: boolean;
   meta?: Record<string, unknown>;
 }
 
@@ -188,6 +198,8 @@ export interface FormSettings {
   outcomes?: Outcome[];
   qualityChecks?: QualityChecks;
   workflowSteps?: string[];
+  /** Show question numbers (Q1, Q2…) on cards and in Live Preview. Display-only. */
+  autoNumber?: boolean;
 }
 
 export interface QualityChecks {
