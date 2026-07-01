@@ -1,7 +1,7 @@
 import { useBuilderStore } from "@/stores/builderStore";
 import type { Theme } from "@/types/form-schema";
 
-const FONTS = [
+export const FONTS = [
   { label: "Default (Inter)", value: "" },
   { label: "System sans", value: "system-ui, sans-serif" },
   { label: "Serif (Georgia)", value: "Georgia, 'Times New Roman', serif" },
@@ -9,7 +9,7 @@ const FONTS = [
 ];
 
 /** One-click starting points. Each sets concrete values so the renderer needs no lookup. */
-const PRESETS: { id: string; name: string; theme: Theme }[] = [
+export const PRESETS: { id: string; name: string; theme: Theme }[] = [
   {
     id: "ocean",
     name: "Ocean",
