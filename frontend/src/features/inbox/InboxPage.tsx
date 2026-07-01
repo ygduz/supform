@@ -1,5 +1,7 @@
 import { type SubmissionRow, api } from "@/api/client";
 import { Badge, Button, EmptyState, Spinner } from "@/components";
+import { type Column, buildColumns } from "@/features/responses/columns";
+import type { FormSchema } from "@/types/form-schema";
 import { useCallback, useEffect, useState } from "react";
 
 export function InboxPage() {
@@ -7,6 +9,8 @@ export function InboxPage() {
   const [loading, setLoading] = useState(true);
   const [unreadOnly, setUnreadOnly] = useState(false);
   const [selected, setSelected] = useState<SubmissionRow | null>(null);
+  // Cached per form_id so switching between submissions from the same form doesn't refetch.
+  const [schemaCache, setSchemaCache] = useState<Record<string, FormSchema>>({});
 
   const load = useCallback(async (uo = false) => {
     setLoading(true);
@@ -30,6 +34,14 @@ export function InboxPage() {
       );
     }
     setSelected(item);
+    if (!schemaCache[item.form_id]) {
+      try {
+        const form = await api.getForm(item.form_id);
+        setSchemaCache((prev) => ({ ...prev, [item.form_id]: form.draft_content }));
+      } catch {
+        // Best-effort: fall back to raw key/value rendering below if the schema can't be loaded.
+      }
+    }
   }
 
   async function handleMarkAllRead() {
@@ -110,12 +122,7 @@ export function InboxPage() {
               Received {new Date(selected.created_at).toLocaleString()}
             </p>
             <dl className="inbox-answers">
-              {Object.entries(selected.answers).map(([k, v]) => (
-                <div key={k} className="inbox-answer-row">
-                  <dt>{k}</dt>
-                  <dd>{typeof v === "object" ? JSON.stringify(v) : String(v ?? "—")}</dd>
-                </div>
-              ))}
+              {renderAnswerRows(selected, schemaCache[selected.form_id])}
             </dl>
           </>
         ) : (
@@ -129,4 +136,31 @@ export function InboxPage() {
       </div>
     </div>
   );
+}
+
+/**
+ * Resolve raw answer keys/values to question labels and display values via the same
+ * column-building logic as the Responses table, falling back to raw key/JSON rendering
+ * for any field the schema doesn't cover (e.g. schema still loading, or stale keys from
+ * a since-removed question).
+ */
+function renderAnswerRows(item: SubmissionRow, schema: FormSchema | undefined) {
+  const columns: Column[] = schema ? buildColumns(schema) : [];
+  const columnsByKey = new Map(columns.map((c) => [c.key, c]));
+
+  return Object.entries(item.answers).map(([k, v]) => {
+    const col = columnsByKey.get(k);
+    const label = col?.label ?? k;
+    const value = col
+      ? col.value(item.answers)
+      : typeof v === "object"
+        ? JSON.stringify(v)
+        : String(v ?? "—");
+    return (
+      <div key={k} className="inbox-answer-row">
+        <dt>{label}</dt>
+        <dd>{value || "—"}</dd>
+      </div>
+    );
+  });
 }
