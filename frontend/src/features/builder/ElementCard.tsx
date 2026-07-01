@@ -61,6 +61,7 @@ export function ElementCard({
     remove,
     ungroup,
     clearSelection,
+    addAt,
   } = useBuilderStore();
   const collapsed = useBuilderStore((s) => s.collapsedNames.has(element.name));
   const toggleCollapsed = useBuilderStore((s) => s.toggleCollapsed);
@@ -259,10 +260,32 @@ export function ElementCard({
             // The row also carries dnd-kit's keyboard-sensor listeners (Space/Arrow keys
             // drive keyboard drag reordering) — stop propagation while editing so typing a
             // space in the label doesn't get intercepted and preventDefault()-ed by dnd-kit.
-            onKeyDown={editing ? (e) => e.stopPropagation() : undefined}
+            // Enter inserts a new question right after this one, for fast rapid-entry.
+            onKeyDown={
+              editing
+                ? (e) => {
+                    e.stopPropagation();
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      addAt(
+                        "text",
+                        { pageIndex: location.pageIndex, parentName: location.parentName },
+                        index + 1,
+                      );
+                    }
+                  }
+                : undefined
+            }
             onClick={(e) => e.stopPropagation()}
           />
-          {element.required && editing ? <span className="el-required">*</span> : null}
+          {editing ? (
+            <RequiredChip
+              required={!!element.required}
+              onChange={(v) => update(element.name, { required: v })}
+            />
+          ) : element.required ? (
+            <span className="el-required">*</span>
+          ) : null}
           <span className="el-type">
             {element.type.replace(/_/g, " ")}
             {container && (
@@ -457,5 +480,39 @@ export function ElementCard({
         </button>
       )}
     </li>
+  );
+}
+
+/** Segmented Optional/Required toggle shown in the card footer while editing. */
+function RequiredChip({
+  required,
+  onChange,
+}: {
+  required: boolean;
+  onChange: (required: boolean) => void;
+}) {
+  return (
+    <span className="el-required-chip" onPointerDown={(e) => e.stopPropagation()}>
+      <button
+        type="button"
+        className={!required ? "active" : ""}
+        onClick={(e) => {
+          e.stopPropagation();
+          onChange(false);
+        }}
+      >
+        Optional
+      </button>
+      <button
+        type="button"
+        className={required ? "active" : ""}
+        onClick={(e) => {
+          e.stopPropagation();
+          onChange(true);
+        }}
+      >
+        Required
+      </button>
+    </span>
   );
 }

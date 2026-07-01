@@ -79,21 +79,33 @@ export function CardPreview({ element, editable }: { element: Element; editable:
         </div>
       );
     case "rating":
-      return (
+      return editable ? (
+        <RatingEditor element={element} />
+      ) : (
         <div className="pv-stars" aria-hidden="true">
-          {(element.options ?? [1, 2, 3, 4, 5]).map((o, i) => (
-            <span key={typeof o === "object" ? String(o.value) : i}>☆</span>
-          ))}
+          {Array.from({ length: element.ratingMax ?? 5 }, (_, i) => i + 1).map((level) =>
+            element.ratingGlyph === "number" ? (
+              <span key={level}>{level}</span>
+            ) : (
+              <span key={level}>☆</span>
+            ),
+          )}
         </div>
       );
     case "scale":
-      return (
-        <div className="pv-pills">
-          {(element.options ?? []).map((o) => (
-            <span key={String(o.value)} className="pv-pill pv-pill-sm">
-              {localize(o.label) || String(o.value)}
-            </span>
-          ))}
+      return editable ? (
+        <ScaleEditor element={element} />
+      ) : (
+        <div className="pv-scale">
+          <span className="pv-scale-label">{localize(element.scaleLabelLow) || ""}</span>
+          <div className="pv-pills">
+            {(element.options ?? []).map((o) => (
+              <span key={String(o.value)} className="pv-pill pv-pill-sm">
+                {localize(o.label) || String(o.value)}
+              </span>
+            ))}
+          </div>
+          <span className="pv-scale-label">{localize(element.scaleLabelHigh) || ""}</span>
         </div>
       );
     case "ranking":
@@ -108,7 +120,9 @@ export function CardPreview({ element, editable }: { element: Element; editable:
         </ul>
       );
     case "matrix":
-      return (
+      return editable ? (
+        <MatrixEditor element={element} />
+      ) : (
         <table className="pv-matrix">
           <thead>
             <tr>
@@ -124,7 +138,7 @@ export function CardPreview({ element, editable }: { element: Element; editable:
                 <td>{localize(r.label) || String(r.value)}</td>
                 {(element.columns ?? []).map((c) => (
                   <td key={String(c.value)} className="pv-cell">
-                    ◯
+                    {element.matrixMulti ? "☐" : "◯"}
                   </td>
                 ))}
               </tr>
@@ -197,6 +211,13 @@ function OptionEditor({ element }: { element: Element }) {
             placeholder={`Option ${i + 1}`}
             onChange={(e) => updateOption(element.name, i, { label: e.target.value })}
             onPointerDown={(e) => e.stopPropagation()}
+            onKeyDown={(e) => {
+              e.stopPropagation();
+              if (e.key === "Enter" && i === (element.options ?? []).length - 1) {
+                e.preventDefault();
+                addOption(element.name);
+              }
+            }}
           />
           <button
             type="button"
@@ -211,6 +232,172 @@ function OptionEditor({ element }: { element: Element }) {
       <button type="button" className="pv-add-option" onClick={() => addOption(element.name)}>
         + Add option
       </button>
+    </div>
+  );
+}
+
+/** In-place editor for a rating question's level count and glyph (stars vs. numbers). */
+function RatingEditor({ element }: { element: Element }) {
+  const update = useBuilderStore((s) => s.update);
+  const max = element.ratingMax ?? 5;
+  const glyph = element.ratingGlyph ?? "star";
+
+  return (
+    <div className="pv-rating-editor" onPointerDown={(e) => e.stopPropagation()}>
+      <div className="pv-stepper">
+        <button
+          type="button"
+          disabled={max <= 2}
+          onClick={() => update(element.name, { ratingMax: Math.max(2, max - 1) })}
+        >
+          −
+        </button>
+        <span>{max} levels</span>
+        <button
+          type="button"
+          disabled={max >= 10}
+          onClick={() => update(element.name, { ratingMax: Math.min(10, max + 1) })}
+        >
+          +
+        </button>
+      </div>
+      {/* biome-ignore lint/a11y/useSemanticElements: a button toggle group, not a form fieldset */}
+      <div className="pv-glyph-toggle" role="group" aria-label="Rating glyph">
+        <button
+          type="button"
+          className={glyph === "star" ? "active" : ""}
+          onClick={() => update(element.name, { ratingGlyph: "star" })}
+        >
+          ☆ Stars
+        </button>
+        <button
+          type="button"
+          className={glyph === "number" ? "active" : ""}
+          onClick={() => update(element.name, { ratingGlyph: "number" })}
+        >
+          1 Numbers
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/** In-place editor for a linear scale's bounds and anchor labels. */
+function ScaleEditor({ element }: { element: Element }) {
+  const update = useBuilderStore((s) => s.update);
+  const min = element.validation?.min ?? 1;
+  const max = element.validation?.max ?? 5;
+
+  const setBounds = (nextMin: number, nextMax: number) => {
+    const options = [];
+    for (let v = nextMin; v <= nextMax; v++) options.push({ value: v, label: String(v) });
+    update(element.name, {
+      validation: { ...element.validation, min: nextMin, max: nextMax },
+      options,
+    });
+  };
+
+  return (
+    <div className="pv-scale-editor" onPointerDown={(e) => e.stopPropagation()}>
+      <div className="pv-scale-bounds">
+        <div className="pv-stepper">
+          <button type="button" disabled={min <= 0} onClick={() => setBounds(min - 1, max)}>
+            −
+          </button>
+          <span>From {min}</span>
+          <button type="button" disabled={max - min <= 1} onClick={() => setBounds(min + 1, max)}>
+            +
+          </button>
+        </div>
+        <div className="pv-stepper">
+          <button type="button" disabled={max - min <= 1} onClick={() => setBounds(min, max - 1)}>
+            −
+          </button>
+          <span>To {max}</span>
+          <button type="button" disabled={max >= 10} onClick={() => setBounds(min, max + 1)}>
+            +
+          </button>
+        </div>
+      </div>
+      <div className="pv-scale-anchors">
+        <input
+          placeholder="Low label (optional)"
+          value={localize(element.scaleLabelLow)}
+          onChange={(e) => update(element.name, { scaleLabelLow: e.target.value })}
+        />
+        <input
+          placeholder="High label (optional)"
+          value={localize(element.scaleLabelHigh)}
+          onChange={(e) => update(element.name, { scaleLabelHigh: e.target.value })}
+        />
+      </div>
+    </div>
+  );
+}
+
+/** In-place editor for a matrix's rows, columns, and single/multi-select mode. */
+function MatrixEditor({ element }: { element: Element }) {
+  const { updateRow, addRow, removeRow, updateColumn, addColumn, removeColumn, update } =
+    useBuilderStore();
+  const rows = element.rows ?? [];
+  const columns = element.columns ?? [];
+
+  return (
+    <div className="pv-matrix-editor" onPointerDown={(e) => e.stopPropagation()}>
+      <div className="pv-matrix-editor-col">
+        <span className="pv-matrix-editor-title">Rows</span>
+        {rows.map((r, i) => (
+          <div key={String(r.value)} className="pv-option-row">
+            <input
+              value={localize(r.label)}
+              placeholder={`Row ${i + 1}`}
+              onChange={(e) => updateRow(element.name, i, { label: e.target.value })}
+            />
+            <button
+              type="button"
+              title="Remove row"
+              onClick={() => removeRow(element.name, i)}
+              disabled={rows.length <= 1}
+            >
+              ✕
+            </button>
+          </div>
+        ))}
+        <button type="button" className="pv-add-option" onClick={() => addRow(element.name)}>
+          + Add row
+        </button>
+      </div>
+      <div className="pv-matrix-editor-col">
+        <span className="pv-matrix-editor-title">Columns</span>
+        {columns.map((c, i) => (
+          <div key={String(c.value)} className="pv-option-row">
+            <input
+              value={localize(c.label)}
+              placeholder={`Column ${i + 1}`}
+              onChange={(e) => updateColumn(element.name, i, { label: e.target.value })}
+            />
+            <button
+              type="button"
+              title="Remove column"
+              onClick={() => removeColumn(element.name, i)}
+              disabled={columns.length <= 1}
+            >
+              ✕
+            </button>
+          </div>
+        ))}
+        <button type="button" className="pv-add-option" onClick={() => addColumn(element.name)}>
+          + Add column
+        </button>
+      </div>
+      <label className="pv-matrix-multi-toggle">
+        <input
+          type="checkbox"
+          checked={element.matrixMulti ?? false}
+          onChange={(e) => update(element.name, { matrixMulti: e.target.checked })}
+        />
+        Allow multiple selections per row
+      </label>
     </div>
   );
 }
