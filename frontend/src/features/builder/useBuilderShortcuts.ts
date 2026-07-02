@@ -8,12 +8,13 @@ interface Options {
   closeShortcuts: () => void;
   groupingSource: string | null;
   clearGroupingSource: () => void;
+  toggleCommandPalette: () => void;
 }
 
 /**
  * Global keyboard shortcuts for the builder: "?" help, Esc (close help / cancel
  * group-link / clear selection), Delete/Backspace, and the Ctrl/Cmd combos
- * (Z undo, Shift+Z redo, G group, D duplicate, A select-all).
+ * (Z undo, Shift+Z redo, G group, D duplicate, A select-all, K command palette).
  *
  * Lifted out of BuilderPage so the page component stays focused on render.
  */
@@ -23,6 +24,7 @@ export function useBuilderShortcuts({
   closeShortcuts,
   groupingSource,
   clearGroupingSource,
+  toggleCommandPalette,
 }: Options) {
   const store = useBuilderStore();
   const { schema, selectedName, selectedNames, activePage } = store;
@@ -66,6 +68,15 @@ export function useBuilderShortcuts({
           if (el && !confirmDeleteContainer(el.type, el.elements?.length ?? 0)) return;
           store.remove(selectedName);
         }
+        return;
+      }
+
+      // Ctrl/Cmd+K: command palette. Checked ahead of the inText gate below — unlike the
+      // other combos, ⌘K is meant to work everywhere, including mid-edit in a text field,
+      // matching the convention every other ⌘K-style palette follows.
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        toggleCommandPalette();
         return;
       }
 
@@ -120,6 +131,7 @@ export function useBuilderShortcuts({
     store,
     setShortcutsOpen,
     closeShortcuts,
+    toggleCommandPalette,
     clearGroupingSource,
   ]);
 }
