@@ -4,6 +4,19 @@ import { localize } from "@/lib/i18n";
 import { useBuilderStore } from "@/stores/builderStore";
 import type { ElementType, FormSchema } from "@/types/form-schema";
 import { DndContext, DragOverlay } from "@dnd-kit/core";
+import {
+  BarChart3,
+  HelpCircle,
+  LayoutGrid,
+  Monitor,
+  Moon,
+  Palette,
+  Redo2,
+  Share2,
+  Smartphone,
+  Sun,
+  Undo2,
+} from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { formToText } from "../import/textForm";
@@ -318,7 +331,7 @@ export function BuilderPage() {
             onClick={() => store.undo()}
             disabled={store.past.length === 0}
           >
-            ↶
+            <Undo2 size={16} strokeWidth={1.8} aria-hidden="true" />
           </Button>
           <Button
             variant="ghost"
@@ -327,7 +340,7 @@ export function BuilderPage() {
             onClick={() => store.redo()}
             disabled={store.future.length === 0}
           >
-            ↷
+            <Redo2 size={16} strokeWidth={1.8} aria-hidden="true" />
           </Button>
           {error ? <span className="error">{error}</span> : null}
           <span
@@ -346,7 +359,7 @@ export function BuilderPage() {
               aria-label="Desktop width"
               onClick={() => setDevice("desktop")}
             >
-              🖥
+              <Monitor size={15} strokeWidth={1.8} aria-hidden="true" />
             </button>
             <button
               type="button"
@@ -355,7 +368,7 @@ export function BuilderPage() {
               aria-label="Mobile width"
               onClick={() => setDevice("mobile")}
             >
-              📱
+              <Smartphone size={15} strokeWidth={1.8} aria-hidden="true" />
             </button>
           </div>
           <Button
@@ -364,7 +377,11 @@ export function BuilderPage() {
             title={builderTheme === "light" ? "Switch to dark theme" : "Switch to light theme"}
             onClick={toggleBuilderTheme}
           >
-            {builderTheme === "light" ? "🌙" : "☀️"}
+            {builderTheme === "light" ? (
+              <Moon size={16} strokeWidth={1.8} aria-hidden="true" />
+            ) : (
+              <Sun size={16} strokeWidth={1.8} aria-hidden="true" />
+            )}
           </Button>
           <Button
             variant="ghost"
@@ -462,7 +479,7 @@ export function BuilderPage() {
             title="Build — questions & pages"
             onClick={() => setMode("build")}
           >
-            <span aria-hidden="true">📋</span>
+            <LayoutGrid size={20} strokeWidth={1.7} aria-hidden="true" />
             <small>Build</small>
           </button>
           <button
@@ -471,7 +488,7 @@ export function BuilderPage() {
             title="Design — theme & appearance"
             onClick={onRailDesign}
           >
-            <span aria-hidden="true">🎨</span>
+            <Palette size={20} strokeWidth={1.7} aria-hidden="true" />
             <small>Design</small>
           </button>
           <button
@@ -480,7 +497,7 @@ export function BuilderPage() {
             title="Share this form"
             onClick={onRailShare}
           >
-            <span aria-hidden="true">🔗</span>
+            <Share2 size={20} strokeWidth={1.7} aria-hidden="true" />
             <small>Share</small>
           </button>
           <button
@@ -490,7 +507,7 @@ export function BuilderPage() {
             disabled={!store.formId}
             onClick={onRailResults}
           >
-            <span aria-hidden="true">📊</span>
+            <BarChart3 size={20} strokeWidth={1.7} aria-hidden="true" />
             <small>Results</small>
           </button>
           <div className="rail-spacer" />
@@ -500,7 +517,7 @@ export function BuilderPage() {
             title="Keyboard shortcuts"
             onClick={() => setShortcutsOpen(true)}
           >
-            <span aria-hidden="true">?</span>
+            <HelpCircle size={18} strokeWidth={1.7} aria-hidden="true" />
           </button>
         </aside>
 

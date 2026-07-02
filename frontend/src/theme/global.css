@@ -1306,29 +1306,94 @@ body,
 }
 
 /* ── Builder: three-column app-shell ───────────────────────────── */
+/* Design-token layer for the v2 handoff, scoped to .builder only — the rest of the app
+   (landing page, dashboard) keeps the existing warm-vintage theme; the handoff itself scopes
+   this pass to the form-builder workspace and calls the dashboard "a follow-up". Existing
+   variable NAMES are kept (hundreds of rules already reference them); only their VALUES are
+   overridden here, each mapped to the handoff token of matching role (e.g. handoff `--surface`,
+   the card background, maps to our `--surface-raised`, since our `--surface` already means
+   "the page behind the cards" — same as the handoff's `--bg`). */
 .builder {
   display: flex;
   flex-direction: column;
   height: 100dvh; /* lock to viewport — outer page never scrolls  */
   overflow: hidden;
   background: var(--surface);
+
+  --primary: #0d9488;
+  --primary-hover: #0f766e;
+  --primary-light: #d8f0ed;
+
+  --text: #1b2027;
+  --text-secondary: #5d646e;
+  --muted: #949aa3;
+  --subtle: #949aa3;
+  --placeholder: #949aa3;
+
+  --surface: #e9ebef;
+  --surface-raised: #ffffff;
+  --surface-sunken: #f5f6f8;
+  --surface-2: #eef0f3;
+
+  --border: #e4e7ec;
+  --border-strong: #d7dbe0;
+  --border-focus: #0d9488;
+
+  --warning: #b45309;
+  --warning-light: #fbeedd;
+  --info: #7c5cff;
+  --info-light: #efeaff;
+
+  --radius: 10px;
+  --radius-sm: 8px;
+  --radius-lg: 15px;
+
+  --shadow-sm: 0 1px 2px rgba(16, 22, 30, 0.04);
+  --shadow: 0 4px 12px rgba(16, 22, 30, 0.08);
+  --shadow-lg: 0 12px 32px rgba(16, 22, 30, 0.13);
+
+  --font: "Hanken Grotesk", -apple-system, system-ui, Roboto, "Helvetica Neue", sans-serif;
+  --font-display: "Hanken Grotesk", -apple-system, system-ui, Roboto, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* Re-declares color/font here (not just the custom properties above) because CSS
+     inheritance passes down the already-computed value, not the var() expression —
+     body's `color: var(--text)` resolved using the *root* --text before this scope's
+     override ever applies, so descendants that don't set their own `color` would
+     otherwise keep inheriting the root (light-theme) text color. */
+  color: var(--text);
+  font-family: var(--font);
 }
-/* Minimal functional dark theme, scoped to the builder only — a working toggle using the
-   app's existing palette inverted, not a full designed dark system. The pixel-perfect
-   token/dark-mode pass is a later design phase; this just keeps the toggle from looking
-   broken in the meantime. */
+
+/* Dark theme, same token layer inverted per the handoff's dark palette. */
 .builder[data-theme="dark"] {
-  --text: #e7e2db;
-  --text-secondary: #b8afa2;
-  --muted: #8f8579;
-  --subtle: #6f665c;
-  --placeholder: #5a5248;
-  --surface: #221d18;
-  --surface-raised: #2c2620;
-  --surface-sunken: #1a1613;
-  --surface-2: #342d25;
-  --border: #40372c;
-  --border-strong: #4f4436;
+  --primary: #2dd4bf;
+  --primary-hover: #14b8a6;
+  --primary-light: #123330;
+
+  --text: #e7eaee;
+  --text-secondary: #99a2ad;
+  --muted: #69717c;
+  --subtle: #69717c;
+  --placeholder: #69717c;
+
+  --surface: #0d1015;
+  --surface-raised: #161b22;
+  --surface-sunken: #1b2129;
+  --surface-2: #212833;
+
+  --border: #28303a;
+  --border-strong: #38414d;
+  --border-focus: #2dd4bf;
+
+  --warning: #f0b072;
+  --warning-light: #2a2113;
+  --info: #a896ff;
+  --info-light: #221d3a;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 14px 38px rgba(0, 0, 0, 0.55);
 }
 
 /* First-run guidance strip — dismissible, shows the 3-step happy path. */
@@ -7551,7 +7616,7 @@ body.inspector-resizing .inspector-resizer {
 
 .el-label-input.editing {
   border: 1px solid var(--primary);
-  background: var(--surface);
+  background: var(--surface-raised);
   border-radius: 4px;
   padding: 2px 6px;
   font-size: inherit;
