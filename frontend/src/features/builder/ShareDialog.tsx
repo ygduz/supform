@@ -18,7 +18,7 @@ const ROLE_DESCRIPTIONS: Record<string, string> = {
 type ShareTab = "link" | "people";
 
 /** Distribution options for a published form: public link, embed snippet, scannable QR. */
-function LinkTab({ formId }: { formId: string }) {
+export function LinkTab({ formId }: { formId: string }) {
   const origin = window.location.origin;
   const link = `${origin}/f/${formId}`;
   const embed = `<div data-supform="${formId}"></div>\n<script src="${origin}/embed.js" async></script>`;
@@ -70,7 +70,7 @@ function LinkTab({ formId }: { formId: string }) {
  * and pick a role; the owner row is fixed.
  * Role hierarchy: viewer < editor < admin < owner.
  */
-function PeopleTab({ projectId }: { projectId: string }) {
+export function PeopleTab({ projectId }: { projectId: string }) {
   const [members, setMembers] = useState<Member[]>([]);
   const [email, setEmail] = useState("");
   const [role, setRole] = useState("viewer");

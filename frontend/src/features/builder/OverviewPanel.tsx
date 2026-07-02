@@ -13,7 +13,7 @@ import {
 import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useState } from "react";
-import { collectConnectors } from "./connectors";
+import { type Connector, collectConnectors } from "./connectors";
 import { fieldAbbr, fieldColor } from "./fieldMeta";
 import { confirmDeleteContainer, findElement, isContainerType } from "./model";
 
@@ -48,6 +48,38 @@ function ChildRows({ elements }: { elements: Element[] }) {
   );
 }
 
+// ── branch chip: shown when this row participates in any conditional logic ──
+
+function BranchChip({ element, connectors }: { element: Element; connectors: Connector[] }) {
+  const store = useBuilderStore();
+  const isDependent = connectors.some((c) => c.toName === element.name);
+  const isTrigger = connectors.some((c) => c.fromName === element.name);
+  if (!isDependent && !isTrigger) return null;
+
+  const title =
+    isDependent && isTrigger
+      ? "Shown conditionally, and controls another question — click to edit"
+      : isDependent
+        ? "Shown conditionally — click to edit"
+        : "Controls another question — click to edit";
+
+  return (
+    <button
+      type="button"
+      className="ov-branch-chip"
+      title={title}
+      onClick={(e) => {
+        e.stopPropagation();
+        // Selecting the field auto-switches the inspector to Settings (see BuilderPage's
+        // selection effect), where the Logic accordion shows/edits this exact condition.
+        store.select(element.name);
+      }}
+    >
+      ⚡
+    </button>
+  );
+}
+
 // ── one sortable row ──────────────────────────────────────────────
 
 function OverviewRow({
@@ -56,6 +88,7 @@ function OverviewRow({
   isSelected,
   inViewport,
   expanded,
+  connectors,
   onToggleExpand,
 }: {
   element: Element;
@@ -63,6 +96,7 @@ function OverviewRow({
   isSelected: boolean;
   inViewport: boolean;
   expanded: boolean;
+  connectors: Connector[];
   onToggleExpand: () => void;
 }) {
   const store = useBuilderStore();
@@ -106,6 +140,8 @@ function OverviewRow({
         <button type="button" className="ov-label" onClick={() => store.select(element.name)}>
           {localize(element.label) || element.name}
         </button>
+
+        <BranchChip element={element} connectors={connectors} />
 
         {/* container meta: child count + expand/collapse */}
         {container && (
@@ -213,6 +249,7 @@ export function OverviewPanel() {
   const { schema, activePage, selectedName, viewportName } = useBuilderStore();
   const store = useBuilderStore();
   const elements = schema.pages[activePage]?.elements ?? [];
+  const connectors = collectConnectors(schema);
 
   const [activeId, setActiveId] = useState<string | null>(null);
   const [expandedNames, setExpandedNames] = useState<Set<string>>(new Set());
@@ -290,6 +327,7 @@ export function OverviewPanel() {
                 isSelected={selectedName === el.name}
                 inViewport={viewportName === el.name}
                 expanded={expandedNames.has(el.name)}
+                connectors={connectors}
                 onToggleExpand={() => toggleExpand(el.name)}
               />
             ))}

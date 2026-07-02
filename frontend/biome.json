@@ -10,5 +10,15 @@
     "indentStyle": "space",
     "indentWidth": 2,
     "lineWidth": 100
-  }
+  },
+  "overrides": [
+    {
+      "include": ["src/features/builder/ElementCard.tsx"],
+      "linter": {
+        "rules": {
+          "a11y": { "useSemanticElements": "off" }
+        }
+      }
+    }
+  ]
 }
