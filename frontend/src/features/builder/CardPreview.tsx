@@ -202,7 +202,8 @@ function OptionEditor({ element }: { element: Element }) {
   const mark = element.type === "multi_choice" ? "☐" : element.type === "dropdown" ? "▾" : "◯";
 
   return (
-    <div className="pv-option-editor">
+    // biome-ignore lint/a11y/useKeyWithClickEvents: intercepts bubbling from real buttons/inputs below, not itself interactive
+    <div className="pv-option-editor" onClick={(e) => e.stopPropagation()}>
       {(element.options ?? []).map((o, i) => (
         <div key={String(o.value)} className="pv-option-row">
           <span className="pv-mark">{mark}</span>
@@ -243,7 +244,12 @@ function RatingEditor({ element }: { element: Element }) {
   const glyph = element.ratingGlyph ?? "star";
 
   return (
-    <div className="pv-rating-editor" onPointerDown={(e) => e.stopPropagation()}>
+    // biome-ignore lint/a11y/useKeyWithClickEvents: intercepts bubbling from real buttons below, not itself interactive
+    <div
+      className="pv-rating-editor"
+      onPointerDown={(e) => e.stopPropagation()}
+      onClick={(e) => e.stopPropagation()}
+    >
       <div className="pv-stepper">
         <button
           type="button"
@@ -298,7 +304,12 @@ function ScaleEditor({ element }: { element: Element }) {
   };
 
   return (
-    <div className="pv-scale-editor" onPointerDown={(e) => e.stopPropagation()}>
+    // biome-ignore lint/a11y/useKeyWithClickEvents: intercepts bubbling from real buttons/inputs below, not itself interactive
+    <div
+      className="pv-scale-editor"
+      onPointerDown={(e) => e.stopPropagation()}
+      onClick={(e) => e.stopPropagation()}
+    >
       <div className="pv-scale-bounds">
         <div className="pv-stepper">
           <button type="button" disabled={min <= 0} onClick={() => setBounds(min - 1, max)}>
@@ -343,7 +354,12 @@ function MatrixEditor({ element }: { element: Element }) {
   const columns = element.columns ?? [];
 
   return (
-    <div className="pv-matrix-editor" onPointerDown={(e) => e.stopPropagation()}>
+    // biome-ignore lint/a11y/useKeyWithClickEvents: intercepts bubbling from real buttons/inputs below, not itself interactive
+    <div
+      className="pv-matrix-editor"
+      onPointerDown={(e) => e.stopPropagation()}
+      onClick={(e) => e.stopPropagation()}
+    >
       <div className="pv-matrix-editor-col">
         <span className="pv-matrix-editor-title">Rows</span>
         {rows.map((r, i) => (

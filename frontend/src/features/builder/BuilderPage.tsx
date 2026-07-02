@@ -13,6 +13,7 @@ import { BirdsEyePreview } from "./BirdsEyePreview";
 import { BuilderCanvas } from "./BuilderCanvas";
 import { ChecksPanel } from "./ChecksPanel";
 import { CommandPalette } from "./CommandPalette";
+import { DesignPanel } from "./DesignPanel";
 import { HistoryPanel } from "./HistoryPanel";
 import { InspectorResizer } from "./InspectorResizer";
 import { LogicBuilder } from "./LogicBuilder";
@@ -21,8 +22,10 @@ import { PaletteItem } from "./PaletteItem";
 import { PreviewModal } from "./PreviewModal";
 import { PropertiesPanel } from "./PropertiesPanel";
 import { QuestionLibraryPanel } from "./QuestionLibraryPanel";
+import { ResultsPanel } from "./ResultsPanel";
 import { SettingsPanel } from "./SettingsPanel";
 import { ShareDialog } from "./ShareDialog";
+import { SharePanel } from "./SharePanel";
 import { ThemePanel } from "./ThemePanel";
 import { TranslatePanel } from "./TranslatePanel";
 import { WebhooksDialog } from "./WebhooksDialog";
@@ -78,9 +81,8 @@ export function BuilderPage() {
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(true);
   const [inspectorOpen, setInspectorOpen] = useState(true);
-  // v2 shell: icon-rail mode, device preview width, and a light/dark toggle. Design/Share
-  // currently bridge to existing functionality (Theme tab / Share dialog) until Phase 4
-  // gives them dedicated panels — the rail entry points are real today, not placeholders.
+  // v2 shell: icon-rail mode (each renders its own panel below), device preview width, and
+  // a light/dark toggle for the builder chrome itself (unrelated to the form's own theme).
   const [mode, setMode] = useState<"build" | "design" | "share" | "results">("build");
   const [device, setDevice] = useState<"desktop" | "mobile">("desktop");
   const [builderTheme, setBuilderTheme] = useState<"light" | "dark">(
@@ -93,17 +95,18 @@ export function BuilderPage() {
       return next;
     });
 
-  // Rail actions. Design/Share bridge to existing functionality (Theme tab / Share dialog)
-  // since their dedicated panels land in a later phase — every entry point here is real.
+  // Rail actions: each mode now renders its own bespoke panel in .builder-main (see below)
+  // instead of bridging to the old tab/dialog/navigation. The dialogs themselves are untouched
+  // and still opened from the toolbar's "More" menu and the post-publish toast — this is an
+  // additional entry point, not a replacement.
   function onRailDesign() {
     setMode("design");
-    setTab("theme");
   }
   function onRailShare() {
-    setShareTab("link");
+    setMode("share");
   }
   function onRailResults() {
-    if (store.formId) navigate(`/forms/${store.formId}/responses`);
+    setMode("results");
   }
   const [hintDismissed, setHintDismissed] = useState(
     () => localStorage.getItem("supform.builderHintDismissed") === "1",
@@ -441,8 +444,7 @@ export function BuilderPage() {
       </header>
 
       <div className="builder-shell">
-        {/* Icon rail: top-level modes. Design/Share bridge to existing functionality until
-            Phase 4 gives them dedicated panels — every button here does something real today. */}
+        {/* Icon rail: top-level modes, each swapping .builder-main's content below. */}
         <aside className="builder-rail">
           <button
             type="button"
@@ -462,13 +464,18 @@ export function BuilderPage() {
             <span aria-hidden="true">🎨</span>
             <small>Design</small>
           </button>
-          <button type="button" className="rail-btn" title="Share this form" onClick={onRailShare}>
+          <button
+            type="button"
+            className={mode === "share" ? "rail-btn active" : "rail-btn"}
+            title="Share this form"
+            onClick={onRailShare}
+          >
             <span aria-hidden="true">🔗</span>
             <small>Share</small>
           </button>
           <button
             type="button"
-            className="rail-btn"
+            className={mode === "results" ? "rail-btn active" : "rail-btn"}
             title={store.formId ? "View results" : "Save the form to view results"}
             disabled={!store.formId}
             onClick={onRailResults}
@@ -488,344 +495,366 @@ export function BuilderPage() {
         </aside>
 
         <div className="builder-main">
-          {!hintDismissed && (
-            <div className="builder-hint">
-              <span>
-                <strong>1.</strong> Add a question · <strong>2.</strong> Preview ·{" "}
-                <strong>3.</strong> Publish &amp; share. Press <kbd>?</kbd> for shortcuts.
-              </span>
-              <button
-                type="button"
-                className="builder-hint-close"
-                aria-label="Dismiss"
-                onClick={() => {
-                  localStorage.setItem("supform.builderHintDismissed", "1");
-                  setHintDismissed(true);
-                }}
-              >
-                ✕
-              </button>
-            </div>
-          )}
-
-          {/* One DndContext covers both the palette (useDraggable) and the canvas (useSortable). */}
-          <DndContext
-            sensors={sensors}
-            collisionDetection={collisionDetection}
-            onDragStart={handleDragStart}
-            onDragOver={handleDragOver}
-            onDragEnd={handleDragEnd}
-            onDragCancel={handleDragCancel}
-          >
-            <div
-              className={`builder-body${paletteOpen ? "" : " palette-collapsed"}${inspectorOpen ? "" : " inspector-collapsed"}`}
-            >
-              {/* Palette */}
-              <aside className="palette">
-                {paletteOpen && (
-                  <div className="palette-content">
-                    <div className="palette-tabs">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className={!showLibrary ? "palette-tab active" : "palette-tab"}
-                        onClick={() => setShowLibrary(false)}
-                      >
-                        Fields
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className={showLibrary ? "palette-tab active" : "palette-tab"}
-                        onClick={() => setShowLibrary(true)}
-                      >
-                        Library
-                      </Button>
-                    </div>
-                    {showLibrary ? (
-                      <QuestionLibraryPanel onClose={() => setShowLibrary(false)} />
-                    ) : (
-                      <>
-                        <p className="palette-heading">Add a question</p>
-                        {COMMON_PALETTE.map((item) => (
-                          <PaletteItem
-                            key={item.type}
-                            type={item.type}
-                            label={item.label}
-                            icon={item.icon}
-                          />
-                        ))}
-                        <details className="palette-more">
-                          <summary>More types</summary>
-                          {ADVANCED_PALETTE.map((item) => (
-                            <PaletteItem
-                              key={item.type}
-                              type={item.type}
-                              label={item.label}
-                              icon={item.icon}
-                            />
-                          ))}
-                        </details>
-                      </>
-                    )}
-                  </div>
-                )}
-                <button
-                  type="button"
-                  className="panel-toggle"
-                  title={paletteOpen ? "Collapse fields panel" : "Expand fields panel"}
-                  aria-label={paletteOpen ? "Collapse fields panel" : "Expand fields panel"}
-                  onClick={() => setPaletteOpen((o) => !o)}
-                >
-                  <span className="panel-toggle-chip" aria-hidden="true">
-                    <Chevron dir={paletteOpen ? "left" : "right"} />
+          {mode === "build" && (
+            <>
+              {!hintDismissed && (
+                <div className="builder-hint">
+                  <span>
+                    <strong>1.</strong> Add a question · <strong>2.</strong> Preview ·{" "}
+                    <strong>3.</strong> Publish &amp; share. Press <kbd>?</kbd> for shortcuts.
                   </span>
-                </button>
-              </aside>
-
-              {/* Canvas */}
-              {/* biome-ignore lint/a11y/useKeyWithClickEvents: click-to-deselect duplicates the Esc handler */}
-              <section
-                className={`canvas${groupingSource ? " linking" : ""}`}
-                onClick={handleCanvasBackgroundClick}
-              >
-                <div className="page-bar">
-                  {schema.pages.map((p, i) => (
-                    <Button
-                      key={p.name}
-                      variant="ghost"
-                      size="sm"
-                      className={i === activePage ? "page-tab active" : "page-tab"}
-                      onClick={() => store.setActivePage(i)}
-                    >
-                      {localize(p.title) || `Page ${i + 1}`}
-                    </Button>
-                  ))}
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="page-add"
-                    onClick={() => store.addPage()}
+                  <button
+                    type="button"
+                    className="builder-hint-close"
+                    aria-label="Dismiss"
+                    onClick={() => {
+                      localStorage.setItem("supform.builderHintDismissed", "1");
+                      setHintDismissed(true);
+                    }}
                   >
-                    + Page
-                  </Button>
+                    ✕
+                  </button>
                 </div>
+              )}
 
-                {schema.pages.length > 1 && (
-                  <div className="page-settings">
-                    <div className="page-settings-row">
-                      <input
-                        type="text"
-                        aria-label="Page title"
-                        value={localize(schema.pages[activePage]?.title) || ""}
-                        placeholder={`Page ${activePage + 1}`}
-                        onChange={(e) => store.renamePage(activePage, e.target.value)}
-                      />
-                      <Button
-                        variant="danger"
-                        size="sm"
-                        onClick={() => store.removePage(activePage)}
-                      >
-                        Delete page
-                      </Button>
-                    </div>
-                    <LogicBuilder
-                      label="Show this page only if…"
-                      value={schema.pages[activePage]?.visibleIf}
-                      excludeName=""
-                      onChange={(v) => store.setPageVisibleIf(activePage, v)}
-                    />
-                    <div className="page-branching">
-                      <div className="page-branching-header">
-                        <span className="page-branching-label">Page branching</span>
+              {/* One DndContext covers both the palette (useDraggable) and the canvas (useSortable). */}
+              <DndContext
+                sensors={sensors}
+                collisionDetection={collisionDetection}
+                onDragStart={handleDragStart}
+                onDragOver={handleDragOver}
+                onDragEnd={handleDragEnd}
+                onDragCancel={handleDragCancel}
+              >
+                <div
+                  className={`builder-body${paletteOpen ? "" : " palette-collapsed"}${inspectorOpen ? "" : " inspector-collapsed"}`}
+                >
+                  {/* Palette */}
+                  <aside className="palette">
+                    {paletteOpen && (
+                      <div className="palette-content">
+                        <div className="palette-tabs">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className={!showLibrary ? "palette-tab active" : "palette-tab"}
+                            onClick={() => setShowLibrary(false)}
+                          >
+                            Fields
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className={showLibrary ? "palette-tab active" : "palette-tab"}
+                            onClick={() => setShowLibrary(true)}
+                          >
+                            Library
+                          </Button>
+                        </div>
+                        {showLibrary ? (
+                          <QuestionLibraryPanel onClose={() => setShowLibrary(false)} />
+                        ) : (
+                          <>
+                            <p className="palette-heading">Add a question</p>
+                            {COMMON_PALETTE.map((item) => (
+                              <PaletteItem
+                                key={item.type}
+                                type={item.type}
+                                label={item.label}
+                                icon={item.icon}
+                              />
+                            ))}
+                            <details className="palette-more">
+                              <summary>More types</summary>
+                              {ADVANCED_PALETTE.map((item) => (
+                                <PaletteItem
+                                  key={item.type}
+                                  type={item.type}
+                                  label={item.label}
+                                  icon={item.icon}
+                                />
+                              ))}
+                            </details>
+                          </>
+                        )}
+                      </div>
+                    )}
+                    <button
+                      type="button"
+                      className="panel-toggle"
+                      title={paletteOpen ? "Collapse fields panel" : "Expand fields panel"}
+                      aria-label={paletteOpen ? "Collapse fields panel" : "Expand fields panel"}
+                      onClick={() => setPaletteOpen((o) => !o)}
+                    >
+                      <span className="panel-toggle-chip" aria-hidden="true">
+                        <Chevron dir={paletteOpen ? "left" : "right"} />
+                      </span>
+                    </button>
+                  </aside>
+
+                  {/* Canvas */}
+                  {/* biome-ignore lint/a11y/useKeyWithClickEvents: click-to-deselect duplicates the Esc handler */}
+                  <section
+                    className={`canvas${groupingSource ? " linking" : ""}`}
+                    onClick={handleCanvasBackgroundClick}
+                  >
+                    <div className="page-bar">
+                      {schema.pages.map((p, i) => (
                         <Button
+                          key={p.name}
                           variant="ghost"
                           size="sm"
-                          onClick={() => {
-                            const current = schema.pages[activePage]?.nextPageIf ?? [];
-                            store.setPageNextPageIf(activePage, [
-                              ...current,
-                              { condition: "", page: schema.pages[activePage + 1]?.name ?? "" },
-                            ]);
-                          }}
+                          className={i === activePage ? "page-tab active" : "page-tab"}
+                          onClick={() => store.setActivePage(i)}
                         >
-                          + Add rule
+                          {localize(p.title) || `Page ${i + 1}`}
                         </Button>
-                      </div>
-                      {(schema.pages[activePage]?.nextPageIf ?? []).length > 0 && (
-                        <div className="page-branching-rules">
-                          {(schema.pages[activePage]?.nextPageIf ?? []).map((rule, ri) => (
-                            // biome-ignore lint/suspicious/noArrayIndexKey: branching rules have no stable id
-                            <div key={ri} className="page-branching-rule">
-                              <LogicBuilder
-                                label="If…"
-                                value={rule.condition}
-                                excludeName=""
-                                onChange={(v) => {
-                                  const rules = [...(schema.pages[activePage]?.nextPageIf ?? [])];
-                                  rules[ri] = { ...rules[ri], condition: v ?? "" };
-                                  store.setPageNextPageIf(activePage, rules);
-                                }}
-                              />
-                              <div className="page-branching-target">
-                                {/* biome-ignore lint/a11y/noLabelWithoutControl: label wraps select below */}
-                                <label className="page-branching-target-label">Go to page</label>
-                                <select
-                                  value={rule.page}
-                                  onChange={(e) => {
-                                    const rules = [...(schema.pages[activePage]?.nextPageIf ?? [])];
-                                    rules[ri] = { ...rules[ri], page: e.target.value };
-                                    store.setPageNextPageIf(activePage, rules);
-                                  }}
-                                >
-                                  {schema.pages
-                                    .filter((_, pi) => pi !== activePage)
-                                    .map((p) => (
-                                      <option key={p.name} value={p.name}>
-                                        {p.name}
-                                      </option>
-                                    ))}
-                                </select>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => {
-                                    const rules = (
-                                      schema.pages[activePage]?.nextPageIf ?? []
-                                    ).filter((_, i) => i !== ri);
-                                    store.setPageNextPageIf(activePage, rules);
-                                  }}
-                                >
-                                  ✕
-                                </Button>
-                              </div>
-                            </div>
-                          ))}
+                      ))}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="page-add"
+                        onClick={() => store.addPage()}
+                      >
+                        + Page
+                      </Button>
+                    </div>
+
+                    {schema.pages.length > 1 && (
+                      <div className="page-settings">
+                        <div className="page-settings-row">
+                          <input
+                            type="text"
+                            aria-label="Page title"
+                            value={localize(schema.pages[activePage]?.title) || ""}
+                            placeholder={`Page ${activePage + 1}`}
+                            onChange={(e) => store.renamePage(activePage, e.target.value)}
+                          />
+                          <Button
+                            variant="danger"
+                            size="sm"
+                            onClick={() => store.removePage(activePage)}
+                          >
+                            Delete page
+                          </Button>
                         </div>
+                        <LogicBuilder
+                          label="Show this page only if…"
+                          value={schema.pages[activePage]?.visibleIf}
+                          excludeName=""
+                          onChange={(v) => store.setPageVisibleIf(activePage, v)}
+                        />
+                        <div className="page-branching">
+                          <div className="page-branching-header">
+                            <span className="page-branching-label">Page branching</span>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                const current = schema.pages[activePage]?.nextPageIf ?? [];
+                                store.setPageNextPageIf(activePage, [
+                                  ...current,
+                                  { condition: "", page: schema.pages[activePage + 1]?.name ?? "" },
+                                ]);
+                              }}
+                            >
+                              + Add rule
+                            </Button>
+                          </div>
+                          {(schema.pages[activePage]?.nextPageIf ?? []).length > 0 && (
+                            <div className="page-branching-rules">
+                              {(schema.pages[activePage]?.nextPageIf ?? []).map((rule, ri) => (
+                                // biome-ignore lint/suspicious/noArrayIndexKey: branching rules have no stable id
+                                <div key={ri} className="page-branching-rule">
+                                  <LogicBuilder
+                                    label="If…"
+                                    value={rule.condition}
+                                    excludeName=""
+                                    onChange={(v) => {
+                                      const rules = [
+                                        ...(schema.pages[activePage]?.nextPageIf ?? []),
+                                      ];
+                                      rules[ri] = { ...rules[ri], condition: v ?? "" };
+                                      store.setPageNextPageIf(activePage, rules);
+                                    }}
+                                  />
+                                  <div className="page-branching-target">
+                                    {/* biome-ignore lint/a11y/noLabelWithoutControl: label wraps select below */}
+                                    <label className="page-branching-target-label">
+                                      Go to page
+                                    </label>
+                                    <select
+                                      value={rule.page}
+                                      onChange={(e) => {
+                                        const rules = [
+                                          ...(schema.pages[activePage]?.nextPageIf ?? []),
+                                        ];
+                                        rules[ri] = { ...rules[ri], page: e.target.value };
+                                        store.setPageNextPageIf(activePage, rules);
+                                      }}
+                                    >
+                                      {schema.pages
+                                        .filter((_, pi) => pi !== activePage)
+                                        .map((p) => (
+                                          <option key={p.name} value={p.name}>
+                                            {p.name}
+                                          </option>
+                                        ))}
+                                    </select>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => {
+                                        const rules = (
+                                          schema.pages[activePage]?.nextPageIf ?? []
+                                        ).filter((_, i) => i !== ri);
+                                        store.setPageNextPageIf(activePage, rules);
+                                      }}
+                                    >
+                                      ✕
+                                    </Button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {elements.length === 0 ? (
+                      <div className="canvas-empty">
+                        <div className="canvas-empty-icon" aria-hidden="true">
+                          ⊕
+                        </div>
+                        <p className="canvas-empty-heading">Start building your form</p>
+                        <p className="canvas-empty-body">
+                          Click a field type in the left panel to add it, or drag one onto the
+                          canvas.
+                        </p>
+                      </div>
+                    ) : (
+                      <BuilderCanvas
+                        elements={elements}
+                        pageIndex={activePage}
+                        activeDragId={activeDragId}
+                        overDragId={overDragId}
+                        groupingSource={groupingSource}
+                        device={device}
+                        onGroupLink={(name) => {
+                          if (groupingSource === null) {
+                            // Enter group-link mode.
+                            setGroupingSource(name);
+                            store.select(name);
+                          } else if (groupingSource !== name) {
+                            // Complete the group.
+                            store.confirmGrouping(groupingSource, name);
+                            setGroupingSource(null);
+                          }
+                        }}
+                      />
+                    )}
+                  </section>
+
+                  {/* Inspector */}
+                  <aside className={`inspector${inspectorOpen ? "" : " inspector-collapsed"}`}>
+                    {inspectorOpen && <InspectorResizer />}
+                    <button
+                      type="button"
+                      className="panel-toggle"
+                      title={inspectorOpen ? "Collapse inspector" : "Expand inspector"}
+                      aria-label={inspectorOpen ? "Collapse inspector" : "Expand inspector"}
+                      onClick={() => setInspectorOpen((o) => !o)}
+                    >
+                      <span className="panel-toggle-chip" aria-hidden="true">
+                        <Chevron dir={inspectorOpen ? "right" : "left"} />
+                      </span>
+                    </button>
+                    <div className="inspector-inner">
+                      <div className="tabs">
+                        {primaryTabs.map(renderTab)}
+                        {overflowTabs.length > 0 && (
+                          <details className="tabs-more">
+                            <summary
+                              className={overflowTabs.includes(tab) ? "tab active" : "tab"}
+                              title="More panels"
+                            >
+                              ⋯
+                            </summary>
+                            <div className="tabs-more-menu">{overflowTabs.map(renderTab)}</div>
+                          </details>
+                        )}
+                      </div>
+
+                      {tab === "overview" && <OverviewPanel />}
+                      {tab === "checks" && <ChecksPanel />}
+                      {tab === "properties" &&
+                        (selected ? (
+                          <PropertiesPanel element={selected} />
+                        ) : (
+                          <p className="muted">Select a question to edit its settings.</p>
+                        ))}
+                      {tab === "theme" && <ThemePanel />}
+                      {tab === "settings" && <SettingsPanel />}
+                      {tab === "translate" && <TranslatePanel />}
+                      {tab === "preview" && (
+                        <BirdsEyePreview schema={schema} onOpenFull={() => setPreviewOpen(true)} />
+                      )}
+                      {tab === "activity" && formId !== "new" && <ActivityPanel formId={formId} />}
+                      {tab === "history" && (
+                        <HistoryPanel
+                          formId={formId}
+                          onRestoreVersion={async (version) => {
+                            const versionSchema = await api.getVersion(formId, version);
+                            store.loadTemplate(versionSchema);
+                            await store.save();
+                          }}
+                        />
                       )}
                     </div>
-                  </div>
-                )}
+                  </aside>
+                </div>
 
-                {elements.length === 0 ? (
-                  <div className="canvas-empty">
-                    <div className="canvas-empty-icon" aria-hidden="true">
-                      ⊕
+                <DragOverlay dropAnimation={{ duration: 180, easing: "cubic-bezier(.2,.8,.3,1)" }}>
+                  {activePaletteItem ? (
+                    <div className="palette-item drag-ghost">
+                      <span aria-hidden="true">{activePaletteItem.icon}</span>{" "}
+                      {activePaletteItem.label}
                     </div>
-                    <p className="canvas-empty-heading">Start building your form</p>
-                    <p className="canvas-empty-body">
-                      Click a field type in the left panel to add it, or drag one onto the canvas.
-                    </p>
-                  </div>
-                ) : (
-                  <BuilderCanvas
-                    elements={elements}
-                    pageIndex={activePage}
-                    activeDragId={activeDragId}
-                    overDragId={overDragId}
-                    groupingSource={groupingSource}
-                    device={device}
-                    onGroupLink={(name) => {
-                      if (groupingSource === null) {
-                        // Enter group-link mode.
-                        setGroupingSource(name);
-                        store.select(name);
-                      } else if (groupingSource !== name) {
-                        // Complete the group.
-                        store.confirmGrouping(groupingSource, name);
-                        setGroupingSource(null);
-                      }
-                    }}
-                  />
-                )}
-              </section>
+                  ) : activeCanvasElement ? (
+                    <div className="el-card drag-ghost">
+                      <div className="el-row">
+                        <span className="drag-handle" aria-hidden="true">
+                          ⋮⋮
+                        </span>
+                        <span className="el-card-body">
+                          <span className="el-label">
+                            {localize(activeCanvasElement.label) || activeCanvasElement.name}
+                          </span>
+                          <span className="el-type">
+                            {activeCanvasElement.type.replace(/_/g, " ")}
+                          </span>
+                        </span>
+                        {activeCanvasElement.elements?.length ? (
+                          <span className="drag-count">
+                            {activeCanvasElement.elements.length} inside
+                          </span>
+                        ) : null}
+                      </div>
+                    </div>
+                  ) : null}
+                </DragOverlay>
+              </DndContext>
+            </>
+          )}
 
-              {/* Inspector */}
-              <aside className={`inspector${inspectorOpen ? "" : " inspector-collapsed"}`}>
-                {inspectorOpen && <InspectorResizer />}
-                <button
-                  type="button"
-                  className="panel-toggle"
-                  title={inspectorOpen ? "Collapse inspector" : "Expand inspector"}
-                  aria-label={inspectorOpen ? "Collapse inspector" : "Expand inspector"}
-                  onClick={() => setInspectorOpen((o) => !o)}
-                >
-                  <span className="panel-toggle-chip" aria-hidden="true">
-                    <Chevron dir={inspectorOpen ? "right" : "left"} />
-                  </span>
-                </button>
-                <div className="inspector-inner">
-                  <div className="tabs">
-                    {primaryTabs.map(renderTab)}
-                    {overflowTabs.length > 0 && (
-                      <details className="tabs-more">
-                        <summary
-                          className={overflowTabs.includes(tab) ? "tab active" : "tab"}
-                          title="More panels"
-                        >
-                          ⋯
-                        </summary>
-                        <div className="tabs-more-menu">{overflowTabs.map(renderTab)}</div>
-                      </details>
-                    )}
-                  </div>
-
-                  {tab === "overview" && <OverviewPanel />}
-                  {tab === "checks" && <ChecksPanel />}
-                  {tab === "properties" &&
-                    (selected ? (
-                      <PropertiesPanel element={selected} />
-                    ) : (
-                      <p className="muted">Select a question to edit its settings.</p>
-                    ))}
-                  {tab === "theme" && <ThemePanel />}
-                  {tab === "settings" && <SettingsPanel />}
-                  {tab === "translate" && <TranslatePanel />}
-                  {tab === "preview" && (
-                    <BirdsEyePreview schema={schema} onOpenFull={() => setPreviewOpen(true)} />
-                  )}
-                  {tab === "activity" && formId !== "new" && <ActivityPanel formId={formId} />}
-                  {tab === "history" && (
-                    <HistoryPanel
-                      formId={formId}
-                      onRestoreVersion={async (version) => {
-                        const versionSchema = await api.getVersion(formId, version);
-                        store.loadTemplate(versionSchema);
-                        await store.save();
-                      }}
-                    />
-                  )}
-                </div>
-              </aside>
-            </div>
-
-            <DragOverlay dropAnimation={{ duration: 180, easing: "cubic-bezier(.2,.8,.3,1)" }}>
-              {activePaletteItem ? (
-                <div className="palette-item drag-ghost">
-                  <span aria-hidden="true">{activePaletteItem.icon}</span> {activePaletteItem.label}
-                </div>
-              ) : activeCanvasElement ? (
-                <div className="el-card drag-ghost">
-                  <div className="el-row">
-                    <span className="drag-handle" aria-hidden="true">
-                      ⋮⋮
-                    </span>
-                    <span className="el-card-body">
-                      <span className="el-label">
-                        {localize(activeCanvasElement.label) || activeCanvasElement.name}
-                      </span>
-                      <span className="el-type">{activeCanvasElement.type.replace(/_/g, " ")}</span>
-                    </span>
-                    {activeCanvasElement.elements?.length ? (
-                      <span className="drag-count">
-                        {activeCanvasElement.elements.length} inside
-                      </span>
-                    ) : null}
-                  </div>
-                </div>
-              ) : null}
-            </DragOverlay>
-          </DndContext>
+          {mode === "design" && (
+            <DesignPanel device={device} onOpenFullPreview={() => setPreviewOpen(true)} />
+          )}
+          {mode === "share" && (
+            <SharePanel formId={store.formId} onOpenIntegrations={() => setIntegrations(true)} />
+          )}
+          {mode === "results" && store.formId && <ResultsPanel formId={store.formId} />}
         </div>
       </div>
 
