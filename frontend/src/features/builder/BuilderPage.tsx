@@ -216,27 +216,37 @@ export function BuilderPage() {
   const notes = lintForm(schema);
   const errorCount = notes.filter((n) => n.level === "error").length;
 
-  // Inspector tabs: the high-frequency ones stay visible; the rest fold into a "⋯" overflow
-  // so the strip isn't a wall of 9 competing destinations.
-  const primaryTabs: Tab[] = ["overview", "properties", "checks", "settings", "theme", "preview"];
+  // Inspector tabs: v2 keeps exactly three primary destinations (Settings/Preview/Mind map)
+  // and folds everything else — Checks, Theme, Form settings, Translate, History, Activity —
+  // into a "⋯" overflow, same pattern as the earlier nav-consistency pass. Nothing is removed,
+  // just relocated: every one of those panels is still one click away.
+  const primaryTabs: Tab[] = ["properties", "preview", "overview"];
   const overflowTabs: Tab[] = [
+    "checks",
+    "theme",
+    "settings",
     ...(isMultilingual ? (["translate"] as Tab[]) : []),
     "history",
     ...(formId !== "new" ? (["activity"] as Tab[]) : []),
   ];
   const TAB_TITLE: Record<Tab, string> = {
-    overview: "Map — all fields at a glance",
+    overview: "Mind map — structure, flow, and logic at a glance",
     checks: "Checks — live notes about logic & references",
-    properties: "Properties — edit this field",
+    properties: "Settings — edit the selected field, or form behaviour when nothing is selected",
     theme: "Theme — colours & fonts",
-    settings: "Settings — form behaviour",
+    settings: "Form settings — behaviour, access, scheduling",
     translate: "Translations",
     preview: "Live preview",
     history: "History — session edits & published versions",
     activity: "Activity log",
   };
-  const tabLabel = (t: Tab): string =>
-    t === "overview" ? "Map" : t === "preview" ? "Live" : t.charAt(0).toUpperCase() + t.slice(1);
+  const tabLabel = (t: Tab): string => {
+    if (t === "overview") return "Mind map";
+    if (t === "preview") return "Live";
+    if (t === "properties") return "Settings";
+    if (t === "settings") return "Form settings";
+    return t.charAt(0).toUpperCase() + t.slice(1);
+  };
   const renderTab = (t: Tab) => (
     <Button
       key={t}
@@ -766,9 +776,16 @@ export function BuilderPage() {
                           <details className="tabs-more">
                             <summary
                               className={overflowTabs.includes(tab) ? "tab active" : "tab"}
-                              title="More panels"
+                              title="More panels — Checks, Theme, Form settings, Translate, History, Activity"
                             >
                               ⋯
+                              {notes.length > 0 && (
+                                <span
+                                  className={`tab-badge${errorCount > 0 ? " error" : " warning"}`}
+                                >
+                                  {notes.length}
+                                </span>
+                              )}
                             </summary>
                             <div className="tabs-more-menu">{overflowTabs.map(renderTab)}</div>
                           </details>
@@ -778,16 +795,16 @@ export function BuilderPage() {
                       {tab === "overview" && <OverviewPanel />}
                       {tab === "checks" && <ChecksPanel />}
                       {tab === "properties" &&
-                        (selected ? (
-                          <PropertiesPanel element={selected} />
-                        ) : (
-                          <p className="muted">Select a question to edit its settings.</p>
-                        ))}
+                        (selected ? <PropertiesPanel element={selected} /> : <SettingsPanel />)}
                       {tab === "theme" && <ThemePanel />}
                       {tab === "settings" && <SettingsPanel />}
                       {tab === "translate" && <TranslatePanel />}
                       {tab === "preview" && (
-                        <BirdsEyePreview schema={schema} onOpenFull={() => setPreviewOpen(true)} />
+                        <BirdsEyePreview
+                          schema={schema}
+                          device={device}
+                          onOpenFull={() => setPreviewOpen(true)}
+                        />
                       )}
                       {tab === "activity" && formId !== "new" && <ActivityPanel formId={formId} />}
                       {tab === "history" && (
@@ -836,7 +853,6 @@ export function BuilderPage() {
               </DndContext>
             </>
           )}
-
           {mode === "design" && (
             <DesignPanel device={device} onOpenFullPreview={() => setPreviewOpen(true)} />
           )}

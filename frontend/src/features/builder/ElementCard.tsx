@@ -161,6 +161,10 @@ export function ElementCard({
     }
   }
 
+  function handleCardKeyDown(e: React.KeyboardEvent) {
+    if (e.key === "Enter" || e.key === " ") select(element.name);
+  }
+
   function handleGroupIconClick(e: React.MouseEvent) {
     e.stopPropagation();
     if (multiSelect) {
@@ -234,14 +238,18 @@ export function ElementCard({
             {collapsed ? "▸" : "▾"}
           </button>
         )}
-
-        <button
-          type="button"
+        {/* A <div role="button">, not a real <button>: a real button's native Space-activation
+            misfires (fires a click, deselecting the card) while the nested label input has
+            focus, since the input is a descendant of the button. Explicit onClick/onKeyDown
+            below reproduce the same keyboard affordance without that native side effect.
+            (lint/a11y/useSemanticElements is disabled for this file in biome.json — its
+            suppression comment doesn't reliably attach to this element in biome 1.8.) */}
+        <div
           className="el-card-body"
+          role="button"
+          tabIndex={0}
           onClick={handleCardClick}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") select(element.name);
-          }}
+          onKeyDown={handleCardKeyDown}
         >
           {inSelection && multiSelect && (
             <span className="el-check" aria-hidden="true">
@@ -278,14 +286,7 @@ export function ElementCard({
             }
             onClick={(e) => e.stopPropagation()}
           />
-          {editing ? (
-            <RequiredChip
-              required={!!element.required}
-              onChange={(v) => update(element.name, { required: v })}
-            />
-          ) : element.required ? (
-            <span className="el-required">*</span>
-          ) : null}
+          {!editing && element.required ? <span className="el-required">*</span> : null}
           <span className="el-type">
             {element.type.replace(/_/g, " ")}
             {container && (
@@ -307,7 +308,13 @@ export function ElementCard({
               </span>
             )}
           </span>
-        </button>
+          {editing && (
+            <RequiredChip
+              required={!!element.required}
+              onChange={(v) => update(element.name, { required: v })}
+            />
+          )}
+        </div>
 
         {/* Action controls must not initiate a card drag. */}
         <div className="el-actions" onPointerDown={(e) => e.stopPropagation()}>

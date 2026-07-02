@@ -196,6 +196,19 @@ export function SettingsPanel() {
           />
           <span>Shuffle answer options</span>
         </label>
+
+        <label className="prop prop-check">
+          <input
+            type="checkbox"
+            checked={settings.autoNumber !== false}
+            onChange={(e) => setSettings({ autoNumber: e.target.checked })}
+          />
+          <span>Show question numbers (Q1, Q2…)</span>
+        </label>
+        <small className="hint">
+          Display-only, positional numbering shown on cards and in the live preview — never stored
+          per question.
+        </small>
       </Accordion>
 
       <Accordion sectionKey="settings.schedule" title="Scheduling & limits">
